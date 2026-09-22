@@ -24,6 +24,7 @@ from sus_explorer.data.cache.manifest import (
     save_manifest,
     utc_now,
 )
+from sus_explorer.paths import CACHE_ROOT
 
 
 YEAR = 2023
@@ -33,7 +34,6 @@ ZIP_PATH = Path(
     "tmp/pni_2023_10/vacinacao_out_2023_csv.zip"
 )
 
-CACHE_ROOT = Path("cache/pni_cube")
 MANIFEST_PATH = CACHE_ROOT / "manifest.json"
 
 RESOURCE_ID = "bb1c023c-e524-48ff-8471-f68f6cdf189e"

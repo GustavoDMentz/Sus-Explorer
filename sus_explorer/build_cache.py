@@ -25,6 +25,7 @@ from .data.remote.r2 import (
     open_partition,
     partition_path,
 )
+from .paths import CACHE_ROOT
 from .transform.pni import (
     UFS,
     CUBE_ALIASES,
@@ -326,7 +327,7 @@ def main():
     )
     parser.add_argument(
         "--cache-root",
-        default="cache/pni_cube",
+        default=str(CACHE_ROOT),
     )
     parser.add_argument(
         "--batch-size",
