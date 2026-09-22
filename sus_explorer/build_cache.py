@@ -3,10 +3,9 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import time
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -14,10 +13,17 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .config import settings
+from .data.cache.manifest import (
+    cache_file,
+    load_manifest,
+    save_manifest,
+    utc_now,
+    validate_existing_cache,
+)
 from .data.remote.r2 import (
     make_filesystem,
-    partition_path,
     open_partition,
+    partition_path,
 )
 from .transform.pni import (
     UFS,
@@ -36,77 +42,6 @@ ALIASES = CUBE_ALIASES
 make_s3 = make_filesystem
 source_path = partition_path
 
-
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-
-def cache_file(
-    cache_root: Path,
-    year: int,
-    month: int,
-    uf: str,
-) -> Path:
-    return (
-        cache_root
-        / f"ano={year}"
-        / f"uf={uf}"
-        / f"mes={month:02d}"
-        / "cube.parquet"
-    )
-
-
-
-
-def load_manifest(path: Path) -> dict:
-    if not path.exists():
-        return {
-            "schema_version": 1,
-            "created_at": utc_now(),
-            "updated_at": utc_now(),
-            "partitions": {},
-        }
-
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as exc:
-        raise RuntimeError(
-            f"Manifest inválido: {path}: {exc}"
-        ) from exc
-
-
-def save_manifest(path: Path, manifest: dict) -> None:
-    manifest["updated_at"] = utc_now()
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(
-        json.dumps(
-            manifest,
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    os.replace(tmp, path)
-
-
-def validate_existing_cache(path: Path) -> dict:
-    metadata = pq.read_metadata(path)
-    table = pq.read_table(path, columns=["doses"])
-    doses = int(
-        table["doses"]
-        .combine_chunks()
-        .to_numpy()
-        .sum()
-    )
-
-    return {
-        "rows_cube": metadata.num_rows,
-        "doses": doses,
-        "bytes": path.stat().st_size,
-    }
 
 
 def build_partition(

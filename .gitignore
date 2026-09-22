@@ -17,19 +17,19 @@ venv/
 env/
 
 # --- Raw / temporary data ---
-tmp/
-data/raw/
+/tmp/
+/data/raw/
 *.zip
 
 # --- Generated PNI cache ---
-cache/
-data/cache/
+/cache/
+/data/cache/
 
 # --- Quarantine data ---
-data/quarantine/
+/data/quarantine/
 
 # --- Large/generated audit artifacts ---
-audit/differences/
+/audit/differences/
 *.parquet
 
 # --- IDE / OS ---

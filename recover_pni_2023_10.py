@@ -18,7 +18,7 @@ from sus_explorer.transform.pni import (
     partition_key,
 )
 
-from sus_explorer.build_cache import (
+from sus_explorer.data.cache.manifest import (
     cache_file,
     load_manifest,
     save_manifest,
