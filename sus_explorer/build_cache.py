@@ -1,0 +1,737 @@
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import time
+import traceback
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pandas as pd
+import pyarrow as pa
+import pyarrow.dataset as pds
+import pyarrow.fs as fs
+import pyarrow.parquet as pq
+
+from .config import settings
+
+
+UFS = [
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+    "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
+    "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+]
+
+ALIASES = {
+    "municipality_code": [
+        "co_municipio_estabelecimento",
+        "co_municipio_ibge",
+    ],
+    "municipality_name": [
+        "no_municipio_estabelecimento",
+    ],
+    "vaccine_code": ["co_vacina"],
+    "sex": ["tp_sexo_paciente", "co_sexo"],
+    "age": ["nu_idade_paciente"],
+    "dose": [
+        "ds_tipo_dose",
+        "ds_dose_vacina",
+        "co_dose_vacina",
+        "co_dose",
+    ],
+}
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def resolve_col(ds, logical_name: str) -> str | None:
+    names = set(ds.schema.names)
+    for candidate in ALIASES[logical_name]:
+        if candidate in names:
+            return candidate
+    return None
+
+
+def normalize_string(series: pd.Series) -> pd.Series:
+    return (
+        series.astype("string")
+        .str.strip()
+        .fillna("IGNORADO")
+    )
+
+
+def age_band_series(series: pd.Series) -> pd.Series:
+    ages = pd.to_numeric(series, errors="coerce")
+
+    return pd.cut(
+        ages,
+        bins=[-1, 4, 9, 14, 19, 29, 39, 49, 59, 69, 79, 200],
+        labels=[
+            "00-04", "05-09", "10-14", "15-19", "20-29",
+            "30-39", "40-49", "50-59", "60-69", "70-79", "80+",
+        ],
+        include_lowest=True,
+        right=True,
+    ).astype("string").fillna("IGNORADA")
+
+
+def make_s3():
+    if not all([
+        settings.r2_endpoint,
+        settings.r2_access_key,
+        settings.r2_secret_key,
+    ]):
+        raise RuntimeError("Configuração R2 ausente no .env")
+
+    return fs.S3FileSystem(
+        endpoint_override=settings.r2_endpoint,
+        access_key=settings.r2_access_key,
+        secret_key=settings.r2_secret_key,
+        region=settings.r2_region,
+    )
+
+
+def source_path(year: int, month: int, uf: str) -> str:
+    return (
+        f"{settings.r2_bucket}/{settings.r2_prefix}/"
+        f"ano={year}/mes={month:02d}/uf={uf}/"
+    )
+
+
+def cache_file(
+    cache_root: Path,
+    year: int,
+    month: int,
+    uf: str,
+) -> Path:
+    return (
+        cache_root
+        / f"ano={year}"
+        / f"uf={uf}"
+        / f"mes={month:02d}"
+        / "cube.parquet"
+    )
+
+
+def partition_key(year: int, month: int, uf: str) -> str:
+    return f"{year}/{uf}/{month:02d}"
+
+
+def load_manifest(path: Path) -> dict:
+    if not path.exists():
+        return {
+            "schema_version": 1,
+            "created_at": utc_now(),
+            "updated_at": utc_now(),
+            "partitions": {},
+        }
+
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        raise RuntimeError(
+            f"Manifest inválido: {path}: {exc}"
+        ) from exc
+
+
+def save_manifest(path: Path, manifest: dict) -> None:
+    manifest["updated_at"] = utc_now()
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(
+        json.dumps(
+            manifest,
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    os.replace(tmp, path)
+
+
+def validate_existing_cache(path: Path) -> dict:
+    metadata = pq.read_metadata(path)
+    table = pq.read_table(path, columns=["doses"])
+    doses = int(
+        table["doses"]
+        .combine_chunks()
+        .to_numpy()
+        .sum()
+    )
+
+    return {
+        "rows_cube": metadata.num_rows,
+        "doses": doses,
+        "bytes": path.stat().st_size,
+    }
+
+
+def build_partition(
+    s3,
+    year: int,
+    month: int,
+    uf: str,
+    output_file: Path,
+    batch_size: int,
+) -> dict:
+    started = time.perf_counter()
+
+    try:
+        ds = pds.dataset(
+            source_path(year, month, uf),
+            filesystem=s3,
+            format="parquet",
+        )
+    except FileNotFoundError:
+        return {
+            "status": "missing",
+            "year": year,
+            "month": month,
+            "uf": uf,
+            "elapsed_seconds": round(
+                time.perf_counter() - started,
+                3,
+            ),
+        }
+
+    physical = {
+        logical: resolve_col(ds, logical)
+        for logical in ALIASES
+    }
+
+    missing_cols = [
+        logical
+        for logical, column in physical.items()
+        if column is None
+    ]
+
+    if missing_cols:
+        raise KeyError(
+            f"{year}/{uf}/{month:02d}: "
+            "colunas necessárias ausentes: "
+            + ", ".join(missing_cols)
+        )
+
+    columns = list(dict.fromkeys(physical.values()))
+
+    aggregate: dict[tuple[str, ...], int] = {}
+    raw_rows = 0
+    fragments = sum(1 for _ in ds.get_fragments())
+
+    scanner = ds.scanner(
+        columns=columns,
+        batch_size=batch_size,
+        use_threads=True,
+    )
+
+    for batch in scanner.to_batches():
+        raw_rows += batch.num_rows
+
+        pdf = pa.Table.from_batches([batch]).to_pandas()
+
+        frame = pd.DataFrame({
+            "municipality_code": normalize_string(
+                pdf[physical["municipality_code"]]
+            ),
+            "municipality_name": normalize_string(
+                pdf[physical["municipality_name"]]
+            ),
+            "vaccine_code": normalize_string(
+                pdf[physical["vaccine_code"]]
+            ),
+            "sex": normalize_string(
+                pdf[physical["sex"]]
+            ),
+            "age_band": age_band_series(
+                pdf[physical["age"]]
+            ),
+            "dose": normalize_string(
+                pdf[physical["dose"]]
+            ),
+        })
+
+        grouped = (
+            frame.groupby(
+                [
+                    "municipality_code",
+                    "municipality_name",
+                    "vaccine_code",
+                    "sex",
+                    "age_band",
+                    "dose",
+                ],
+                dropna=False,
+                observed=True,
+            )
+            .size()
+            .reset_index(name="doses")
+        )
+
+        for row in grouped.itertuples(index=False):
+            key = (
+                str(row.municipality_code),
+                str(row.municipality_name),
+                str(row.vaccine_code),
+                str(row.sex),
+                str(row.age_band),
+                str(row.dose),
+            )
+            aggregate[key] = (
+                aggregate.get(key, 0)
+                + int(row.doses)
+            )
+
+    rows = [
+        {
+            "year": year,
+            "month": month,
+            "uf": uf,
+            "municipality_code": key[0],
+            "municipality_name": key[1],
+            "vaccine_code": key[2],
+            "sex": key[3],
+            "age_band": key[4],
+            "dose": key[5],
+            "doses": count,
+        }
+        for key, count in aggregate.items()
+    ]
+
+    out_df = pd.DataFrame(rows)
+
+    if not out_df.empty:
+        out_df = out_df.sort_values(
+            [
+                "municipality_code",
+                "vaccine_code",
+                "sex",
+                "age_band",
+                "dose",
+            ],
+            kind="stable",
+        )
+
+    cube_doses = int(out_df["doses"].sum()) if len(out_df) else 0
+
+    # Invariante fundamental: o cubo deve representar todas as linhas
+    # brutas da partição, exatamente uma vez.
+    if cube_doses != raw_rows:
+        raise RuntimeError(
+            f"Falha de validação em {year}/{uf}/{month:02d}: "
+            f"SUM(doses)={cube_doses:,} != raw_rows={raw_rows:,}"
+        )
+
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    tmp = output_file.with_name(
+        output_file.name + ".tmp"
+    )
+
+    table = pa.Table.from_pandas(
+        out_df,
+        preserve_index=False,
+    )
+
+    pq.write_table(
+        table,
+        tmp,
+        compression="zstd",
+        compression_level=6,
+        use_dictionary=True,
+        write_statistics=True,
+    )
+
+    # Valida o arquivo gravado antes de torná-lo oficial.
+    written = pq.read_table(tmp, columns=["doses"])
+    written_doses = int(
+        written["doses"]
+        .combine_chunks()
+        .to_numpy()
+        .sum()
+    )
+
+    if written_doses != raw_rows:
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError(
+            f"Falha pós-gravação em {year}/{uf}/{month:02d}: "
+            f"SUM(doses)={written_doses:,} != raw_rows={raw_rows:,}"
+        )
+
+    os.replace(tmp, output_file)
+
+    return {
+        "status": "built",
+        "year": year,
+        "month": month,
+        "uf": uf,
+        "raw_rows": raw_rows,
+        "rows_cube": len(out_df),
+        "doses": cube_doses,
+        "fragments": fragments,
+        "bytes": output_file.stat().st_size,
+        "reduction_ratio": (
+            round(raw_rows / len(out_df), 2)
+            if len(out_df)
+            else None
+        ),
+        "elapsed_seconds": round(
+            time.perf_counter() - started,
+            3,
+        ),
+    }
+
+
+def build_with_retry(
+    s3,
+    year: int,
+    month: int,
+    uf: str,
+    output_file: Path,
+    batch_size: int,
+    retries: int,
+) -> dict:
+    last_exc = None
+
+    for attempt in range(1, retries + 2):
+        try:
+            result = build_partition(
+                s3=s3,
+                year=year,
+                month=month,
+                uf=uf,
+                output_file=output_file,
+                batch_size=batch_size,
+            )
+            result["attempts"] = attempt
+            return result
+        except KeyboardInterrupt:
+            raise
+        except Exception as exc:
+            last_exc = exc
+
+            if attempt > retries:
+                break
+
+            wait = min(2 ** (attempt - 1), 30)
+            print(
+                f"    erro: {exc} | retry em {wait}s "
+                f"({attempt}/{retries})",
+                flush=True,
+            )
+            time.sleep(wait)
+
+    assert last_exc is not None
+    raise last_exc
+
+
+def parse_ufs(raw: str | None) -> list[str]:
+    if not raw:
+        return UFS.copy()
+
+    values = [
+        item.strip().upper()
+        for item in raw.split(",")
+        if item.strip()
+    ]
+
+    invalid = [
+        uf for uf in values
+        if uf not in UFS
+    ]
+
+    if invalid:
+        raise ValueError(
+            "UF inválida: " + ", ".join(invalid)
+        )
+
+    return values
+
+
+def main():
+    current_year = datetime.now().year
+
+    parser = argparse.ArgumentParser(
+        description=(
+            "Constrói, valida e retoma o cache nacional "
+            "agregado do SI-PNI."
+        )
+    )
+
+    parser.add_argument(
+        "--start-year",
+        type=int,
+        default=2020,
+    )
+    parser.add_argument(
+        "--end-year",
+        type=int,
+        default=current_year,
+    )
+    parser.add_argument(
+        "--ufs",
+        help="Ex.: RS,SC,PR. Omitido = Brasil inteiro.",
+    )
+    parser.add_argument(
+        "--cache-root",
+        default="cache/pni_cube",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=100_000,
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=2,
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--retry-failed",
+        action="store_true",
+        help="Tenta novamente partições marcadas como failed.",
+    )
+
+    args = parser.parse_args()
+
+    if args.start_year > args.end_year:
+        parser.error("--start-year não pode ser maior que --end-year")
+
+    ufs = parse_ufs(args.ufs)
+    cache_root = Path(args.cache_root)
+    manifest_path = cache_root / "manifest.json"
+    manifest = load_manifest(manifest_path)
+    s3 = make_s3()
+
+    run_started = time.perf_counter()
+
+    counters = {
+        "built": 0,
+        "cached": 0,
+        "missing": 0,
+        "failed": 0,
+    }
+
+    print(
+        f"Cache nacional SI-PNI: "
+        f"{args.start_year}-{args.end_year} | "
+        f"{len(ufs)} UF(s)",
+        flush=True,
+    )
+
+    try:
+        for year in range(
+            args.start_year,
+            args.end_year + 1,
+        ):
+            for uf in ufs:
+                for month in range(1, 13):
+                    key = partition_key(
+                        year,
+                        month,
+                        uf,
+                    )
+                    output = cache_file(
+                        cache_root,
+                        year,
+                        month,
+                        uf,
+                    )
+                    old = manifest["partitions"].get(key)
+
+                    if output.exists() and not args.overwrite:
+                        try:
+                            existing = validate_existing_cache(
+                                output
+                            )
+
+                            entry = {
+                                "status": "cached",
+                                "year": year,
+                                "month": month,
+                                "uf": uf,
+                                **existing,
+                                "updated_at": utc_now(),
+                            }
+
+                            manifest["partitions"][key] = entry
+                            counters["cached"] += 1
+                            save_manifest(
+                                manifest_path,
+                                manifest,
+                            )
+
+                            print(
+                                f"[CACHE] {key} | "
+                                f"{existing['rows_cube']:,} linhas | "
+                                f"{existing['bytes']/1024/1024:.2f} MiB",
+                                flush=True,
+                            )
+                            continue
+                        except Exception as exc:
+                            print(
+                                f"[CACHE INVÁLIDO] {key}: {exc}",
+                                flush=True,
+                            )
+                            output.unlink(missing_ok=True)
+
+                    if (
+                        old
+                        and old.get("status") == "failed"
+                        and not args.retry_failed
+                        and not args.overwrite
+                    ):
+                        counters["failed"] += 1
+                        print(
+                            f"[SKIP FAILED] {key} "
+                            "(use --retry-failed)",
+                            flush=True,
+                        )
+                        continue
+
+                    print(
+                        f"[BUILD] {key}",
+                        flush=True,
+                    )
+
+                    try:
+                        result = build_with_retry(
+                            s3=s3,
+                            year=year,
+                            month=month,
+                            uf=uf,
+                            output_file=output,
+                            batch_size=args.batch_size,
+                            retries=args.retries,
+                        )
+
+                        result["updated_at"] = utc_now()
+                        manifest["partitions"][key] = result
+                        counters[result["status"]] += 1
+
+                        if result["status"] == "built":
+                            print(
+                                "    "
+                                f"raw={result['raw_rows']:,} | "
+                                f"cube={result['rows_cube']:,} | "
+                                f"{result['bytes']/1024/1024:.2f} MiB | "
+                                f"{result['elapsed_seconds']:.2f}s",
+                                flush=True,
+                            )
+                        else:
+                            print(
+                                f"    {result['status']}",
+                                flush=True,
+                            )
+
+                    except KeyboardInterrupt:
+                        raise
+                    except Exception as exc:
+                        counters["failed"] += 1
+
+                        manifest["partitions"][key] = {
+                            "status": "failed",
+                            "year": year,
+                            "month": month,
+                            "uf": uf,
+                            "error_type": type(exc).__name__,
+                            "error": str(exc),
+                            "traceback": traceback.format_exc(),
+                            "updated_at": utc_now(),
+                        }
+
+                        print(
+                            f"    FAILED: {type(exc).__name__}: {exc}",
+                            flush=True,
+                        )
+
+                    finally:
+                        save_manifest(
+                            manifest_path,
+                            manifest,
+                        )
+
+    except KeyboardInterrupt:
+        print(
+            "\nInterrompido. Manifest salvo; "
+            "a próxima execução retoma do cache existente.",
+            flush=True,
+        )
+        save_manifest(
+            manifest_path,
+            manifest,
+        )
+
+    files = list(
+        cache_root.rglob("cube.parquet")
+    )
+
+    total_bytes = sum(
+        path.stat().st_size
+        for path in files
+    )
+
+    # Auditoria final usa o manifest, sem reler milhões de linhas.
+    completed = [
+        entry
+        for entry in manifest["partitions"].values()
+        if entry.get("status") in {"built", "cached"}
+    ]
+
+    total_doses = sum(
+        int(entry.get("doses", 0))
+        for entry in completed
+    )
+
+    total_cube_rows = sum(
+        int(entry.get("rows_cube", 0))
+        for entry in completed
+    )
+
+    summary = {
+        "range": [
+            args.start_year,
+            args.end_year,
+        ],
+        "ufs": ufs,
+        "run": counters,
+        "cache_files": len(files),
+        "cached_partitions": len(completed),
+        "represented_doses_records": total_doses,
+        "cube_rows": total_cube_rows,
+        "size_bytes": total_bytes,
+        "size_mib": round(
+            total_bytes / 1024 / 1024,
+            2,
+        ),
+        "size_gib": round(
+            total_bytes / 1024 / 1024 / 1024,
+            3,
+        ),
+        "elapsed_seconds": round(
+            time.perf_counter() - run_started,
+            3,
+        ),
+        "manifest": str(manifest_path),
+    }
+
+    print("\n=== RESUMO NACIONAL ===")
+    print(
+        json.dumps(
+            summary,
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

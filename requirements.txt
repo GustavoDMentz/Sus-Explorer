@@ -1,0 +1,9 @@
+streamlit>=1.40
+google-genai>=1.0
+pyarrow>=18.0
+pydantic>=2.8
+python-dotenv>=1.0
+pandas>=2.2
+numpy>=2.0
+
+requests>=2.32
