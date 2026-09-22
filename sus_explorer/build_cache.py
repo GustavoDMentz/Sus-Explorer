@@ -11,11 +11,14 @@ from pathlib import Path
 
 import pandas as pd
 import pyarrow as pa
-import pyarrow.dataset as pds
-import pyarrow.fs as fs
 import pyarrow.parquet as pq
 
 from .config import settings
+from .data.remote.r2 import (
+    make_filesystem,
+    partition_path,
+    open_partition,
+)
 from .transform.pni import (
     UFS,
     CUBE_ALIASES,
@@ -29,32 +32,14 @@ from .transform.pni import (
 # Nome interno mantido para compatibilidade com o resto do módulo.
 ALIASES = CUBE_ALIASES
 
+# Backward compat aliases.
+make_s3 = make_filesystem
+source_path = partition_path
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-
-def make_s3():
-    if not all([
-        settings.r2_endpoint,
-        settings.r2_access_key,
-        settings.r2_secret_key,
-    ]):
-        raise RuntimeError("Configuração R2 ausente no .env")
-
-    return fs.S3FileSystem(
-        endpoint_override=settings.r2_endpoint,
-        access_key=settings.r2_access_key,
-        secret_key=settings.r2_secret_key,
-        region=settings.r2_region,
-    )
-
-
-def source_path(year: int, month: int, uf: str) -> str:
-    return (
-        f"{settings.r2_bucket}/{settings.r2_prefix}/"
-        f"ano={year}/mes={month:02d}/uf={uf}/"
-    )
 
 
 def cache_file(
@@ -135,11 +120,7 @@ def build_partition(
     started = time.perf_counter()
 
     try:
-        ds = pds.dataset(
-            source_path(year, month, uf),
-            filesystem=s3,
-            format="parquet",
-        )
+        ds = open_partition(s3, year, month, uf)
     except FileNotFoundError:
         return {
             "status": "missing",
