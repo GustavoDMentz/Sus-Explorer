@@ -16,67 +16,22 @@ import pyarrow.fs as fs
 import pyarrow.parquet as pq
 
 from .config import settings
+from .transform.pni import (
+    UFS,
+    CUBE_ALIASES,
+    age_band_series,
+    normalize_string,
+    parse_ufs,
+    partition_key,
+    resolve_col,
+)
 
-
-UFS = [
-    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
-    "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
-    "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-]
-
-ALIASES = {
-    "municipality_code": [
-        "co_municipio_estabelecimento",
-        "co_municipio_ibge",
-    ],
-    "municipality_name": [
-        "no_municipio_estabelecimento",
-    ],
-    "vaccine_code": ["co_vacina"],
-    "sex": ["tp_sexo_paciente", "co_sexo"],
-    "age": ["nu_idade_paciente"],
-    "dose": [
-        "ds_tipo_dose",
-        "ds_dose_vacina",
-        "co_dose_vacina",
-        "co_dose",
-    ],
-}
+# Nome interno mantido para compatibilidade com o resto do módulo.
+ALIASES = CUBE_ALIASES
 
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def resolve_col(ds, logical_name: str) -> str | None:
-    names = set(ds.schema.names)
-    for candidate in ALIASES[logical_name]:
-        if candidate in names:
-            return candidate
-    return None
-
-
-def normalize_string(series: pd.Series) -> pd.Series:
-    return (
-        series.astype("string")
-        .str.strip()
-        .fillna("IGNORADO")
-    )
-
-
-def age_band_series(series: pd.Series) -> pd.Series:
-    ages = pd.to_numeric(series, errors="coerce")
-
-    return pd.cut(
-        ages,
-        bins=[-1, 4, 9, 14, 19, 29, 39, 49, 59, 69, 79, 200],
-        labels=[
-            "00-04", "05-09", "10-14", "15-19", "20-29",
-            "30-39", "40-49", "50-59", "60-69", "70-79", "80+",
-        ],
-        include_lowest=True,
-        right=True,
-    ).astype("string").fillna("IGNORADA")
 
 
 def make_s3():
@@ -117,8 +72,6 @@ def cache_file(
     )
 
 
-def partition_key(year: int, month: int, uf: str) -> str:
-    return f"{year}/{uf}/{month:02d}"
 
 
 def load_manifest(path: Path) -> dict:
@@ -429,27 +382,6 @@ def build_with_retry(
     raise last_exc
 
 
-def parse_ufs(raw: str | None) -> list[str]:
-    if not raw:
-        return UFS.copy()
-
-    values = [
-        item.strip().upper()
-        for item in raw.split(",")
-        if item.strip()
-    ]
-
-    invalid = [
-        uf for uf in values
-        if uf not in UFS
-    ]
-
-    if invalid:
-        raise ValueError(
-            "UF inválida: " + ", ".join(invalid)
-        )
-
-    return values
 
 
 def main():

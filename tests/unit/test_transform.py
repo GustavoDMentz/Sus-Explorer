@@ -13,10 +13,18 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from sus_explorer.build_cache import (
+# Importa da localização canônica nova.
+from sus_explorer.transform.pni import (
     age_band_series,
     normalize_string,
     partition_key,
+)
+
+# Importa também da localização original para garantir backward compat.
+from sus_explorer.build_cache import (
+    age_band_series as bc_age_band_series,
+    normalize_string as bc_normalize_string,
+    partition_key as bc_partition_key,
 )
 
 
@@ -149,3 +157,20 @@ class TestPartitionKey:
 
     def test_december(self):
         assert partition_key(2024, 12, "MG") == "2024/MG/12"
+
+
+# ──────────────────────────────────────────────────────────
+# Backward compatibility: build_cache re-exports
+# ──────────────────────────────────────────────────────────
+
+class TestBackwardCompat:
+    """Garante que build_cache re-exporta as mesmas funções."""
+
+    def test_normalize_string_same_function(self):
+        assert normalize_string is bc_normalize_string
+
+    def test_age_band_series_same_function(self):
+        assert age_band_series is bc_age_band_series
+
+    def test_partition_key_same_function(self):
+        assert partition_key is bc_partition_key

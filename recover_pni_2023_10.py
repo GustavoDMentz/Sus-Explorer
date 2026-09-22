@@ -11,12 +11,16 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from sus_explorer.build_cache import (
+from sus_explorer.transform.pni import (
     UFS,
     age_band_series,
+    normalize_string,
+    partition_key,
+)
+
+from sus_explorer.build_cache import (
     cache_file,
     load_manifest,
-    normalize_string,
     save_manifest,
     utc_now,
 )
@@ -57,8 +61,6 @@ GROUP_COLS = [
 ]
 
 
-def partition_key(year: int, month: int, uf: str) -> str:
-    return f"{year}/{uf}/{month:02d}"
 
 
 def main() -> None:
