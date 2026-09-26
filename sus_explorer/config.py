@@ -15,4 +15,10 @@ class Settings:
     r2_bucket: str = os.getenv('R2_BUCKET','healthbr-data')
     r2_prefix: str = os.getenv('R2_PREFIX','sipni/microdados')
     max_group_rows: int = int(os.getenv('MAX_GROUP_ROWS','50'))
+    # Cubo SI-PNI no bucket de auditoria (sus-dados) — credenciais independentes
+    sus_data_r2_endpoint: str = os.getenv('SUS_DATA_R2_ENDPOINT','')
+    sus_data_r2_access_key: str = os.getenv('SUS_DATA_R2_ACCESS_KEY_ID','')
+    sus_data_r2_secret_key: str = os.getenv('SUS_DATA_R2_SECRET_ACCESS_KEY','')
+    sus_data_r2_bucket: str = os.getenv('SUS_DATA_R2_BUCKET','sus-dados')
+    sus_data_r2_cube_prefix: str = os.getenv('SUS_DATA_R2_CUBE_PREFIX','cache/pni_cube')
 settings=Settings()
