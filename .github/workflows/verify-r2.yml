@@ -1,0 +1,56 @@
+name: Verify R2 cache
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-r2:
+    runs-on: ubuntu-latest
+
+    env:
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+      R2_BUCKET: ${{ vars.R2_BUCKET }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+          rclone version
+
+      - name: Configure read-only R2 remote
+        shell: bash
+        run: |
+          mkdir -p ~/.config/rclone
+
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [sus-r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${R2_ACCESS_KEY_ID}
+          secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          region = auto
+          endpoint = ${R2_ENDPOINT}
+          no_check_bucket = true
+          EOF
+
+      - name: Verify R2 access
+        run: |
+          echo "Testing R2 access..."
+          rclone lsf "sus-r2:${R2_BUCKET}/cache/pni_cube" | head
+
+      - name: Inspect cache
+        run: |
+          rclone size "sus-r2:${R2_BUCKET}/cache/pni_cube"
+
+      - name: Verify known partition
+        run: |
+          rclone ls \
+            "sus-r2:${R2_BUCKET}/cache/pni_cube/ano=2023/uf=RS/mes=10"
