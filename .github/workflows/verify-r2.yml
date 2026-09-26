@@ -25,6 +25,29 @@ jobs:
           curl https://rclone.org/install.sh | sudo bash
           rclone version
 
+      - name: Diagnose R2 configuration
+        shell: bash
+        run: |
+          echo "R2_ENDPOINT=${R2_ENDPOINT:-<EMPTY>}"
+          echo "R2_BUCKET=${R2_BUCKET:-<EMPTY>}"
+
+          if [ -n "$R2_ACCESS_KEY_ID" ]; then
+            echo "R2_ACCESS_KEY_ID=SET"
+          else
+            echo "R2_ACCESS_KEY_ID=EMPTY"
+          fi
+
+          if [ -n "$R2_SECRET_ACCESS_KEY" ]; then
+            echo "R2_SECRET_ACCESS_KEY=SET"
+          else
+            echo "R2_SECRET_ACCESS_KEY=EMPTY"
+          fi
+
+          test -n "$R2_ENDPOINT" || exit 1
+          test -n "$R2_BUCKET" || exit 1
+          test -n "$R2_ACCESS_KEY_ID" || exit 1
+          test -n "$R2_SECRET_ACCESS_KEY" || exit 1
+
       - name: Configure read-only R2 remote
         shell: bash
         run: |
