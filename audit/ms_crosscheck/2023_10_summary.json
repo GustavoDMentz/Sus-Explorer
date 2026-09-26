@@ -1,0 +1,32 @@
+{
+  "audit_version": 1,
+  "period": "2023-10",
+  "official_source": {
+    "provider": "Ministério da Saúde / OpenDataSUS",
+    "resource_id": "bb1c023c-e524-48ff-8471-f68f6cdf189e",
+    "filename": "vacinacao_out_2023_csv.zip",
+    "sha256": "133756671d73b14ce913f431cbc9e17915a00c99d885685eb611d048c323ca40",
+    "encoding": "cp1252"
+  },
+  "ms": {
+    "raw_rows": 12454252,
+    "partitionable_rows": 12454230,
+    "unpartitionable_rows": 22,
+    "cube_keys": 1238805,
+    "partitionable_doses": 12454230
+  },
+  "local_cube": {
+    "cube_rows": 1238805,
+    "doses": 12454230
+  },
+  "comparison": {
+    "missing_from_cube": 0,
+    "extra_in_cube": 0,
+    "changed_keys": 0,
+    "different_keys": 0,
+    "absolute_dose_delta": 0,
+    "net_dose_delta": 0
+  },
+  "status": "EXACT_MATCH",
+  "elapsed_seconds": 135.616
+}
