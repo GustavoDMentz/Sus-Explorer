@@ -14,12 +14,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # Cache local do cubo SI-PNI
 CACHE_ROOT = PROJECT_ROOT / "cache" / "pni_cube"
 
-# Diretórios de dados brutos e quarentena
-RAW_ROOT = PROJECT_ROOT / "data" / "raw"
-QUARANTINE_ROOT = PROJECT_ROOT / "data" / "quarantine"
-
-# Diretórios de auditoria
+# Audit artifacts stay separate from disposable caches.
 AUDIT_ROOT = PROJECT_ROOT / "audit"
-AUDIT_REPORTS = AUDIT_ROOT / "reports"
-AUDIT_DIFFERENCES = AUDIT_ROOT / "differences"
-AUDIT_PROVENANCE = AUDIT_ROOT / "provenance"
+
+# FHIR terminology is a per-user cache, not part of the PNI cube.
+TERMINOLOGY_CACHE_FILE = Path.home() / ".cache" / "sus_explorer" / "BRImunobiologico_ms_go.json"

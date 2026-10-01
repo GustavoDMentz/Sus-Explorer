@@ -38,7 +38,7 @@ import pyarrow.fs as pa_fs
 import pyarrow.parquet as pq
 
 from ..config import settings
-from ..paths import PROJECT_ROOT
+from ..paths import AUDIT_ROOT, PROJECT_ROOT
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ KEYS = [
 CSV_ENCODING = "cp1252"
 
 # Diretório de auditoria.
-AUDIT_CROSSCHECK = PROJECT_ROOT / "audit" / "ms_crosscheck"
+AUDIT_CROSSCHECK = AUDIT_ROOT / "ms_crosscheck"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

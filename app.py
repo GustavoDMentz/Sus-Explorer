@@ -1,6 +1,6 @@
 from __future__ import annotations
 import streamlit as st
-from sus_explorer.service import SUSExplorer
+from sus_explorer.query_service import SUSExplorer
 
 
 st.set_page_config(

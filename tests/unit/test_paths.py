@@ -7,14 +7,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from sus_explorer.paths import (
-    AUDIT_DIFFERENCES,
-    AUDIT_PROVENANCE,
-    AUDIT_REPORTS,
     AUDIT_ROOT,
     CACHE_ROOT,
     PROJECT_ROOT,
-    QUARANTINE_ROOT,
-    RAW_ROOT,
+    TERMINOLOGY_CACHE_FILE,
 )
 
 
@@ -22,12 +18,8 @@ def test_paths_are_path_instances():
     for p in [
         PROJECT_ROOT,
         CACHE_ROOT,
-        RAW_ROOT,
-        QUARANTINE_ROOT,
         AUDIT_ROOT,
-        AUDIT_REPORTS,
-        AUDIT_DIFFERENCES,
-        AUDIT_PROVENANCE,
+        TERMINOLOGY_CACHE_FILE,
     ]:
         assert isinstance(p, Path)
 

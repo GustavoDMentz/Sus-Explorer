@@ -4,7 +4,8 @@
 !.env.example
 
 # --- Python ---
-__pycache__/
+# Bytecode caches in the root and nested packages/tests/scripts.
+**/__pycache__/
 *.py[cod]
 *.so
 .pytest_cache/
@@ -16,17 +17,13 @@ __pycache__/
 venv/
 env/
 
-# --- Raw / temporary data ---
+# --- Local data and temporary downloads (fixtures belong in tests/) ---
 /tmp/
-/data/raw/
+/data/
 *.zip
 
 # --- Generated PNI cache ---
 /cache/
-/data/cache/
-
-# --- Quarantine data ---
-/data/quarantine/
 
 # --- Large/generated audit artifacts ---
 /audit/differences/

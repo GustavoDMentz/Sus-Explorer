@@ -8,6 +8,8 @@ from pathlib import Path
 
 import requests
 
+from .paths import TERMINOLOGY_CACHE_FILE
+
 
 MS_VALUESET_URL = (
     "https://terminologia.saude.gov.br/fhir/"
@@ -23,8 +25,7 @@ GO_CODESYSTEM_URL = (
     "CodeSystem-BRImunobiologico.json"
 )
 
-CACHE_DIR = Path.home() / ".cache" / "sus_explorer"
-CACHE_FILE = CACHE_DIR / "BRImunobiologico_ms_go.json"
+CACHE_FILE = TERMINOLOGY_CACHE_FILE
 CACHE_TTL_SECONDS = 7 * 24 * 3600
 
 
@@ -211,7 +212,7 @@ class ImmunobiologicalTerminology:
             "concepts": merged,
         }
 
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        self.cache_file.parent.mkdir(parents=True, exist_ok=True)
         self.cache_file.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
