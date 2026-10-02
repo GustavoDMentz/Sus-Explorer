@@ -38,6 +38,7 @@ import pyarrow.fs as pa_fs
 import pyarrow.parquet as pq
 
 from ..config import settings
+from ..operational_logging import JsonlRunLogger
 from ..paths import PROJECT_ROOT
 
 
@@ -430,7 +431,7 @@ def save_differences(
 # CLI
 # ─────────────────────────────────────────────────────────────────────────────
 
-def main() -> None:  # noqa: C901
+def _run(logger: JsonlRunLogger) -> None:  # noqa: C901
     parser = argparse.ArgumentParser(
         description=(
             "Auditoria independente: MS oficial × cubo SI-PNI no Cloudflare R2 (sus-dados).\n"
@@ -474,6 +475,14 @@ def main() -> None:  # noqa: C901
 
     year: int = args.year
     month: int = args.month
+    logger.event(
+        "run_started",
+        year=year,
+        month=month,
+        resource_id=args.resource_id,
+        expected_sha256_provided=bool(args.expected_sha256),
+        chunk_size=args.chunk_size,
+    )
 
     # ── Diretório de saída ────────────────────────────────────────────────────
     audit_dir = AUDIT_CROSSCHECK
@@ -509,11 +518,23 @@ def main() -> None:  # noqa: C901
     # ── SHA-256 ───────────────────────────────────────────────────────────────
     print("Calculando SHA-256...")
     observed_sha256 = sha256_file(zip_path)
+    logger.event(
+        "source_identified",
+        source_filename=zip_path.name,
+        source_sha256=observed_sha256,
+        resource_id=args.resource_id,
+    )
     print(f"SHA-256 observado:  {observed_sha256}")
 
     if args.expected_sha256:
         expected = args.expected_sha256.strip().lower()
         if observed_sha256 != expected:
+            logger.event(
+                "source_hash_mismatch",
+                level="ERROR",
+                expected_sha256=expected,
+                observed_sha256=observed_sha256,
+            )
             print()
             print("❌ ATENÇÃO: SHA-256 DIVERGE DA FONTE DE REFERÊNCIA!")
             print(f"  Esperado:  {expected}")
@@ -522,6 +543,7 @@ def main() -> None:  # noqa: C901
             print("A fonte oficial pode ter sido alterada. Interrompendo auditoria.")
             raise SystemExit(1)
         print("✅ SHA-256 verificado.")
+        logger.event("source_hash_verified", sha256=observed_sha256)
     else:
         warnings.warn(
             f"SHA-256 não foi verificado (--expected-sha256 não fornecido). "
@@ -548,6 +570,14 @@ def main() -> None:  # noqa: C901
         unpartitionable_rows,
         unpartitionable_sample,
     ) = read_ms_zip(zip_path, year, month, chunk_size=args.chunk_size)
+    logger.event(
+        "official_source_aggregated",
+        raw_rows=raw_rows,
+        partitionable_rows=partitionable_rows,
+        unpartitionable_rows=unpartitionable_rows,
+        keys=len(ms_df),
+        doses=int(ms_df["ms_doses"].sum()),
+    )
 
     print(f"MS raw:             {raw_rows:,}")
     print(f"MS particionáveis:  {partitionable_rows:,}")
@@ -568,6 +598,13 @@ def main() -> None:  # noqa: C901
     print(f"Lendo cubo R2: {settings.sus_data_r2_bucket}/{settings.sus_data_r2_cube_prefix}")
     print()
     cube_df = read_r2_cube(s3, year, month)
+    logger.event(
+        "target_cube_read",
+        partitions_expected=len(UFS),
+        partitions_found=len(UFS),
+        keys=len(cube_df),
+        doses=int(cube_df["cube_doses"].sum()),
+    )
     print()
     print(f"R2 chaves:          {len(cube_df):,}")
     print(f"R2 doses:           {int(cube_df['cube_doses'].sum()):,}")
@@ -578,6 +615,12 @@ def main() -> None:  # noqa: C901
     different, metrics = compare_ms_vs_cube(ms_df, cube_df)
     exact = is_exact_match(metrics, ms_df, cube_df)
     status = "EXACT_MATCH" if exact else "MISMATCH"
+    logger.event(
+        "comparison_finished",
+        level="INFO" if exact else "WARNING",
+        status=status,
+        **metrics,
+    )
     print()
 
     # ── Persistência ──────────────────────────────────────────────────────────
@@ -627,6 +670,14 @@ def main() -> None:  # noqa: C901
         json.dumps(summary, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    logger.event(
+        "run_finished",
+        level="INFO" if exact else "WARNING",
+        status=status,
+        elapsed_seconds=elapsed,
+        summary_path=summary_path,
+        differences_path=diff_path,
+    )
 
     # ── Resultado ─────────────────────────────────────────────────────────────
     print("=== RESULTADO ===")
@@ -651,6 +702,24 @@ def main() -> None:  # noqa: C901
             f"Pode remover manualmente {zip_path} "
             "após confirmar status=EXACT_MATCH e o summary."
         )
+
+
+def main() -> None:
+    logger = JsonlRunLogger(
+        "audit_ms",
+        secrets=(
+            settings.sus_data_r2_access_key,
+            settings.sus_data_r2_secret_key,
+        ),
+    )
+    try:
+        _run(logger)
+    except KeyboardInterrupt:
+        logger.event("run_interrupted", level="WARNING")
+        raise
+    except Exception as exc:
+        logger.exception("run_failed", exc)
+        raise
 
 
 if __name__ == "__main__":

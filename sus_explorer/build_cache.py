@@ -26,6 +26,7 @@ from .data.remote.r2 import (
     partition_path,
 )
 from .paths import CACHE_ROOT
+from .operational_logging import JsonlRunLogger
 from .transform.pni import (
     UFS,
     CUBE_ALIASES,
@@ -264,6 +265,7 @@ def build_with_retry(
     output_file: Path,
     batch_size: int,
     retries: int,
+    logger: JsonlRunLogger | None = None,
 ) -> dict:
     last_exc = None
 
@@ -288,6 +290,16 @@ def build_with_retry(
                 break
 
             wait = min(2 ** (attempt - 1), 30)
+            if logger is not None:
+                logger.exception(
+                    "partition_retry",
+                    exc,
+                    year=year,
+                    month=month,
+                    uf=uf,
+                    attempt=attempt,
+                    retry_in_seconds=wait,
+                )
             print(
                 f"    erro: {exc} | retry em {wait}s "
                 f"({attempt}/{retries})",
@@ -301,7 +313,7 @@ def build_with_retry(
 
 
 
-def main():
+def _run(logger: JsonlRunLogger) -> None:
     current_year = datetime.now().year
 
     parser = argparse.ArgumentParser(
@@ -356,6 +368,16 @@ def main():
 
     ufs = parse_ufs(args.ufs)
     cache_root = Path(args.cache_root)
+    logger.event(
+        "run_started",
+        start_year=args.start_year,
+        end_year=args.end_year,
+        ufs=ufs,
+        batch_size=args.batch_size,
+        retries=args.retries,
+        overwrite=args.overwrite,
+        retry_failed=args.retry_failed,
+    )
     manifest_path = cache_root / "manifest.json"
     manifest = load_manifest(manifest_path)
     s3 = make_s3()
@@ -417,6 +439,15 @@ def main():
                                 manifest_path,
                                 manifest,
                             )
+                            logger.event(
+                                "partition_cached",
+                                year=year,
+                                month=month,
+                                uf=uf,
+                                rows_cube=existing["rows_cube"],
+                                doses=existing["doses"],
+                                bytes=existing["bytes"],
+                            )
 
                             print(
                                 f"[CACHE] {key} | "
@@ -426,6 +457,13 @@ def main():
                             )
                             continue
                         except Exception as exc:
+                            logger.exception(
+                                "cached_partition_invalid",
+                                exc,
+                                year=year,
+                                month=month,
+                                uf=uf,
+                            )
                             print(
                                 f"[CACHE INVÁLIDO] {key}: {exc}",
                                 flush=True,
@@ -439,6 +477,13 @@ def main():
                         and not args.overwrite
                     ):
                         counters["failed"] += 1
+                        logger.event(
+                            "partition_skipped_failed",
+                            level="WARNING",
+                            year=year,
+                            month=month,
+                            uf=uf,
+                        )
                         print(
                             f"[SKIP FAILED] {key} "
                             "(use --retry-failed)",
@@ -450,6 +495,12 @@ def main():
                         f"[BUILD] {key}",
                         flush=True,
                     )
+                    logger.event(
+                        "partition_started",
+                        year=year,
+                        month=month,
+                        uf=uf,
+                    )
 
                     try:
                         result = build_with_retry(
@@ -460,11 +511,16 @@ def main():
                             output_file=output,
                             batch_size=args.batch_size,
                             retries=args.retries,
+                            logger=logger,
                         )
 
                         result["updated_at"] = utc_now()
                         manifest["partitions"][key] = result
                         counters[result["status"]] += 1
+                        logger.event(
+                            "partition_finished",
+                            **result,
+                        )
 
                         if result["status"] == "built":
                             print(
@@ -485,6 +541,13 @@ def main():
                         raise
                     except Exception as exc:
                         counters["failed"] += 1
+                        logger.exception(
+                            "partition_failed",
+                            exc,
+                            year=year,
+                            month=month,
+                            uf=uf,
+                        )
 
                         manifest["partitions"][key] = {
                             "status": "failed",
@@ -580,6 +643,25 @@ def main():
             indent=2,
         )
     )
+    logger.event("run_finished", **summary)
+
+
+def main() -> None:
+    logger = JsonlRunLogger(
+        "build_cache",
+        secrets=(
+            settings.r2_access_key,
+            settings.r2_secret_key,
+        ),
+    )
+    try:
+        _run(logger)
+    except KeyboardInterrupt:
+        logger.event("run_interrupted", level="WARNING")
+        raise
+    except Exception as exc:
+        logger.exception("run_failed", exc)
+        raise
 
 
 if __name__ == "__main__":

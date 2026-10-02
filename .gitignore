@@ -32,6 +32,9 @@ env/
 /audit/differences/
 *.parquet
 
+# --- Operational logs (generated, not scientific artifacts) ---
+/logs/
+
 # --- IDE / OS ---
 .vscode/
 .idea/
