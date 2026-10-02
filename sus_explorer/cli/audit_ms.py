@@ -28,6 +28,8 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
+import tempfile
 import time
 import warnings
 from pathlib import Path
@@ -392,46 +394,125 @@ def is_exact_match(
 # Persistência de artefatos
 # ─────────────────────────────────────────────────────────────────────────────
 
-def save_unpartitionable(
-    audit_dir: Path,
-    year: int,
-    month: int,
-    records: list[dict],
-) -> Path | None:
-    """Salva registros não particionáveis em JSONL (campos mínimos)."""
-    if not records:
-        return None
-    path = audit_dir / f"{year}_{month:02d}_unpartitionable.jsonl"
-    with path.open("w", encoding="utf-8") as f:
-        for rec in records:
-            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-    return path
+def _run_artifact_names(has_unpartitionable: bool, has_differences: bool) -> dict:
+    return {
+        "summary": "summary.json",
+        "unpartitionable": (
+            "unpartitionable.jsonl" if has_unpartitionable else None
+        ),
+        "differences": "differences.parquet" if has_differences else None,
+    }
 
 
-def save_differences(
-    audit_dir: Path,
-    year: int,
-    month: int,
+def _validate_run_directory(run_dir: Path, run_id: str, artifacts: dict) -> None:
+    """Validate the complete, still-unpublished scientific artifact set."""
+    expected = {name for name in artifacts.values() if name is not None}
+    observed = {path.name for path in run_dir.iterdir() if path.is_file()}
+    if observed != expected:
+        raise RuntimeError(
+            f"Conjunto de artefatos inválido: esperado={expected}, observado={observed}"
+        )
+
+    summary = json.loads((run_dir / artifacts["summary"]).read_text(encoding="utf-8"))
+    if summary.get("run_id") != run_id or summary.get("artifacts") != artifacts:
+        raise RuntimeError("Summary não identifica corretamente o run e seus artefatos")
+
+    if artifacts["unpartitionable"]:
+        path = run_dir / artifacts["unpartitionable"]
+        with path.open("r", encoding="utf-8") as stream:
+            for line in stream:
+                json.loads(line)
+
+    if artifacts["differences"]:
+        pq.read_metadata(run_dir / artifacts["differences"])
+
+
+def publish_audit_run(
+    output_dir: Path,
+    run_id: str,
+    summary: dict,
+    unpartitionable_records: list[dict],
     different: pd.DataFrame,
-) -> Path | None:
-    """Salva parquet de diferenças somente se existirem."""
-    diff_dir = audit_dir / "differences"
-    diff_path = diff_dir / f"{year}_{month:02d}_differences.parquet"
+) -> dict[str, Path | None]:
+    """Atomically publish one immutable audit run directory.
 
-    if len(different):
-        diff_dir.mkdir(parents=True, exist_ok=True)
-        different.to_parquet(diff_path, index=False, compression="zstd")
-        return diff_path
-    elif diff_path.exists():
-        diff_path.unlink()
-    return None
+    All artifacts are created and validated in a private sibling directory.
+    A single directory rename makes the complete set visible. Existing final
+    run directories are never modified or removed.
+    """
+    if not run_id or Path(run_id).name != run_id or run_id in {".", ".."}:
+        raise ValueError(f"run_id inválido para diretório: {run_id!r}")
+
+    runs_root = output_dir / "runs"
+    runs_root.mkdir(parents=True, exist_ok=True)
+    final_dir = runs_root / run_id
+    if final_dir.exists():
+        raise FileExistsError(f"Run de auditoria já publicado: {final_dir}")
+
+    temp_dir = Path(tempfile.mkdtemp(
+        dir=runs_root,
+        prefix=f".{run_id}.",
+        suffix=".tmp",
+    ))
+    published = False
+    try:
+        artifacts = _run_artifact_names(
+            bool(unpartitionable_records),
+            bool(len(different)),
+        )
+        complete_summary = {
+            **summary,
+            "run_id": run_id,
+            "artifacts": artifacts,
+        }
+        (temp_dir / artifacts["summary"]).write_text(
+            json.dumps(complete_summary, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        if artifacts["unpartitionable"]:
+            with (temp_dir / artifacts["unpartitionable"]).open(
+                "w", encoding="utf-8"
+            ) as stream:
+                for record in unpartitionable_records:
+                    stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+        if artifacts["differences"]:
+            different.to_parquet(
+                temp_dir / artifacts["differences"],
+                index=False,
+                compression="zstd",
+            )
+
+        _validate_run_directory(temp_dir, run_id, artifacts)
+
+        # A second collision check improves diagnostics. The rename remains the
+        # atomic publication boundary. A valid published run is non-empty, so a
+        # concurrent run with the same id cannot be replaced by directory rename.
+        if final_dir.exists():
+            raise FileExistsError(f"Run de auditoria já publicado: {final_dir}")
+        os.rename(temp_dir, final_dir)
+        published = True
+
+        return {
+            "run_dir": final_dir,
+            "summary": final_dir / artifacts["summary"],
+            "unpartitionable": (
+                final_dir / artifacts["unpartitionable"]
+                if artifacts["unpartitionable"] else None
+            ),
+            "differences": (
+                final_dir / artifacts["differences"]
+                if artifacts["differences"] else None
+            ),
+        }
+    finally:
+        if not published and temp_dir.exists():
+            shutil.rmtree(temp_dir)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# CLI
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _run(logger: JsonlRunLogger) -> None:  # noqa: C901
+def build_parser() -> argparse.ArgumentParser:
+    """Constrói o parser da CLI para uso em execução e testes."""
     parser = argparse.ArgumentParser(
         description=(
             "Auditoria independente: MS oficial × cubo SI-PNI no Cloudflare R2 (sus-dados).\n"
@@ -470,7 +551,21 @@ def _run(logger: JsonlRunLogger) -> None:  # noqa: C901
         default=250_000,
         help="Tamanho de cada chunk CSV (padrão: 250000)",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=AUDIT_CROSSCHECK,
+        help=f"Diretório dos artefatos (padrão: {AUDIT_CROSSCHECK})",
+    )
+    return parser
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLI
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _run(logger: JsonlRunLogger) -> None:  # noqa: C901
+    parser = build_parser()
     args = parser.parse_args()
 
     year: int = args.year
@@ -485,8 +580,7 @@ def _run(logger: JsonlRunLogger) -> None:  # noqa: C901
     )
 
     # ── Diretório de saída ────────────────────────────────────────────────────
-    audit_dir = AUDIT_CROSSCHECK
-    audit_dir.mkdir(parents=True, exist_ok=True)
+    audit_dir: Path = args.output_dir
 
     print(f"=== AUDITORIA MS × R2 (sus-dados) ===")
     print(f"Período: {year}-{month:02d}")
@@ -586,12 +680,6 @@ def _run(logger: JsonlRunLogger) -> None:  # noqa: C901
     print(f"MS doses:           {int(ms_df['ms_doses'].sum()):,}")
     print()
 
-    # ── Quarentena dos não particionáveis ─────────────────────────────────────
-    unpart_path = save_unpartitionable(audit_dir, year, month, unpartitionable_sample)
-    if unpart_path:
-        print(f"Registros não particionáveis: {unpartitionable_rows} → {unpart_path}")
-        print()
-
     # ── Leitura do cubo no R2 ─────────────────────────────────────────────────
     print("Conectando ao R2 (sus-dados)...")
     s3 = make_audit_filesystem()
@@ -622,9 +710,6 @@ def _run(logger: JsonlRunLogger) -> None:  # noqa: C901
         **metrics,
     )
     print()
-
-    # ── Persistência ──────────────────────────────────────────────────────────
-    diff_path = save_differences(audit_dir, year, month, different)
 
     elapsed = round(time.perf_counter() - started, 3)
 
@@ -665,16 +750,27 @@ def _run(logger: JsonlRunLogger) -> None:  # noqa: C901
         "elapsed_seconds": elapsed,
     }
 
-    summary_path = audit_dir / f"{year}_{month:02d}_summary.json"
-    summary_path.write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2),
-        encoding="utf-8",
+    published = publish_audit_run(
+        audit_dir,
+        logger.run_id,
+        summary,
+        unpartitionable_sample,
+        different,
     )
+    run_dir = published["run_dir"]
+    summary_path = published["summary"]
+    unpart_path = published["unpartitionable"]
+    diff_path = published["differences"]
+
+    if unpart_path:
+        print(f"Registros não particionáveis: {unpartitionable_rows} → {unpart_path}")
+        print()
     logger.event(
         "run_finished",
         level="INFO" if exact else "WARNING",
         status=status,
         elapsed_seconds=elapsed,
+        run_dir=run_dir,
         summary_path=summary_path,
         differences_path=diff_path,
     )

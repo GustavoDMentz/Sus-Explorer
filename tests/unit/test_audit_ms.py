@@ -10,16 +10,23 @@ REGRAS:
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
+import sus_explorer.cli.audit_ms as audit_ms
 from sus_explorer.cli.audit_ms import (
+    AUDIT_CROSSCHECK,
     KEYS,
     UFS,
     age_band,
+    build_parser,
     compare_ms_vs_cube,
     is_exact_match,
     norm,
+    publish_audit_run,
 )
 
 
@@ -256,3 +263,187 @@ def test_age_band_independent():
     assert result.iloc[5] == "80+"
     assert result.iloc[6] == "00-04"   # -1 cai no bin [-1,4]
     assert result.iloc[7] == "IGNORADA"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10. Persistência não destrutiva e diretório configurável
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_output_dir_defaults_to_crosscheck_directory():
+    args = build_parser().parse_args(["--year", "2023", "--month", "10"])
+
+    assert args.output_dir == AUDIT_CROSSCHECK
+
+
+def test_output_dir_can_be_configured(tmp_path):
+    args = build_parser().parse_args([
+        "--year", "2023",
+        "--month", "10",
+        "--output-dir", str(tmp_path),
+    ])
+
+    assert args.output_dir == tmp_path
+
+
+def test_overwrite_option_was_removed():
+    with pytest.raises(SystemExit):
+        build_parser().parse_args([
+            "--year", "2023", "--month", "10", "--overwrite",
+        ])
+
+
+def sample_summary() -> dict:
+    return {"audit_version": 2, "period": "2023-10", "status": "EXACT_MATCH"}
+
+
+def temp_runs(output_dir: Path) -> list[Path]:
+    runs = output_dir / "runs"
+    return list(runs.glob(".*.tmp")) if runs.exists() else []
+
+
+def test_atomic_directory_publication_contains_complete_run(tmp_path):
+    published = publish_audit_run(
+        tmp_path,
+        "audit-run-1",
+        sample_summary(),
+        [{"uf": "IGNORADA"}],
+        pd.DataFrame({"delta": [1]}),
+    )
+
+    run_dir = published["run_dir"]
+    assert {path.name for path in run_dir.iterdir()} == {
+        "summary.json", "unpartitionable.jsonl", "differences.parquet",
+    }
+    summary = json.loads(published["summary"].read_text(encoding="utf-8"))
+    assert summary["run_id"] == "audit-run-1"
+    assert summary["artifacts"] == {
+        "summary": "summary.json",
+        "unpartitionable": "unpartitionable.jsonl",
+        "differences": "differences.parquet",
+    }
+    assert temp_runs(tmp_path) == []
+
+
+def test_no_differences_means_no_parquet_in_run(tmp_path):
+    published = publish_audit_run(
+        tmp_path, "audit-run-2", sample_summary(), [], pd.DataFrame()
+    )
+
+    assert published["differences"] is None
+    assert not (published["run_dir"] / "differences.parquet").exists()
+
+
+def test_published_run_is_immutable_on_run_id_collision(tmp_path):
+    first = publish_audit_run(
+        tmp_path, "same-run", sample_summary(), [], pd.DataFrame()
+    )
+    before = first["summary"].read_bytes()
+
+    with pytest.raises(FileExistsError):
+        publish_audit_run(
+            tmp_path,
+            "same-run",
+            {**sample_summary(), "status": "MISMATCH"},
+            [],
+            pd.DataFrame({"delta": [1]}),
+        )
+
+    assert first["summary"].read_bytes() == before
+    assert temp_runs(tmp_path) == []
+
+
+def test_summary_generation_failure_leaves_no_final_or_temp(tmp_path):
+    summary = {**sample_summary(), "invalid": object()}
+
+    with pytest.raises(TypeError):
+        publish_audit_run(tmp_path, "bad-summary", summary, [], pd.DataFrame())
+
+    assert not (tmp_path / "runs" / "bad-summary").exists()
+    assert temp_runs(tmp_path) == []
+
+
+def test_unpartitionable_generation_failure_cleans_own_temp(tmp_path):
+    records = [{"valid": 1}, {"invalid": object()}]
+
+    with pytest.raises(TypeError):
+        publish_audit_run(
+            tmp_path, "bad-jsonl", sample_summary(), records, pd.DataFrame()
+        )
+
+    assert not (tmp_path / "runs" / "bad-jsonl").exists()
+    assert temp_runs(tmp_path) == []
+
+
+def test_differences_generation_failure_cleans_own_temp(tmp_path, monkeypatch):
+    def fail_parquet(*args, **kwargs):
+        raise OSError("parquet failure")
+
+    monkeypatch.setattr(pd.DataFrame, "to_parquet", fail_parquet)
+    with pytest.raises(OSError, match="parquet failure"):
+        publish_audit_run(
+            tmp_path,
+            "bad-parquet",
+            sample_summary(),
+            [],
+            pd.DataFrame({"delta": [1]}),
+        )
+
+    assert not (tmp_path / "runs" / "bad-parquet").exists()
+    assert temp_runs(tmp_path) == []
+
+
+def test_validation_failure_cleans_own_temp(tmp_path, monkeypatch):
+    def fail_validation(*args, **kwargs):
+        raise RuntimeError("validation failure")
+
+    monkeypatch.setattr(audit_ms, "_validate_run_directory", fail_validation)
+    with pytest.raises(RuntimeError, match="validation failure"):
+        publish_audit_run(
+            tmp_path, "bad-validation", sample_summary(), [], pd.DataFrame()
+        )
+
+    assert not (tmp_path / "runs" / "bad-validation").exists()
+    assert temp_runs(tmp_path) == []
+
+
+def test_rename_failure_leaves_no_partial_final(tmp_path, monkeypatch):
+    def fail_rename(*args, **kwargs):
+        raise OSError("rename failure")
+
+    monkeypatch.setattr(audit_ms.os, "rename", fail_rename)
+    with pytest.raises(OSError, match="rename failure"):
+        publish_audit_run(
+            tmp_path, "bad-rename", sample_summary(), [], pd.DataFrame()
+        )
+
+    assert not (tmp_path / "runs" / "bad-rename").exists()
+    assert temp_runs(tmp_path) == []
+
+
+def test_final_directory_is_never_observed_partial(tmp_path, monkeypatch):
+    real_rename = audit_ms.os.rename
+    observed = {}
+
+    def inspect_then_rename(source, destination):
+        source = Path(source)
+        destination = Path(destination)
+        observed["before_final_exists"] = destination.exists()
+        observed["temporary_files"] = {path.name for path in source.iterdir()}
+        real_rename(source, destination)
+        observed["after_files"] = {path.name for path in destination.iterdir()}
+
+    monkeypatch.setattr(audit_ms.os, "rename", inspect_then_rename)
+    publish_audit_run(
+        tmp_path,
+        "observed-run",
+        sample_summary(),
+        [{"uf": "IGNORADA"}],
+        pd.DataFrame({"delta": [1]}),
+    )
+
+    expected = {"summary.json", "unpartitionable.jsonl", "differences.parquet"}
+    assert observed == {
+        "before_final_exists": False,
+        "temporary_files": expected,
+        "after_files": expected,
+    }
