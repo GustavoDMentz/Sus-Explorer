@@ -150,7 +150,7 @@ def test_failed_projection_rolls_back_raw_change(database):
             payload={"sensitive": "must-not-be-logged"},
             fetched_at=datetime.now(timezone.utc),
             ingestion_run_id=run["id"],
-            projection=ImmunizationProjection(establishment_uf="INVALID"),
+            projection=ImmunizationProjection(establishment_uf="rs"),
         )
     assert RawRecordRepository(connection).list_records("synthetic", "immunization") == []
 
@@ -210,8 +210,9 @@ def secured_database(database):
         (reader_login, "sus_explorer_reader"),
     ):
         admin.execute(
-            sql.SQL("CREATE ROLE {} LOGIN PASSWORD %s").format(sql.Identifier(login)),
-            (password,),
+            sql.SQL("CREATE ROLE {} LOGIN PASSWORD {}").format(
+                sql.Identifier(login), sql.Literal(password)
+            )
         )
         admin.execute(
             sql.SQL("GRANT {} TO {}").format(
