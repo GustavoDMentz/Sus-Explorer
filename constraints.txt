@@ -1,0 +1,17 @@
+# Reviewed direct dependency set for reproducible CI/development installs.
+# requirements*.txt remain the human-edited compatibility sources.
+# Update deliberately with:
+#   python -m pip install -U -r requirements-dev.txt
+#   python -m pip freeze --exclude-editable
+# Then copy reviewed direct versions here and run the complete test suite.
+streamlit==1.65.0
+google-genai==2.28.0
+pyarrow==25.0.1
+pydantic==2.13.5
+python-dotenv==1.2.4
+pandas==2.2.3
+numpy==2.3.5
+requests==2.34.2
+psycopg==3.3.6
+psycopg-binary==3.3.6
+pytest==9.1.1
