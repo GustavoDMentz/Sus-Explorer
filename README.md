@@ -15,7 +15,9 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edite `.env` e coloque sua `GEMINI_API_KEY`. As credenciais R2 do exemplo são públicas e read-only, conforme publicadas pelo mantenedor do dataset.
+Edite `.env` e configure somente os backends que pretende usar. A consulta
+analítica atual requer Gemini e R2; PostgreSQL é opcional e não é inicializado
+durante imports ou consultas Parquet/R2.
 
 ## Teste sem LLM
 
@@ -50,6 +52,37 @@ python demo.py "Quantas doses foram aplicadas em Porto Alegre em maio de 2026?"
 - Tudo no SI-PNI remoto é tratado como dado público, mas nenhum registro individual é enviado ao Gemini.
 - O LLM não escreve SQL e não acessa o bucket diretamente: ele só produz um `QueryPlan` validado.
 - O MVP não calcula cobertura vacinal; isso entra depois com denominadores IBGE.
+
+## Arquitetura híbrida
+
+O projeto mantém dois backends complementares e suportados:
+
+- **Parquet/R2:** camada analítica para microdados públicos e cubos, usada pelas
+  operações `count`, `group`, `timeseries` e `latency`;
+- **PostgreSQL:** persistência operacional opt-in para estado e proveniência de
+  ingestões, documentos JSONB, revisões imutáveis e projeções normalizadas.
+
+PostgreSQL não substitui nem é fallback silencioso para Parquet/R2. A extensão
+pgvector é instalada como fundação para uma futura camada de recuperação/RAG,
+mas esta mudança não cria embeddings nem altera respostas do assistente. O LLM
+continua limitado ao planejamento validado e à explicação de agregados: ele não
+é autoridade sobre números e não recebe microdados individuais.
+
+Para iniciar um PostgreSQL local com pgvector:
+
+```bash
+docker compose up -d postgres
+python -m sus_explorer.data.persistence.migrate
+```
+
+Use apenas banco descartável nos testes de integração:
+
+```bash
+SUS_EXPLORER_TEST_DB=1 python -m pytest tests/integration
+```
+
+O contrato operacional e as garantias do banco estão detalhados em
+[`docs/persistence.md`](docs/persistence.md).
 
 
 ## Merge de terminologia MS + SES-GO
