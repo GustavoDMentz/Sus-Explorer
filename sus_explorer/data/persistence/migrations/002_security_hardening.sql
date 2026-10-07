@@ -29,6 +29,27 @@ ALTER ROLE sus_explorer_reader NOLOGIN NOINHERIT NOSUPERUSER
 REVOKE sus_explorer_migrator FROM sus_explorer_runtime, sus_explorer_reader;
 REVOKE sus_explorer_runtime FROM sus_explorer_reader;
 
+ALTER TABLE datasus_ingestion_runs
+    ADD CONSTRAINT ingestion_source_size CHECK (char_length(source) <= 128),
+    ADD CONSTRAINT ingestion_resource_type_size CHECK (char_length(resource_type) <= 128),
+    ADD CONSTRAINT ingestion_resource_id_size CHECK (char_length(source_resource_id) <= 1024),
+    ADD CONSTRAINT ingestion_error_summary_size CHECK (char_length(error_summary) <= 2048),
+    ADD CONSTRAINT ingestion_metadata_size CHECK (pg_column_size(metadata) <= 262144);
+
+ALTER TABLE datasus_raw_records
+    ADD CONSTRAINT raw_source_size CHECK (char_length(source) <= 128),
+    ADD CONSTRAINT raw_resource_type_size CHECK (char_length(resource_type) <= 128),
+    ADD CONSTRAINT raw_resource_id_size CHECK (char_length(source_resource_id) <= 1024),
+    ADD CONSTRAINT raw_record_key_size CHECK (char_length(record_key) <= 1024),
+    ADD CONSTRAINT raw_external_id_size CHECK (char_length(external_id) <= 1024),
+    ADD CONSTRAINT raw_payload_size CHECK (pg_column_size(payload) <= 4194304);
+
+ALTER TABLE immunization_records
+    ADD CONSTRAINT immunization_vaccine_code_size CHECK (char_length(vaccine_code) <= 256),
+    ADD CONSTRAINT immunization_dose_code_size CHECK (char_length(dose_code) <= 256),
+    ADD CONSTRAINT immunization_municipality_size
+        CHECK (char_length(establishment_municipality_code) <= 16);
+
 -- PUBLIC must not create objects beside trusted relations or invoke internal
 -- trigger functions directly.
 DO $$
