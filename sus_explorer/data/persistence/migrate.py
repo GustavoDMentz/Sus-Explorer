@@ -59,8 +59,8 @@ def migrate(
 
             pending_seen = False
             for path in files:
-                sql = path.read_text(encoding="utf-8")
-                digest = hashlib.sha256(sql.encode("utf-8")).hexdigest()
+                migration_sql = path.read_text(encoding="utf-8")
+                digest = hashlib.sha256(migration_sql.encode("utf-8")).hexdigest()
                 if path.name in previous:
                     if previous[path.name] != digest:
                         raise RuntimeError(
@@ -71,7 +71,7 @@ def migrate(
                     continue
 
                 pending_seen = True
-                cursor.execute(sql)
+                cursor.execute(migration_sql)
                 cursor.execute(
                     "INSERT INTO schema_migrations (version, sha256) VALUES (%s, %s)",
                     (path.name, digest),
