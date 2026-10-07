@@ -89,3 +89,6 @@ graph TD
 6. **RAG Futuro**: pgvector é apenas capacidade de fundação. Qualquer indexação,
    política de documentos ou uso em respostas exige mudança posterior,
    testes e documentação próprios.
+7. **Fronteira PostgreSQL**: migrations, runtime writer e reader usam roles
+   distintas. Comprometer o runtime não concede ownership, DDL, controle de
+   triggers ou acesso à role de migration; o banco reforça essas negativas.
