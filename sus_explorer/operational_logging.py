@@ -27,6 +27,12 @@ _SENSITIVE_KEY = re.compile(
 )
 _REDACTED = "[REDACTED]"
 _URL = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+_SENSITIVE_ASSIGNMENT = re.compile(
+    r"(?i)\b(password|passwd|pwd|secret|token|authorization|api[_-]?key|"
+    r"access[_-]?key|credential|dsn)\b\s*[:=]\s*([^\s,;&]+)"
+)
+_EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}(?![\w.-])")
+_CPF = re.compile(r"(?<!\d)\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)")
 _SENSITIVE_QUERY_NAMES = {
     "access_token", "apikey", "api_key", "authorization", "auth",
     "awsaccesskeyid", "googleaccessid", "id_token", "key", "key-pair-id",
@@ -75,7 +81,12 @@ def _sanitize_url(match: re.Match[str]) -> str:
 
 def sanitize_text(value: str, secrets: Iterable[str] = ()) -> str:
     """Remove credentials and signed-URL material from arbitrary text."""
-    sanitized = _URL.sub(_sanitize_url, value)
+    sanitized = _SENSITIVE_ASSIGNMENT.sub(
+        lambda match: f"{match.group(1)}={_REDACTED}", value
+    )
+    sanitized = _URL.sub(_sanitize_url, sanitized)
+    sanitized = _EMAIL.sub(_REDACTED, sanitized)
+    sanitized = _CPF.sub(_REDACTED, sanitized)
     for secret in secrets:
         if secret:
             sanitized = sanitized.replace(secret, _REDACTED)

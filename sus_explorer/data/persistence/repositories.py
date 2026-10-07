@@ -9,6 +9,20 @@ from typing import Any
 from psycopg.types.json import Jsonb
 
 from .operational_events import event
+from .validation import (
+    EXTERNAL_ID_MAX_CHARS,
+    METADATA_MAX_BYTES,
+    MUNICIPALITY_CODE_MAX_CHARS,
+    PAYLOAD_MAX_BYTES,
+    PROJECTION_TEXT_MAX_CHARS,
+    RECORD_KEY_MAX_CHARS,
+    RESOURCE_TYPE_MAX_CHARS,
+    SOURCE_MAX_CHARS,
+    SOURCE_RESOURCE_ID_MAX_CHARS,
+    sanitize_error_summary,
+    validate_json_object,
+    validate_text,
+)
 
 
 def _one(connection, query: str, values: tuple | list = ()) -> dict | None:
@@ -35,6 +49,19 @@ class IngestionRunRepository:
         source_resource_id: str,
         metadata: dict | None = None,
     ) -> dict:
+        source = validate_text("source", source, max_chars=SOURCE_MAX_CHARS, required=True)
+        resource_type = validate_text(
+            "resource_type", resource_type, max_chars=RESOURCE_TYPE_MAX_CHARS, required=True
+        )
+        source_resource_id = validate_text(
+            "source_resource_id",
+            source_resource_id,
+            max_chars=SOURCE_RESOURCE_ID_MAX_CHARS,
+            required=True,
+        )
+        metadata = validate_json_object(
+            "metadata", metadata or {}, max_bytes=METADATA_MAX_BYTES
+        )
         row = _one(
             self.connection,
             """
@@ -60,6 +87,7 @@ class IngestionRunRepository:
         """Atomically freeze a run after serializing against record writers."""
         if status not in {"SUCCESS", "PARTIAL", "FAILED"}:
             raise ValueError("Invalid terminal ingestion status")
+        error_summary = sanitize_error_summary(error_summary)
         with self.connection.transaction():
             run = _one(
                 self.connection,
@@ -127,6 +155,23 @@ class RawRecordRepository:
         """Append provenance and preserve every superseded raw revision atomically."""
         if fetched_at.tzinfo is None or fetched_at.utcoffset() is None:
             raise ValueError("fetched_at must include a timezone")
+        source = validate_text("source", source, max_chars=SOURCE_MAX_CHARS, required=True)
+        resource_type = validate_text(
+            "resource_type", resource_type, max_chars=RESOURCE_TYPE_MAX_CHARS, required=True
+        )
+        source_resource_id = validate_text(
+            "source_resource_id",
+            source_resource_id,
+            max_chars=SOURCE_RESOURCE_ID_MAX_CHARS,
+            required=True,
+        )
+        record_key = validate_text(
+            "record_key", record_key, max_chars=RECORD_KEY_MAX_CHARS, required=True
+        )
+        external_id = validate_text(
+            "external_id", external_id, max_chars=EXTERNAL_ID_MAX_CHARS
+        )
+        payload = validate_json_object("payload", payload, max_bytes=PAYLOAD_MAX_BYTES)
         with self.connection.transaction():
             row = _one(
                 self.connection,
@@ -247,6 +292,20 @@ class ImmunizationRepository:
         establishment_municipality_code: str | None = None,
         establishment_uf: str | None = None,
     ) -> dict:
+        vaccine_code = validate_text(
+            "vaccine_code", vaccine_code, max_chars=PROJECTION_TEXT_MAX_CHARS
+        )
+        dose_code = validate_text(
+            "dose_code", dose_code, max_chars=PROJECTION_TEXT_MAX_CHARS
+        )
+        establishment_municipality_code = validate_text(
+            "establishment_municipality_code",
+            establishment_municipality_code,
+            max_chars=MUNICIPALITY_CODE_MAX_CHARS,
+        )
+        establishment_uf = validate_text(
+            "establishment_uf", establishment_uf, max_chars=2
+        )
         row = _one(
             self.connection,
             """
@@ -363,6 +422,26 @@ class OperationalPersistence:
         projection: ImmunizationProjection,
         external_id: str | None = None,
     ) -> tuple[dict, dict]:
+        # Reject obviously hostile input before opening a transaction. The
+        # repositories validate again at their direct public boundaries.
+        validate_text("source", source, max_chars=SOURCE_MAX_CHARS, required=True)
+        validate_text(
+            "resource_type",
+            resource_type,
+            max_chars=RESOURCE_TYPE_MAX_CHARS,
+            required=True,
+        )
+        validate_text(
+            "source_resource_id",
+            source_resource_id,
+            max_chars=SOURCE_RESOURCE_ID_MAX_CHARS,
+            required=True,
+        )
+        validate_text(
+            "record_key", record_key, max_chars=RECORD_KEY_MAX_CHARS, required=True
+        )
+        validate_text("external_id", external_id, max_chars=EXTERNAL_ID_MAX_CHARS)
+        validate_json_object("payload", payload, max_bytes=PAYLOAD_MAX_BYTES)
         with self.connection.transaction():
             raw = self.raw.save(
                 source=source,
