@@ -22,6 +22,11 @@ sus_explorer/
 ├── data/
 │   ├── cache/
 │   │   └── manifest.py         # Leitura, escrita e validação do manifest.json
+│   ├── persistence/             # PostgreSQL operacional opt-in
+│   │   ├── database.py          # Conexão explícita, sem efeito em imports
+│   │   ├── migrate.py           # Migrations transacionais com checksum
+│   │   ├── migrations/          # Esquema versionado e append-only
+│   │   └── repositories.py      # Fronteiras transacionais de persistência
 │   └── remote/
 │       └── r2.py               # Conexão PyArrow S3FileSystem e caminhos no R2
 ├── domain/
@@ -60,6 +65,12 @@ graph TD
     subgraph User Interface
         Streamlit["app.py"] --> Service
     end
+
+    subgraph Operational Persistence
+        Postgres["PostgreSQL + JSONB"] --> Ingestion["Estado e proveniência"]
+        Postgres --> Normalized["Projeções normalizadas"]
+        Postgres -. futuro .-> Pgvector["pgvector / RAG"]
+    end
 ```
 
 ---
@@ -69,3 +80,12 @@ graph TD
 1. **Invariância de Dados**: Nenhum arquivo do cache `cache/pni_cube` é reescrito durante refatorações.
 2. **Backward Compatibility**: Imports históricos de `sus_explorer.build_cache` continuam funcionando através de re-exportações delegadas.
 3. **Independência da Auditoria**: `sus_explorer/audit_ms_2023_10.py` e `recover_pni_2023_10.py` mantêm sua capacidade de auditoria determinística independente da produção.
+4. **Backends Complementares**: Parquet/R2 permanece responsável pela análise
+   dos microdados e cubos. PostgreSQL é persistência operacional opt-in e não
+   pode substituir ou alterar silenciosamente o caminho analítico.
+5. **Autoridade Determinística**: o LLM planeja consultas validadas e explica
+   agregados; números vêm dos backends determinísticos e nenhum microdado
+   individual é enviado ao modelo.
+6. **RAG Futuro**: pgvector é apenas capacidade de fundação. Qualquer indexação,
+   política de documentos ou uso em respostas exige mudança posterior,
+   testes e documentação próprios.
