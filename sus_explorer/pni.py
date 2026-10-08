@@ -183,6 +183,8 @@ class PNIRemote:
 
         if plan.vaccine_text:
             cols.append(self.col(ds, "vaccine_text"))
+            if terminology.resolve_text(plan.vaccine_text):
+                cols.append(self.col(ds, "vaccine_code"))
 
         if plan.age_min is not None or plan.age_max is not None:
             cols.append(self.col(ds, "age"))
@@ -205,12 +207,13 @@ class PNIRemote:
             column = self.col(ds, "vaccine_text")
             text = pc.utf8_upper(table[column])
 
-            add(
-                pc.match_substring(
-                    text,
-                    ascii_upper(plan.vaccine_text),
-                )
-            )
+            text_match = pc.fill_null(pc.match_substring(text, ascii_upper(plan.vaccine_text)), False)
+            codes = terminology.resolve_text(plan.vaccine_text)
+            if codes:
+                code_column = pc.cast(table[self.col(ds, "vaccine_code")], pa.string())
+                code_match = pc.is_in(code_column, value_set=pa.array(codes, type=pa.string()))
+                text_match = pc.or_(text_match, pc.fill_null(code_match, False))
+            add(text_match)
 
         if plan.age_min is not None or plan.age_max is not None:
             column = self.col(ds, "age")
@@ -353,7 +356,18 @@ class PNIRemote:
         if missing_partitions:
             provenance["missing_partitions"] = missing_partitions
 
+        if plan.vaccine_text:
+            provenance["vaccine_filter"] = self.vaccine_filter_provenance(plan)
         return provenance
+
+    def vaccine_filter_provenance(self, plan):
+        metadata = terminology.metadata()
+        return {"requested_text": plan.vaccine_text,
+                "resolved_codes": terminology.resolve_text(plan.vaccine_text),
+                "method": "source_text_or_authoritative_code_v1",
+                "terminology_source": "MS + SES-GO",
+                "ms_version": metadata.get("ms", {}).get("version"),
+                "ses_go_version": metadata.get("ses_go", {}).get("version")}
 
     def count(self, plan: QueryPlan) -> QueryResult:
         start = time.perf_counter()
@@ -730,6 +744,7 @@ class PNIRemote:
             provenance={
                 "source": "SI-PNI / healthbr-data / OpenDATASUS",
                 "uf_partition": plan.uf,
+                **({"vaccine_filter": self.vaccine_filter_provenance(plan)} if plan.vaccine_text else {}),
                 "partitions_consulted": partitions,
                 "missing_partitions": missing_partitions,
                 "parquet_fragments": fragments,
@@ -882,6 +897,11 @@ class PNIRemote:
         )
 
     def execute(self, plan: QueryPlan) -> QueryResult:
+        if plan.operation == "temporal":
+            from .analytics.temporal_query import execute_temporal
+
+            return execute_temporal(plan, self.execute)
+
         operations = {
             "count": self.count,
             "group": self.group,
