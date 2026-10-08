@@ -9,6 +9,10 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from .streamlit_provenance import (PROVENANCE_STYLES, NEUTRAL_REFERENCE,
+    provenance_label, render_provenance_legend, install_provenance_styles,
+    provenance_heading, provenance_metric, style_provenance_table, documented_enrichment, badge_html)
+
 
 LABELS = {1: 'Variação mensal', 2: 'Mudança na variação mensal',
           3: 'Mudança na segunda diferença'}
@@ -96,7 +100,8 @@ def monthly_chart(result, key=None, *, show_extreme=True):
             records.append({'Período': period.to_timestamp(), 'Mês': month_label(row['period']),
                             'Valor': number, 'Exato': str(value), 'Trecho': str(segment),
                             'Unidade': '%' if key == 'pct_change' else result.get('provenance', {}).get('units', {}).get(key, 'doses/registros'),
-                            'Origem': 'DERIVED' if key else 'DIRECT',
+                            'Origem': provenance_label('DERIVED' if key else 'DIRECT'),
+                            'Direção': 'Aumento' if number > 0 else 'Redução' if number < 0 else 'Sem mudança',
                             'Referência': result.get('provenance', {}).get('source_series_ref', 'Série agregada de origem'),
                             'Diferença absoluta': str(metric.get('absolute_change', row.get('metrics', {}).get('delta_1', {}).get('value', '—')))})
         previous = period
@@ -105,13 +110,13 @@ def monthly_chart(result, key=None, *, show_extreme=True):
     frame = pd.DataFrame(records)
     chart = alt.Chart(frame)
     if key:
-        chart = chart.mark_bar(size=18).encode(color=alt.condition('datum.Valor >= 0', alt.value('#178579'), alt.value('#c45656')))
+        chart = chart.mark_bar(size=18, color=PROVENANCE_STYLES['DERIVED']['color'])
     else:
-        chart = chart.mark_line(point=alt.OverlayMarkDef(size=65), color='#2878a8')
+        chart = chart.mark_line(point=alt.OverlayMarkDef(size=65), color=PROVENANCE_STYLES['DIRECT']['color'])
     chart = chart.encode(
         x=alt.X('Período:T', title=None, scale=alt.Scale(domain=[pd.Period(rows[0]['period'],freq='M').to_timestamp().isoformat(),pd.Period(rows[-1]['period'],freq='M').to_timestamp().isoformat()]), axis=alt.Axis(values=[pd.Period(r['period'],freq='M').to_timestamp() for r in rows[::max(1, math.ceil(len(rows)/8))]], labelAngle=0, labelExpr="['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][month(datum.value)] + '/' + timeFormat(datum.value, '%y')")),
         y=alt.Y('Valor:Q', title='Variação (%)' if key == 'pct_change' else result.get('provenance', {}).get('units', {}).get(key, 'Doses/registros'), scale=alt.Scale(zero=True), axis=alt.Axis(grid=True, labelFontSize=12)),
-        detail='Trecho:N', tooltip=['Mês:N', alt.Tooltip('Valor:Q', format='.2f'), 'Exato:N', 'Unidade:N', 'Origem:N', 'Referência:N', 'Diferença absoluta:N'],
+        detail='Trecho:N', tooltip=['Mês:N', alt.Tooltip('Valor:Q', format='.2f'), 'Exato:N', 'Unidade:N', 'Origem:N', 'Direção:N', 'Referência:N', 'Diferença absoluta:N'],
     ).properties(height=340).configure_axis(labelFontSize=12, titleFontSize=13).configure_view(stroke=None)
     return chart
 
@@ -168,7 +173,7 @@ def contextual_summary(summary):
 def _plot_dynamics(chart):
     if chart is None:
         return
-    baseline = alt.Chart(pd.DataFrame({'zero': [0]})).mark_rule(color='#67717a').encode(y='zero:Q')
+    baseline = alt.Chart(pd.DataFrame({'zero': [0]})).mark_rule(color=NEUTRAL_REFERENCE).encode(y='zero:Q')
     base = chart.copy()
     base.config = alt.Undefined
     st.altair_chart((base + baseline).configure_axis(labelFontSize=12, titleFontSize=13).configure_view(stroke=None), width='stretch')
@@ -191,15 +196,15 @@ def render_monthly(payload, question=''):
     st.caption(f"{month_label(rows[0]['period'])} — {month_label(rows[-1]['period'])} · Doses/registros, não pessoas vacinadas")
     st.subheader('Resumo')
     cards = st.columns(3)
-    cards[0].metric('Total observado · DERIVED' + (' (parcial)' if summary['total_is_partial'] else ''), dose_display(summary['observed_total']))
-    cards[1].metric('Maior volume mensal · DIRECT', dose_display(summary['peak']['value']))
+    provenance_metric(cards[0], 'Total observado' + (' (parcial)' if summary['total_is_partial'] else ''), dose_display(summary['observed_total']), 'DERIVED', 'total')
+    provenance_metric(cards[1], 'Maior volume mensal', dose_display(summary['peak']['value']), 'DIRECT', 'peak')
     cards[1].caption(', '.join(month_label(p) for p in summary['peak']['periods']) or 'Indisponível')
     greatest = summary['greatest_absolute_changes']
-    cards[2].metric('Maior mudança absoluta · DERIVED', dose_display(greatest[0]['absolute_change']) if greatest else '—')
+    provenance_metric(cards[2], 'Maior mudança absoluta', dose_display(greatest[0]['absolute_change']) if greatest else '—', 'DERIVED', 'change')
     cards[2].caption('; '.join(f"{month_label(t['from_period'])} → {month_label(t['period'])}" for t in greatest) or 'Sem par consecutivo disponível')
     st.caption(f"{summary['observed_months']} meses observados · {summary['unavailable_months']} meses indisponíveis")
 
-    st.subheader('Volume mensal · DIRECT')
+    provenance_heading('Volume mensal', 'DIRECT', 'volume_heading')
     chart = monthly_chart(result)
     if chart is not None:
         st.altair_chart(chart, width='stretch')
@@ -210,7 +215,7 @@ def render_monthly(payload, question=''):
         st.info('Sem dados: ' + ', '.join(missing) + '. Ausência não significa zero.')
 
     if temporal:
-        st.subheader('Dinâmica mensal · DERIVED')
+        provenance_heading('Dinâmica mensal', 'DERIVED', 'dynamics_heading')
         order = provenance['order']
         percent_available = any('pct_change' in r.get('metrics', {}) for r in rows)
         selection = st.radio('Métrica derivada', ['Variação percentual', 'Diferença absoluta'], horizontal=True) if percent_available else 'Diferença absoluta'
@@ -239,7 +244,7 @@ def render_monthly(payload, question=''):
         else:
             st.info('Não há barras calculáveis nesta visão. Consulte os destaques e os detalhes científicos.')
 
-    st.subheader('Interpretação')
+    provenance_heading('Interpretação', 'DERIVED', 'interpretation_heading')
     st.write(contextual_summary(summary))
     filters = provenance.get('filters', payload.get('plan', {}))
     vaccine_text = filters.get('vaccine_text') or ''
@@ -250,7 +255,10 @@ def render_monthly(payload, question=''):
 
     with st.expander('Detalhes científicos · tabela exata, diferenças e proveniência'):
         table = monthly_table(result)
-        st.dataframe(table, hide_index=True, width='stretch')
+        classes = {column: ('DIRECT' if '(DIRECT)' in column else 'DERIVED')
+                   for column in table.columns if '(DIRECT)' in column or '(DERIVED)' in column}
+        st.caption('Colunas: DIRECT — Observado; DERIVED — Calculado. Valores exatos, sem alteração.')
+        st.dataframe(style_provenance_table(table, classes), hide_index=True, width='stretch')
         if temporal:
             st.caption(f"Diferença solicitada: {provenance['formula']} · {provenance['units'][f'delta_{provenance['order']}']}")
             st.caption('Uma segunda diferença negativa pode representar crescimento ainda positivo, porém desacelerando.')
@@ -264,6 +272,8 @@ def render_monthly(payload, question=''):
 
 
 def render_result(payload, question=''):
+    install_provenance_styles()
+    render_provenance_legend()
     result = payload.get('result') or {}
     operation = result.get('operation')
     if operation in ('timeseries', 'temporal') and result.get('data', {}).get('rows'):
@@ -272,22 +282,29 @@ def render_result(payload, question=''):
     data, provenance = result.get('data', {}), result.get('provenance', {})
     origin = provenance.get('source_provenance', provenance)
     if operation == 'count':
-        st.metric('Doses/registros', str(data.get('doses', '—')))
+        provenance_metric(st, 'Doses/registros', str(data.get('doses', '—')), 'DIRECT', 'count')
     elif operation == 'group' and data.get('rows'):
         rows = data['rows']
         table = pd.DataFrame(rows)
         labels = [str(row.get('official_display') or row.get('value') or row.get('code') or row.get('display') or '—') for row in rows]
-        frame = pd.DataFrame({'Grupo': labels, 'Doses/registros': [chart_number(row['count']) for row in rows]})
-        st.altair_chart(alt.Chart(frame).mark_bar().encode(
-            x='Doses/registros:Q', y=alt.Y('Grupo:N', sort='-x'), tooltip=['Grupo', 'Doses/registros']), width='stretch')
-        st.dataframe(table.astype(str), hide_index=True, width='stretch')
+        frame = pd.DataFrame({'Grupo': labels, 'Doses/registros': [chart_number(row['count']) for row in rows],
+                              'Origem': provenance_label('DIRECT')})
+        provenance_heading('Doses/registros por grupo', 'DIRECT', 'group_heading')
+        st.altair_chart(alt.Chart(frame).mark_bar(color=PROVENANCE_STYLES['DIRECT']['color']).encode(
+            x='Doses/registros:Q', y=alt.Y('Grupo:N', sort='-x'), tooltip=['Grupo', 'Doses/registros', 'Origem']), width='stretch')
+        enriched = {(i, column) for i, row in enumerate(rows) if documented_enrichment(row)
+                    for column in ('definition', 'definition_source') if column in table.columns}
+        if enriched:
+            st.markdown(badge_html('ENRICHED'), unsafe_allow_html=True)
+            st.caption('Somente as definições acompanhadas de fonte externa são contextualizadas. As contagens continuam DIRECT — Observado.')
+        st.dataframe(style_provenance_table(table.astype(str), {'count': 'DIRECT'}, enriched), hide_index=True, width='stretch')
     elif operation == 'latency':
-        st.subheader('Latência operacional · dias')
+        provenance_heading('Latência operacional · dias', 'DERIVED', 'latency_heading')
         columns = st.columns(3)
         for column, key, label in zip(columns, ('median_days', 'p90_days', 'p95_days'),
                                       ('Mediana', 'P90', 'P95')):
             value = data.get(key)
-            column.metric(label, str(value) if value is not None else '—')
+            provenance_metric(column, label, str(value) if value is not None else '—', 'DERIVED', f'latency_{key}')
         st.caption(f"Registros válidos: {data.get('n_valid', '—')}")
     st.subheader('Interpretação')
     st.write(percentage_summary(data['rows']) if operation == 'temporal' and any('pct_change' in r.get('metrics', {}) for r in data.get('rows', [])) else payload.get('answer') or 'Nenhuma interpretação disponível.')
