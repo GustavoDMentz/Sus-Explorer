@@ -19,6 +19,9 @@ sus_explorer/
 ├── service.py                  # Fachada principal da aplicação
 ├── llm.py                      # Integração com o Google Gemini (LLM)
 ├── terminology.py              # Dicionários e padronização de imunobiológicos
+├── analytics/
+│   ├── temporal.py             # Diferenças finitas mensais exatas, sem I/O
+│   └── temporal_query.py       # Adaptador timeseries → DERIVED + apresentação segura
 ├── data/
 │   ├── cache/
 │   │   └── manifest.py         # Leitura, escrita e validação do manifest.json
@@ -74,6 +77,20 @@ graph TD
 ```
 
 ---
+
+## Consultas temporais derivadas
+
+`QueryPlan.operation="temporal"` exige um `TemporalRequest` tipado (ordem 1–3,
+`doses`, `monthly`) e intervalo/UF explícitos. `PNIRemote.execute()` delega ao
+adaptador, que executa um plano `timeseries` pelo mesmo backend e entrega apenas
+a série agregada a `TemporalAnalytics.calculate()`. O LLM identifica intenção
+e explica o resultado; não calcula nem altera os números. Observações são
+`DIRECT` e diferenças `DERIVED`; não há novo enriquecimento `ENRICHED`.
+
+O resultado contém filtros, proveniência pública de origem e uma referência
+SHA-256 da consulta/série. Metadados de origem são projetados por allowlist,
+com redação de secrets, antes da apresentação. Detalhes, testes e limites estão
+em [`temporal_queryplan.md`](temporal_queryplan.md).
 
 ## Diretrizes de Conservadorismo Arquitetural
 
