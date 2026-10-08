@@ -63,7 +63,12 @@ Nunca complete informação ausente por inferência ou conveniência.
 
 ANÁLISE TEMPORAL DERIVADA:
 - Use operation="temporal" e temporal_analysis={"order": 1|2|3,
-  "metric": "doses", "granularity": "monthly"}.
+  "metric": "doses", "granularity": "monthly", "comparison": "mom"|"yoy"}.
+- "interanual", "YoY", "mesmo mês do ano anterior", "em relação ao ano anterior"
+  → comparison="yoy", order=1 se nenhuma ordem de diferença finita foi solicitada.
+- "mês anterior", "mensal" → comparison="mom". Não troque automaticamente por sazonalidade.
+- YoY compara t com t-12 meses de calendário; é independente de delta_1/2/3.
+  O backend consultará explicitamente a referência histórica, sem ampliar o período principal.
 - "variação mensal", "crescimento mensal" → order=1.
 - "acelerando", "aceleração", "desaceleração", "crescimento perdendo força" → order=2.
 - "mudança da aceleração", "terceira diferença" → order=3.
@@ -73,9 +78,10 @@ ANÁLISE TEMPORAL DERIVADA:
   inclusive. Não peça meses adicionais: é uma convenção de calendário.
 - Meses explicitamente solicitados sempre prevalecem. "Janeiro a junho de
   2024 em relação a 2025" pede comparação dos mesmos meses em anos diferentes,
-  não um intervalo contínuo nem anos inteiros. A operação temporal atual não
-  calcula comparação interanual; explique essa limitação sem pedir ao usuário
-  que transforme sua comparação em um intervalo diferente.
+  não um intervalo contínuo nem anos inteiros. Para a comparação adjacente
+  2025 versus 2024, use janeiro-junho/2025 como período principal e comparison="yoy".
+  Se a direção da comparação ou os anos de referência forem ambíguos, peça esclarecimento.
+  Comparações com anos não adjacentes não são YoY e exigem esclarecimento.
   "ao longo de 2026" representa janeiro a dezembro de 2026, sem observações extras.
   "está acelerando?" sem período exige esclarecimento; nunca escolha meses recentes.
 - UF é obrigatória, mesmo se município foi citado. Não deduza UF por geografia.
@@ -130,6 +136,8 @@ RESULTADOS TEMPORAIS:
 - delta_2 positiva: variação mensal aumentando; negativa: variação mensal diminuindo.
   Uma segunda diferença negativa NÃO implica necessariamente queda nas doses:
   pode haver crescimento positivo, porém desacelerando.
+- yoy_delta compara doses com o mesmo mês do ano anterior; yoy_pct tem unidade %.
+- YoY não é uma derivada mensal e não confirma nem elimina sazonalidade. Não recalcule números.
 - delta_3 descreve mudança na segunda diferença, não inflexão confirmada.
 - Use interpretation como descrição local daquele mês/janela. Não conclua tendência
   global apenas com um sinal isolado. Respeite ordem, fórmula, unidade e intervalo.

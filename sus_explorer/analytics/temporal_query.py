@@ -109,11 +109,7 @@ def _interpretation(order: int, value) -> str:
     return labels[order][0 if value < 0 else 2 if value > 0 else 1]
 
 
-def execute_temporal(plan: QueryPlan, execute_source) -> TemporalAnalyticsResult:
-    # Revalidate even if a caller used model_copy/model_construct to bypass validation.
-    plan = QueryPlan.model_validate(plan.model_dump())
-    if plan.operation != "temporal" or plan.status != "ready":
-        raise TemporalQueryError("INVALID_TEMPORAL_PLAN", "Plano temporal incompleto ou inválido.")
+def _monthly_source(plan: QueryPlan, execute_source, *, allow_empty=False):
     origin_plan = QueryPlan.model_validate(
         plan.model_dump() | {"operation": "timeseries", "temporal_analysis": None}
     )
@@ -126,6 +122,12 @@ def execute_temporal(plan: QueryPlan, execute_source) -> TemporalAnalyticsResult
     source_query = redact(source_query, _secrets())
     try:
         origin = execute_source(origin_plan)
+    except FileNotFoundError:
+        if not allow_empty:
+            raise TemporalQueryError("SOURCE_QUERY_FAILED", "Não foi possível consultar a série mensal de origem.") from None
+        from types import SimpleNamespace
+        origin = SimpleNamespace(operation="timeseries", data={"rows": []}, provenance={
+            "source": SOURCE_LABEL, "uf_partition": plan.uf, "microdata_sent_to_llm": False})
     except Exception:
         raise TemporalQueryError(
             "SOURCE_QUERY_FAILED", "Não foi possível consultar a série mensal de origem."
@@ -142,6 +144,9 @@ def execute_temporal(plan: QueryPlan, execute_source) -> TemporalAnalyticsResult
                 raise ValueError("Invalid monthly observation")
             # Never forward extra row fields (including accidental microdata).
             rows.append({"period": row["period"], "doses": row["doses"]})
+        declared_filters = origin.provenance.get("filters")
+        if declared_filters is not None and declared_filters != source_query["filters"]:
+            raise ValueError("Source filters do not match query")
         safe_origin = safe_source_provenance(origin.provenance)
         if safe_origin.get("uf_partition", plan.uf) != plan.uf:
             raise ValueError("Source UF does not match query")
@@ -165,6 +170,15 @@ def execute_temporal(plan: QueryPlan, execute_source) -> TemporalAnalyticsResult
         raise TemporalQueryError(
             "INVALID_SOURCE_SERIES", "A série mensal retornada não satisfaz o contrato temporal."
         ) from None
+    return result, source_query
+
+
+def execute_temporal(plan: QueryPlan, execute_source) -> TemporalAnalyticsResult:
+    # Revalidate even if a caller used model_copy/model_construct to bypass validation.
+    plan = QueryPlan.model_validate(plan.model_dump())
+    if plan.operation != "temporal" or plan.status != "ready":
+        raise TemporalQueryError("INVALID_TEMPORAL_PLAN", "Plano temporal incompleto ou inválido.")
+    result, source_query = _monthly_source(plan, execute_source)
     order = plan.temporal_analysis.order
     key = f"delta_{order}"
     for row in result.data["rows"]:
@@ -187,6 +201,17 @@ def execute_temporal(plan: QueryPlan, execute_source) -> TemporalAnalyticsResult
         result.warnings.append("Meses ou valores indisponíveis: null, sem imputação nem diferenças atravessando lacunas.")
     from .percentage import add_percentages
     add_percentages(result)
+    result.provenance["comparison"] = plan.temporal_analysis.comparison
+    if plan.temporal_analysis.comparison == "yoy":
+        historical_plan = QueryPlan.model_validate(plan.model_dump() | {
+            "operation": "timeseries", "temporal_analysis": None,
+            "start_year": plan.start_year - 1, "end_year": plan.end_year - 1})
+        history, reference_query = _monthly_source(historical_plan, execute_source, allow_empty=True)
+        from .yoy import add_yoy
+        try:
+            add_yoy(result, history, source_query, reference_query)
+        except ValueError:
+            raise TemporalQueryError("INVALID_REFERENCE_SERIES", "Referência interanual inconsistente.") from None
     return result
 
 
@@ -205,6 +230,11 @@ def temporal_answer_payload(plan: QueryPlan, result) -> dict:
         } | {"metrics": {key: {name: metric[name] for name in (
             "classification", "value", "unavailable_reasons", "interpretation"
         )}}})
+    if plan.temporal_analysis.comparison == "yoy":
+        for projected, row in zip(data, dumped["data"]["rows"]):
+            for yoy_key in ("yoy_delta", "yoy_pct"):
+                projected["metrics"][yoy_key] = {name: row["metrics"][yoy_key][name] for name in (
+                    "classification", "value", "unit", "reference_period", "reference_value", "unavailable_reasons")}
     provenance_keys = (
         "operation", "classification", "order", "granularity", "formula", "formulas",
         "method", "method_version", "period", "parameters", "units", "unit_convention",
@@ -213,5 +243,13 @@ def temporal_answer_payload(plan: QueryPlan, result) -> dict:
     )
     provenance = {name: dumped["provenance"][name] for name in provenance_keys}
     provenance["source_provenance"] = safe_source_provenance(dumped["provenance"]["source_provenance"])
+    provenance["comparison"] = dumped["provenance"].get("comparison", "mom")
+    if plan.temporal_analysis.comparison == "yoy":
+        reference = dumped["provenance"]["yoy"]
+        provenance["yoy"] = {name: reference[name] for name in (
+            "classification", "method", "method_version", "formulas", "units", "reference_query",
+            "reference_period", "reference_series_ref", "main_series_ref", "missing_policy",
+            "numeric_encoding", "zero_denominator_policy", "lag_months")}
+        provenance["yoy"]["reference_provenance"] = safe_source_provenance(reference["reference_provenance"])
     return redact({"result": {"operation": "temporal", "data": {"rows": data},
                               "provenance": provenance}}, _secrets())
