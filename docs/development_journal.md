@@ -1,5 +1,13 @@
 # Diário técnico do SUS Explorer
 
+> **Atualização contemporânea — 2026-10-07**
+>
+> **Intervalo total coberto:** 2026-09-19 a 2026-10-07.
+>
+> A nota metodológica e todo o texto histórico abaixo, até “Débitos técnicos conhecidos”, são a **reconstrução retrospectiva de 2026-09-19 a 2026-09-26**, preservada integralmente. Seu intervalo, inventário, pendências e afirmações de ausência de evidência descrevem aquela revisão histórica; não são automaticamente afirmações sobre o estado atual.
+>
+> A seção acrescentada ao final é **documentação contemporânea consolidada em 2026-10-07**, baseada em commits, diffs, PRs, logs de CI e arquivos versionados consultados nessa data. Datas da nova cronologia usam **America/Sao_Paulo (UTC−03:00)**; timestamps UTC aparecem quando necessários para rastrear a evidência. A referência atual é `master` em `fc446cb00eed33b580be9cd08bbb3b9091b7d4df`. Não foram reinspecionados os discos, snapshots ZIP, histórico de shell ou buckets usados na reconstrução antiga.
+
 > **Nota metodológica**
 >
 > Este diário foi reconstruído **retrosivamente** a partir das evidências disponíveis no repositório e no histórico operacional da máquina de desenvolvimento. As fontes usadas foram:
@@ -749,3 +757,176 @@ Todos os itens abaixo são sustentados por inspeção do repositório em 2026-09
 12. **Intervalo sem histórico entre 2026-09-22 02:27 e 2026-09-24 23:51** (três dias). Nenhuma evidência recuperável cobre o que ocorreu nesse período; a auditoria v1 só tem registro de execução a partir de 2026-09-25 00:00.
 
 13. **Dependências do ambiente não são declaradas de forma exata.** `requirements.txt` usa apenas limites inferiores (`pyarrow>=18.0`, `pandas>=2.2`, etc.), não versões fixadas; não há lockfile. O virtualenv do projeto tem, por exemplo, `pandas 3.0.6` e `pyarrow 25.0.1` — versões muito posteriores às mínimas declaradas. `duckdb` e `s3fs` não estão em `requirements.txt` nem instalados no virtualenv do projeto (apesar de `s3fs` ser citado em `docs/refactor_findings.md` §4).
+
+---
+
+# Documentação contemporânea — evolução até 2026-10-07
+
+## Método e limites desta atualização
+
+Esta seção registra somente desenvolvimento verificável no Git e no GitHub e contratos observáveis nos arquivos atuais. A reconstrução anterior foi versionada no commit [`96190e5`](https://github.com/GustavoDMentz/sus-explorer/commit/96190e562549fcab8bbeada105949c847a04c45d), em 2026-09-26. Não há aqui reconstrução de conversas, intenções privadas ou atividade de máquina não preservada.
+
+Os resultados de testes locais citados nos PRs são identificados como **relatos dos PRs**; os resultados do GitHub Actions foram conferidos diretamente nos logs. CI com dados sintéticos e banco descartável não equivale a nova auditoria dos microdados oficiais, nem comprova implantação em produção. Nenhum novo total nacional do cubo é inferido.
+
+## 2026-10-01 — Logging operacional estruturado
+
+O commit [`548dedc`](https://github.com/GustavoDMentz/sus-explorer/commit/548dedc12a91be5fb8838062aa36a8dd12b135e3), registrado em 2026-10-02 01:31 UTC (**2026-10-01 22:31 local**), acrescentou `sus_explorer/operational_logging.py` e integrou `JsonlRunLogger` ao builder e à CLI de auditoria.
+
+O contrato passa a registrar JSONL append-only por execução em `logs/<run_id>.jsonl`, com `schema_version`, timestamp UTC, nível, componente, evento, `run_id` estável e PID. Eventos cobrem início/fim, partições, retries, identificação/hash da fonte, comparação e falhas. `/logs/` é ignorado pelo Git e permanece separado dos artefatos científicos.
+
+Há redação recursiva de campos sensíveis, valores secretos conhecidos e material de autenticação em URLs. Falhas de logging são capturadas e sinalizadas por `logging_failed`, sem substituir o resultado científico ou derrubar a operação apenas pela indisponibilidade do log. O hardening posterior ampliou a sanitização de texto para assignments de secrets, e-mails e CPF. Evidências: código atual de `sus_explorer/operational_logging.py`, diff do commit e `tests/unit/test_operational_logging.py`.
+
+## 2026-10-01 — Publicação atômica e imutável das auditorias
+
+O commit [`973cff8`](https://github.com/GustavoDMentz/sus-explorer/commit/973cff8cd86e4640d81bd890f9e95a1afc43f654), em 2026-10-02 02:16:37 UTC (**2026-10-01 23:16:37 local**), alterou a persistência da CLI generalizada, preservando os resultados históricos.
+
+`publish_audit_run()` gera o conjunto completo em diretório temporário irmão, valida summary, JSONL e metadados Parquet e publica uma execução com um único `os.rename` para `<output-dir>/runs/<run_id>/`. O summary identifica o `run_id` e os nomes de seus artefatos. JSONL de não particionáveis e Parquet de diferenças só existem quando necessários.
+
+Colisões de `run_id` são rejeitadas; uma execução publicada não é sobrescrita nem removida pela função. Falhas limpam apenas o temporário da própria execução, sem deixar um conjunto final parcial. A CLI oferece `--output-dir`; não aceita `--overwrite`. Essa imutabilidade é o contrato do publicador, não uma alegação de armazenamento WORM ou de proteção contra um administrador do filesystem.
+
+Os testes em `tests/unit/test_audit_ms.py` exercitam publicação completa, colisão, ausência de diferenças e falhas na geração, validação e rename. A transformação independente, a leitura do R2 de auditoria, o gate SHA-256 e a comparação célula a célula permanecem no caminho científico. A mudança não registra uma nova execução sobre outubro/2023 nem sobre outro período.
+
+## 2026-10-06/07 — PostgreSQL/pgvector complementar e PR #1
+
+Os quatro commits de fundação têm timestamp 2026-10-07 02:52:37 UTC (**2026-10-06 23:52:37 local**):
+
+| Commit | Desenvolvimento versionado |
+|---|---|
+| [`1377328`](https://github.com/GustavoDMentz/sus-explorer/commit/1377328e8ebbd23617f682a453c8fd7cecc12adb) | Persistência PostgreSQL operacional opcional |
+| [`d6351a7`](https://github.com/GustavoDMentz/sus-explorer/commit/d6351a7e36949dc15edc0dbd66b4ce843d969adf) | Testes das invariantes de persistência |
+| [`f0f3953`](https://github.com/GustavoDMentz/sus-explorer/commit/f0f3953718de30a9bbdba1ff91134f7dd96f47b2) | Documentação da arquitetura híbrida |
+| [`99a571a`](https://github.com/GustavoDMentz/sus-explorer/commit/99a571a2024e17939c4ec384212d97a1cdde2c62) | CI com PostgreSQL e pgvector |
+
+O [PR #1 — Add optional PostgreSQL persistence foundation](https://github.com/GustavoDMentz/sus-explorer/pull/1), da branch `integration/database-foundation-v2` para `master`, foi aberto em **2026-10-07 00:09:41 local** e integrado às **00:12:13**, pelo merge [`b728d71`](https://github.com/GustavoDMentz/sus-explorer/commit/b728d71a48e02ccad3da20423c8efeab6cedf9da).
+
+### Decisão arquitetural e garantias implementadas
+
+Parquet/R2 continua como caminho analítico de microdados e cubos para `count`, `group`, `timeseries` e `latency`. PostgreSQL é **opt-in e complementar**, destinado a estado operacional, proveniência das ingestões, documentos JSONB e projeções normalizadas. Não substitui Parquet/R2 nem é fallback silencioso. Imports e consultas analíticas não abrem conexão nem aplicam migrations.
+
+A migration `001_foundation.sql` habilita pgvector como **fundação futura**. Não há embeddings, busca semântica ou RAG ativo introduzidos por essa integração. O contrato exige evolução posterior com fontes documentais, versionamento, avaliação e política de reindexação.
+
+O código em `sus_explorer/data/persistence/` implementa:
+
+- execuções de ingestão com origem, identidade, metadados, contagens e estados `RUNNING/SUCCESS/PARTIAL/FAILED`; execuções terminadas ficam congeladas;
+- raw JSONB corrente, revisões anteriores e observações append-only, protegidas por triggers;
+- vínculo entre execução, origem, registro, revisão e instante de coleta;
+- invalidação automática da projeção anterior quando muda o raw e gravação de raw + nova projeção de imunização em uma transação;
+- leitura normalizada condicionada à igualdade entre revisão projetada e revisão raw atual;
+- conclusão da ingestão serializada com writers;
+- migrations ordenadas, transacionais, sob advisory lock e com SHA-256; alteração de migration aplicada é erro;
+- integração ao logger JSONL canônico por `operational_events.py`, com metadados técnicos e contagens, sem incluir payloads individuais.
+
+Evidências: `repositories.py`, `migrate.py`, `migrations/001_foundation.sql`, `operational_events.py`, `docs/persistence.md`, `README.md` e `docs/architecture.md`.
+
+### Validação da fundação
+
+O corpo do PR #1 relata **91 testes locais aprovados e 4 testes PostgreSQL pulados**, por ausência de banco descartável local. Esse relato não foi tratado como execução integral do banco.
+
+O [run 37565455392](https://github.com/GustavoDMentz/sus-explorer/actions/runs/37565455392), job `112612006677`, executou `python -m pytest tests -q` com PostgreSQL 17 + pgvector e registrou **95 passed in 1.10s**, sem skips no resumo. O workflow `.github/workflows/test-postgres.yml` fornece o serviço `pgvector/pgvector:0.8.6-pg17` e habilita `SUS_EXPLORER_TEST_DB=1`.
+
+## 2026-10-07 — Hardening PostgreSQL e PR #2
+
+O [PR #2 — security: harden PostgreSQL trust boundary](https://github.com/GustavoDMentz/sus-explorer/pull/2), da branch `security/postgres-hardening`, foi aberto às **00:39:47 local**. A sequência registrada:
+
+| Horário local | Commit | Mudança |
+|---|---|---|
+| 00:36:13 | [`3ab7fb0`](https://github.com/GustavoDMentz/sus-explorer/commit/3ab7fb07a621ea79bbbf9f0e8ee8995495ea0e23) | Privilégio mínimo no PostgreSQL |
+| 00:37:25 | [`9434f8e`](https://github.com/GustavoDMentz/sus-explorer/commit/9434f8ea17c22674f2638780b2dd6fda90b474d0) | Inputs e conexões defensivas |
+| 00:38:05 | [`5739082`](https://github.com/GustavoDMentz/sus-explorer/commit/5739082f03f89e3ae88cee5d285c87845e1b82f9) | Testes das fronteiras de segurança |
+| 00:39:19 | [`9473fa3`](https://github.com/GustavoDMentz/sus-explorer/commit/9473fa342a61f1798749704cca1cae9256b7bbba) | Supply chain do CI e modelo de ameaça |
+| 00:45:12 | [`705910b`](https://github.com/GustavoDMentz/sus-explorer/commit/705910be365208b7e2ae2a866f6dcc5e23c94a3f) | Correção da colisão de nomes na migration |
+| 00:47:35 | [`ecffdd5`](https://github.com/GustavoDMentz/sus-explorer/commit/ecffdd5f85968b6d4ec64b03c356e12f712eade7) | Correção dos testes para exercitar o banco real |
+
+### Fronteira de confiança
+
+A nova migration `002_security_hardening.sql` separa três roles estruturais `NOLOGIN`: `sus_explorer_migrator` (owner/migrations), `sus_explorer_runtime` (operações necessárias) e `sus_explorer_reader` (leitura). Runtime não possui objetos, não pode executar DDL, desabilitar triggers, assumir migrator ou escrever diretamente no histórico. Funções de proteção usam `SECURITY DEFINER`, owner migrator, `search_path` fixo e revogação de `EXECUTE` de `PUBLIC`.
+
+Conexões ganham timeouts de conexão, statements, locks e transações ociosas, `application_name`, schema validado e `search_path` restrito com `pg_catalog`. TLS é configurável; `prefer` é o default local, enquanto a documentação exige `verify-full` com CA confiável para serviços remotos.
+
+A validação limita identificadores, metadata (256 KiB), payload JSONB (4 MiB), profundidade (32) e nós JSON (100 mil). Constraints repetem limites essenciais no banco. `error_summary` é sanitizado, convertido para uma linha e limitado a 2.048 caracteres; secrets, credenciais, URLs assinadas, e-mails e CPF são removidos conforme as regras implementadas.
+
+O workflow fixa Actions por SHA, usa `contents: read` e instala com `constraints.txt`. Dependabot foi configurado para propor atualizações semanais de Python e Actions. Isso não comprova ativação de branch protection, CodeQL ou secret scanning, nem implantação das roles em um banco de produção. `001_foundation.sql` permanece intacta; pgvector continua sem RAG ativo.
+
+Evidências: migration 002, `database.py`, `validation.py`, `repositories.py`, `docs/persistence.md`, workflow, constraints e testes em `tests/integration/test_postgres_foundation.py` e `tests/unit/test_persistence_contract.py`.
+
+### Falha do CI, correções e validação final
+
+O corpo inicial do PR #2 relata **99 passed, 7 skipped** localmente, além de uma seleção de 46 testes aprovada. Os testes PostgreSQL pulados não validavam as novas roles. Os logs do banco real revelaram problemas adicionais:
+
+| Evidência do CI | Resultado observado | Diagnóstico/correção verificável |
+|---|---|---|
+| [Run 37567789237](https://github.com/GustavoDMentz/sus-explorer/actions/runs/37567789237), job `112619376152`, head `9473fa3` | **4 failed, 99 passed, 3 errors** | `UnboundLocalError` em `migrate.py`: a variável local `sql` sombreava o módulo `psycopg.sql`. `705910b` renomeou o texto da migration para `migration_sql`. |
+| [Run 37568229753](https://github.com/GustavoDMentz/sus-explorer/actions/runs/37568229753), job `112620752361`, head `705910b` | **1 failed, 102 passed, 3 errors** | A fixture usava parâmetro `%s` em `CREATE ROLE ... PASSWORD`, produzindo erro de sintaxe perto de `$1`; o teste de rollback usava UF `INVALID`, rejeitada por tamanho no Python antes de chegar ao banco. |
+| [Run 37568411460](https://github.com/GustavoDMentz/sus-explorer/actions/runs/37568411460), job `112621323526`, head `ecffdd5` | **106 passed in 2.08s** | `ecffdd5` usou composição segura com `sql.Identifier`/`sql.Literal` na fixture e UF `rs`, de tamanho aceito pelo Python mas formato inválido no banco, exercitando o rollback PostgreSQL. |
+| [Run 37569084257](https://github.com/GustavoDMentz/sus-explorer/actions/runs/37569084257), job `112623417083`, push em `master`/`fc446cb` | **106 passed in 1.97s** | Confirmação pós-merge na árvore integrada. |
+
+**Validação final: `106 passed, 0 skipped`.** Os logs imprimem `106 passed`, sem categoria skipped; o workflow habilita os testes reais no serviço PostgreSQL 17 + pgvector. São 99 casos unitários e 7 de integração, incluindo negativas de privilégio, fluxo autorizado, histórico, conclusão de ingestão, constraints, checksum, concorrência e rollback. Erros de permissão emitidos pelo servidor durante os testes adversariais são rejeições esperadas; os jobs finais concluíram com sucesso.
+
+O PR #2 foi integrado às **00:56:31 local**, após o CI aprovado, pelo merge [`fc446cb`](https://github.com/GustavoDMentz/sus-explorer/commit/fc446cb00eed33b580be9cd08bbb3b9091b7d4df). Os resultados locais com skips descritos no corpo original não representam o resultado final.
+
+## Estado e invariantes preservados em 2026-10-07
+
+A comparação Git [`96190e5...fc446cb`](https://github.com/GustavoDMentz/sus-explorer/compare/96190e562549fcab8bbeada105949c847a04c45d...fc446cb00eed33b580be9cd08bbb3b9091b7d4df) mostra as mudanças posteriores à reconstrução e permite verificar que os artefatos científicos históricos não foram alterados. Isso é preservação de conteúdo versionado, não uma nova checagem dos buckets ou do cache local.
+
+- **Números determinísticos e privacidade:** LLM continua planejando `QueryPlan` validado e explicando agregados, sem SQL livre, acesso direto ao bucket ou envio de microdados individuais.
+- **Backends complementares:** Parquet/R2 mantém a análise; PostgreSQL é operacional opt-in, sem fallback implícito; pgvector é fundação futura.
+- **Integridade científica:** independência entre builder e auditor, gate SHA-256, comparação por chave e falha explícita permanecem. `audit/ms_crosscheck/2023_10_summary.json` e `2023_10_unpartitionable.jsonl` não mudaram. O `EXACT_MATCH` histórico não foi estendido a outros meses.
+- **Atomicidade em duas fronteiras distintas:** auditoria publica um conjunto completo por rename e preserva runs anteriores; PostgreSQL grava raw/projeção em transação, protege histórico append-only e congela ingestões concluídas.
+- **Observabilidade separada:** JSONL operacional, `run_id`, redação e tolerância a falhas de logging permanecem; logs não substituem summaries científicos.
+- **Migrations imutáveis:** a migration 001 não foi reescrita pelo hardening; evolução é feita na 002, sob o controle transacional e de checksum.
+
+O inventário antigo e seus débitos permanecem como fotografia de 26/09. Por exemplo, `.env.example` agora existe, e há constraints e CI PostgreSQL verificável. Essas evidências não autorizam declarar todos os débitos resolvidos. Nenhum cubo local foi lido nesta atualização, nenhuma nova auditoria oficial foi executada e não há comprovação aqui de RAG ou frontend novo implantado.
+
+## Próximos requisitos — registrados em 2026-10-07, ainda não entregues
+
+Os itens abaixo são **requisitos prospectivos solicitados para este diário**, não fatos históricos deduzidos de commits ou funcionalidades concluídas. O estado atual fornece a base técnica descrita; não há atribuição retroativa de datas de implementação.
+
+1. **Analytics derivados:** definir métricas e agregações derivadas com execução determinística, fórmula, unidade, filtros, fonte, versão e limitações explícitas. Preservar a distinção entre doses/registros e pessoas, entre `missing` e zero e entre UF do estabelecimento e residência. Cobertura vacinal exige denominadores e compatibilidade de população/período; não deve ser inferida apenas de doses. Critério de entrega: resultados reproduzíveis e proveniência verificável, mantendo os contratos científicos e a separação dos backends.
+2. **Novo frontend:** evoluir a interface atual de `app.py` (Streamlit) para apresentar consultas, pedidos de esclarecimento, resultados, visualizações e proveniência de forma organizada. Tecnologia, desenho e implantação ainda precisam ser definidos. Critério de entrega: manter validação do plano, números determinísticos e credenciais fora do frontend/LLM; comprovar que a mudança de interface preserva o comportamento analítico.
+3. **Atividade pública anonimizada:** oferecer no site uma visão de atividade, como acesso e tipo de operação executada, por uma projeção pública específica de eventos. Não publicar JSONL bruto, payloads, credenciais, IPs, identificadores pessoais ou perguntas livres potencialmente identificáveis. Definir campos permitidos, anonimização, granularidade temporal, retenção e testes antes da exposição. Critério de entrega: somente eventos mínimos sanitizados, com verificação de ausência de informação identificável e sem confundir atividade operacional com evidência científica.
+
+A redação do logger atual é uma defesa operacional; por si só, não comprova anonimização suficiente para publicação. Esses requisitos não ativam analytics novos, não substituem a interface e não tornam logs públicos nesta atualização documental.
+
+## 2026-10-08 — Integração sequencial limpa de Gemini e Streamlit (#11–#16)
+
+### Auditoria e separação da arquitetura abandonada
+
+O master inicial era `7e7b3976f1feb20c9b0c6c8b080affa76fa2e0b4`. A primeira tentativa parou no #11: sua base era a branch do #10, e seu diff próprio também alterava Next.js/FastAPI. Os seis PRs originais estavam empilhados; seus checks falhavam. No #11, a coleta de `test_web_api.py` falhava por ausência de FastAPI. Instalar a dependência abandonada apenas para fazer o CI passar não seria uma correção arquitetural.
+
+O usuário autorizou separar o trabalho útil e descartar a parte dependente do frontend/API separados. A integração foi reconstruída a partir do master em branches novas, mantendo a ordem #11, #12, #13, #14, #15, #16. Nenhum ancestral do #10 foi incorporado. Foram excluídos da entrega `frontend/`, `web_api.py`, `requirements-web.txt`, `test_web_api.py` e `docs/web_explorer.md`; o master inicial já não os continha, portanto não houve remoção de funcionalidades existentes no master. No #11 foram extraídos apenas o planejador Gemini e os testes Gemini/temporal. Nos demais, os arquivos funcionais Python/Streamlit foram preservados. A documentação foi ajustada para não anunciar o protótipo como disponível.
+
+Não foram adicionadas dependências ou serviços. O Streamlit acessa SUSExplorer diretamente. PostgreSQL operacional opt-in e Parquet/R2 analítico permanecem complementares; migrations, contratos de persistência, consultas existentes e artefatos científicos não foram modificados por esta separação.
+
+### Integrações e evidências
+
+Cada etapa teve suíte completa local antes e depois, `git diff --check`, CI do PR aprovado antes do merge e CI no master aprovado. As árvores dos commits de merge foram comparadas com as árvores publicadas/testadas. As branches originais não foram reescritas ou excluídas.
+
+| Origem | PR limpo integrado | Commit de merge no master | Local antes/depois | CI com PostgreSQL |
+|---|---|---|---|---|
+| #11 | [#18](https://github.com/GustavoDMentz/Sus-Explorer/pull/18) | `2890a0e2f1c22479ed05ea6b80e184e1418aca04` | 247 aprovados, 7 pulados | 254 aprovados |
+| #12 | [#19](https://github.com/GustavoDMentz/Sus-Explorer/pull/19) | `74601f6aad0cc7e1f04e40c0616a0dcaadd0c7d5` | 281 aprovados, 7 pulados | 288 aprovados |
+| #13 | [#20](https://github.com/GustavoDMentz/Sus-Explorer/pull/20) | `fb363b936c1914d0c12af47844757898bfedf312` | 297 aprovados, 7 pulados | 304 aprovados |
+| #14 | [#21](https://github.com/GustavoDMentz/Sus-Explorer/pull/21) | `2e6ac81b0282f38a7b9a053d81af28c682564722` | 308 aprovados, 7 pulados | 315 aprovados |
+| #15 | [#22](https://github.com/GustavoDMentz/Sus-Explorer/pull/22) | `e9d968e4728058c2de5b148b31343bdff51b80c8` | 323 aprovados, 7 pulados | 330 aprovados |
+| #16 | [#23](https://github.com/GustavoDMentz/Sus-Explorer/pull/23) | `cde441c10dfe3d560d7385b0781dcf2054a72836` | 346 aprovados, 7 pulados | 353 aprovados |
+
+Os sete casos pulados localmente requerem PostgreSQL descartável. No CI foram executados com PostgreSQL 17 + pgvector; não houve skips. O baseline local do master inicial tinha 234 aprovados e 7 pulados. A suíte final local apresentou **346 aprovados, 7 pulados, zero falhas**; o CI do master funcional apresentou **353 aprovados, zero falhas**. A diferença de seis casos em relação aos resultados históricos das branches originais vem da exclusão dos testes da API web; não foram removidos testes analíticos para ocultar regressões.
+
+A revisão automática rejeitou duas tentativas de merge (#19/#20), citando CI ainda em andamento. Os checks e, no #19, as etapas/logs foram consultados novamente; as tentativas só foram repetidas após evidência explícita de conclusão com sucesso. Não houve bypass, merge forçado, resolução silenciosa de conflito ou alteração de contrato para acomodar falhas. Não foram encontrados conflitos na extração dos arquivos úteis.
+
+### Funcionalidades e decisões metodológicas
+
+- **#11:** JSON Schema nativo inline no transporte Gemini, validação Pydantic preservada, limites de resposta e uma tentativa adicional controlada em modo JSON. Sem microdados ou saída inválida no retry.
+- **#12:** formulário Streamlit, resultado agregado persistido na sessão, gráficos/tabelas/CSV/JSON, esclarecimentos e reruns sem consultas extras. Intervalos explícitos de anos completos e filtro textual de vacina por texto ou códigos da terminologia MS + SES-GO, com união sem duplicação e resolução na proveniência.
+- **#13:** volume mensal observado como gráfico principal; MoM `100 × (y(t) − y(t−1)) / y(t−1)` como métrica DERIVED adicional. Somente meses de calendário consecutivos; lacunas/nulos não viram zero. Base zero produz null com justificativa; precisão racional preservada, arredondamento só na apresentação.
+- **#14:** resumo determinístico de total observado, pico, variações absolutas e transições; totais incompletos explicitamente parciais. Percentuais extremos destacados por transição absoluta e alerta de base pequena. Sem causalidade, cobertura, eficácia, desempenho ou significância inferidos.
+- **#15:** configuração central de DIRECT/Observado verde, DERIVED/Calculado roxo e ENRICHED/Contextualizado azul; rótulos textuais, legenda, contraste e tema escuro testados. ENRICHED somente quando há fonte externa efetivamente documentada; dados não são reclassificados pela apresentação.
+- **#16:** YoY independente de Δ1/Δ2/Δ3, por mesmo mês do ano anterior e filtros iguais. Diferença `y(t) − y(t−12)`; percentual `100 × (y(t) − y(t−12)) / y(t−12)`. Referência histórica consultada explicitamente e mantida fora do período principal. Mês de referência ausente ou valor nulo produz null com justificativa; denominador zero invalida somente o percentual. Barras acima de +100% têm interrupção visual, anotação real, tooltip/tabela exatos e opção de escala completa; dados originais não são truncados.
+
+### Estado final, rastreabilidade e pendências
+
+O master funcional validado terminou em `cde441c10dfe3d560d7385b0781dcf2054a72836`, árvore `be3d18106306d4132cca36ec546e40cde0d2911f`. Esta entrada será publicada em commit separado **somente documental**, filho desse master; o SHA do commit documental é identificável no histórico, sem autorreferência circular no texto. Os arquivos executáveis permanecem idênticos aos validados.
+
+Os originais #11–#16 foram fechados com comentários apontando para #18–#23, como **substituídos pela integração limpa**, sem alegar merge integral das branches originais. #10 permanece fechado. #17 permanece aberto e não foi integrado: catálogo/seção de campanhas oficiais e suas limitações continuam fora deste master. #3–#6 não foram modificados. Branches e histórico preservados.
+
+A interface foi validada com Streamlit AppTest, inclusive tema escuro, consultas mockadas, persistência, lacunas, filtros, MoM/YoY e escala interrompida. Não foi feita captura de navegador nem consulta real Gemini/R2 nesta execução; testes offline não comprovam latência ou volumes remotos atuais. Não foi implementado novo gráfico de campanhas, extração diária, cobertura ou RAG. Os registros históricos/prospectivos anteriores deste diário foram preservados.
