@@ -110,7 +110,7 @@ def test_ui_hierarchy_full_scale_toggle_and_no_new_query(monkeypatch):
     at.run()
     assert not at.exception
     titles = [item.value for item in at.subheader]
-    assert titles.index('Resumo') < titles.index('Volume mensal · DIRECT') < titles.index('Dinâmica mensal · DERIVED') < titles.index('Interpretação')
+    assert titles.index('Resumo') < titles.index('Volume mensal · DIRECT — Observado') < titles.index('Dinâmica mensal · DERIVED — Calculado') < titles.index('Interpretação · DERIVED — Calculado')
     assert any('base de comparação pequena' in item.value for item in at.warning)
     assert any('campanha' in item.value and 'não permitem atribuir' in item.value for item in at.caption)
     assert at.checkbox[0].value is False

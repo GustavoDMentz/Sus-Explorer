@@ -193,3 +193,44 @@ reduzida, +100% versus >+100%, preservação de resultados e hierarquia/checkbox
 com Streamlit AppTest. Os sete skips exigem PostgreSQL descartável, ausente.
 Não foram realizadas consultas Gemini/R2 reais. Sem novas dependências,
 serviços, migrations ou alterações aos artefatos científicos.
+
+## Identidade visual de proveniência
+
+A configuração única de apresentação é `sus_explorer/streamlit_provenance.py`:
+
+| Identificador preservado | Rótulo visível | Cor |
+| --- | --- | --- |
+| DIRECT | Observado | #16A34A |
+| DERIVED | Calculado | #9333EA |
+| ENRICHED | Contextualizado | #2563EB |
+
+A legenda reutilizável explica os três níveis e explicita que sua presença não
+significa que todos existam no resultado. Títulos e cards usam bordas coloridas
+em containers Streamlit com keys próprias, mantendo rótulos completos e texto
+nativo do tema. Linhas/contagens DIRECT usam verde; diferenças e percentuais
+DERIVED usam roxo. Aumento/redução continuam distinguíveis pela posição em
+relação a zero, números assinados e tooltip textual, sem semântica de sinal
+concorrente com as cores de proveniência.
+
+A tabela exata usa os mesmos tokens de cor nas células pertinentes. O texto é
+preto sobre verde e branco sobre roxo/azul, escolhido para contraste >=4,5:1.
+Etiquetas e títulos não usam texto pequeno roxo/azul diretamente no fundo escuro:
+essas duas combinações não atingem 4,5:1. O texto herda a cor legível do tema;
+as bordas, etiquetas e marcas preservam as cores pedidas. As marcas gráficas
+atingem contraste >=3:1 com o fundo escuro padrão e com branco.
+
+ENRICHED só é usado, fora da legenda, nas definições de agrupamentos que já
+possuem `definition` e `definition_source` não vazios e não têm conflito. As
+contagens da mesma linha continuam DIRECT. A interpretação descritiva e a nota
+condicional sobre influenza não são convertidas em enriquecimento externo.
+Não há alteração a classificações técnicas, objetos originais, exportações,
+cálculos, filtros, contratos ou proveniência; toda a mudança é de apresentação.
+
+Testes cobrem os tokens exatos, contraste, rótulos sem dependência exclusiva de
+cor, estilização sem perda de precisão, gráficos/lacunas/sinais inalterados,
+legenda sem falsa classificação, enriquecimento documentado versus ausente e
+Streamlit AppTest no tema escuro. Sem novas dependências ou serviços.
+
+Validação local final: `python -m pytest tests -q -rs` — **329 aprovados,
+7 PostgreSQL pulados por ausência de banco descartável, 0 falhos**. Inclui
+15 novos casos; interface exercitada com AppTest, sem captura de navegador.
