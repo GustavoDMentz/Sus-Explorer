@@ -46,3 +46,20 @@ Validação local em 2026-10-08: `python -m pytest tests -q -rs` — **267 passe
 não foram executados neste ambiente. Os 14 testes novos incluem a execução
 real do app via AppTest com o serviço mockado; não há chamada Gemini/R2 real
 nesses testes. A velocidade de consultas remotas não foi reavaliada.
+
+## Intervalos de anos completos
+
+Em consultas mensais/temporais, `de 2024 a 2025`, `entre 2024 e 2025` e
+`2024 até 2025` representam janeiro de 2024 a dezembro de 2025, inclusive.
+O planner recebe essa regra e o backend aplica a convenção a um único intervalo
+explícito de anos, sem meses/dias/subperíodos na pergunta. Só o esclarecimento
+atribuído à ausência de datas é liberado; UF ou outros requisitos ausentes
+continuam obrigatórios. As operações descritivas count/group não são alteradas.
+
+Meses explícitos prevalecem. `Janeiro a junho de 2024 em relação a 2025` pede
+comparação interanual, ainda fora do contrato de diferenças consecutivas; não
+é convertido em janeiro/2024 a dezembro/2025. O prompt deve informar essa
+limitação, sem solicitar um intervalo contínuo que mude a pergunta.
+
+Validação atualizada: **280 passed, 7 skipped, 0 failed**, incluindo 13 casos
+de convenção anual, integração com o planner e preservação de subperíodos.
