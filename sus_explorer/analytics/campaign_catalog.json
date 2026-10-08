@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "catalog_version": "2026-10-08.1",
+  "verified_on": "2026-10-08",
+  "scope": "MVP influenza / RS; calendários previstos nos documentos citados, não cronogramas municipais nem histórico completo de prorrogações",
+  "campaigns": [
+    {
+      "id": "influenza-2023-rs",
+      "title": "Influenza 2023 — calendário nacional aplicável ao RS",
+      "immunobiological": "influenza",
+      "start": "2023-04-10",
+      "end": "2023-05-31",
+      "date_status": "planned_in_cited_document",
+      "geographic_scope": "Brasil — campanha nacional",
+      "applicable_ufs": ["RS"],
+      "recording_requirement": "consolidated_campaign_module",
+      "source": {
+        "publisher": "Ministério da Saúde",
+        "title": "Informe Técnico Operacional de Vacinação Contra a Influenza 2023",
+        "url": "https://www.gov.br/saude/pt-br/assuntos/saude-de-a-a-z/c/calendario-nacional-de-vacinacao/arquivos/informe-tecnico-operacional-de-vacinacao-contra-a-influenza-2023/@@download/file",
+        "metadata_url": "https://www.gov.br/saude/pt-br/assuntos/saude-de-a-a-z/c/calendario-nacional-de-vacinacao/arquivos/informe-tecnico-operacional-de-vacinacao-contra-a-influenza-2023/view",
+        "publication_date": null,
+        "publication_date_note": "A página consultada informa atualização em 15/03/2023, sem data de publicação explícita; documento de 2023.",
+        "page_updated_on": "2023-03-15",
+        "edition": null,
+        "calendar_locator": "Introdução, página 6 impressa (página 6 do PDF)",
+        "recording_locator": "Seção 13 e 13.1, página 29 impressa (página 29 do PDF): registro consolidado no módulo da campanha"
+      }
+    },
+    {
+      "id": "influenza-2024-rs",
+      "title": "Influenza 2024 — calendário regional aplicável ao RS",
+      "immunobiological": "influenza",
+      "start": "2024-03-25",
+      "end": "2024-05-31",
+      "date_status": "planned_in_cited_document",
+      "geographic_scope": "Regiões Nordeste, Centro-Oeste, Sul e Sudeste; RS pertence à Região Sul",
+      "applicable_ufs": ["RS"],
+      "recording_requirement": "verified_campaign_extract",
+      "source": {
+        "publisher": "Ministério da Saúde",
+        "title": "Estratégia de vacinação contra a influenza nas Regiões Nordeste, Centro-Oeste, Sul e Sudeste — 2024",
+        "url": "https://www.gov.br/saude/pt-br/vacinacao/publicacoes/estrategia-de-vacinacao-contra-a-influenza-nas-regioes-nordeste-centro-oeste-sul-e-sudeste-2024",
+        "metadata_url": "https://www.gov.br/saude/pt-br/vacinacao/informes/estrategia-de-vacinacao-influenza-2024/view",
+        "publication_date": "2024-03-16",
+        "publication_date_note": "Data de publicação da página do informe; não confundir com início da campanha.",
+        "page_updated_on": "2026-03-26",
+        "edition": "1ª edição — 2024 — versão eletrônica",
+        "calendar_locator": "Seção 3.2, página 12 impressa (página 13 do PDF)",
+        "recording_locator": "Seção 7, registro da campanha; verificar extração e base geográfica antes de comparar"
+      }
+    }
+  ]
+}
