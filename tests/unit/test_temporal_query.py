@@ -139,7 +139,10 @@ def test_executor_reuses_timeseries_and_preserves_all_supported_filters():
     assert result.provenance["filters"]["vaccine_text"] == "influenza"
 
 
-def test_adapter_uses_real_monthly_aggregation_and_filters_without_llm_or_network():
+def test_adapter_uses_real_monthly_aggregation_and_filters_without_llm_or_network(monkeypatch):
+    from sus_explorer.terminology import terminology
+    monkeypatch.setattr(terminology, "resolve_text", lambda _: [])
+    monkeypatch.setattr(terminology, "metadata", lambda: {})
     backend = PNIRemote.__new__(PNIRemote)
     table = pa.table({
         "co_municipio_estabelecimento": ["4314902", "4314902", "4304606"],
