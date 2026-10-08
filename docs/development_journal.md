@@ -886,3 +886,109 @@ Os itens abaixo são **requisitos prospectivos solicitados para este diário**, 
 3. **Atividade pública anonimizada:** oferecer no site uma visão de atividade, como acesso e tipo de operação executada, por uma projeção pública específica de eventos. Não publicar JSONL bruto, payloads, credenciais, IPs, identificadores pessoais ou perguntas livres potencialmente identificáveis. Definir campos permitidos, anonimização, granularidade temporal, retenção e testes antes da exposição. Critério de entrega: somente eventos mínimos sanitizados, com verificação de ausência de informação identificável e sem confundir atividade operacional com evidência científica.
 
 A redação do logger atual é uma defesa operacional; por si só, não comprova anonimização suficiente para publicação. Esses requisitos não ativam analytics novos, não substituem a interface e não tornam logs públicos nesta atualização documental.
+
+## 2026-10-08 — Streamlit temporal, YoY e catálogo oficial de campanhas
+
+Esta entrada registra as entregas nas branches dos [PRs #11–#17](https://github.com/GustavoDMentz/Sus-Explorer/pulls), **ainda não incorporadas ao master na revisão abaixo**. Não altera retroativamente a fotografia anterior nem transforma requisitos prospectivos em funcionalidades já integradas. A direção adotada é evoluir diretamente o Streamlit e o pipeline Python existentes; Next.js/FastAPI não são necessários ao fluxo principal. Atividade pública anonimizada e RAG continuam fora desta entrega.
+
+### Funcionalidades e decisões implementadas nas branches
+
+- **Planner e interface (#11/#12):** JSON Schema nativo, validação local e tratamento controlado do retorno Gemini; convenção explícita de intervalos de anos; filtro textual de imunobiológico com resolução pela terminologia e proveniência. O formulário Streamlit consulta SUSExplorer diretamente, mantém o resultado na sessão e oferece gráficos, indicadores, tabela exata recolhida, exportações e proveniência. Reruns de apresentação não repetem a consulta.
+- **Percentuais mensais (#13):** `100 * (y(t)-y(t-1))/y(t-1)`, somente entre meses calendariamente consecutivos. Lacunas, nulos e denominador zero retornam null com justificativas. Inteiros/Decimal e strings racionais preservam a precisão; arredondamento ocorre na apresentação. Δ1, Δ2 e Δ3 são preservados, sem confundir percentual com pontos percentuais. Eixo mensal conciso e segmentos separados tornam lacunas explícitas.
+- **Contexto sazonal (#14):** volume mensal como visualização principal; resumo com total observado (parcial quando necessário), máximo mensal e maior mudança absoluta. A síntese determinística usa observações calculáveis, sem inferir cobertura, pessoas vacinadas, significância ou causalidade. O tratamento inicial de extremos ocultava barras explicitamente; foi posteriormente substituído pela interrupção visual do #16, preservando o restante do resumo/hierarquia.
+- **Proveniência (#15):** configuração central com DIRECT — Observado (`#16A34A`), DERIVED — Calculado (`#9333EA`) e ENRICHED — Contextualizado (`#2563EB`), com rótulos textuais, legenda e contraste claro/escuro. ENRICHED exige fonte externa documentada; não é atribuído a doses ou a uma interpretação meramente descritiva.
+- **YoY e escala interrompida (#16):** `y(t)-y(t-12)` e `100*(y(t)-y(t-12))/y(t-12)`, comparando o mesmo mês calendário e filtros idênticos. Histórico consultado explicitamente e documentado fora das linhas principais. Referência ausente/nula invalida a comparação; denominador zero invalida só o percentual, preservando a diferença absoluta. O seletor MoM/YoY respeita o método solicitado; carregar histórico adicional exige ação explícita. Barras >+100% têm interrupção, anotação real, tooltip/tabela exatos e opção de escala completa. A limitação da escala é exclusivamente visual.
+- **Campanhas oficiais (#17):** seção independente, catálogo JSON versionado, calendários documentais e fontes MS clicáveis; opções de 30/60 dias e aproximação mensal com razões estruturadas de indisponibilidade. Cálculo/gráfico puros preparados e testados com agregados sintéticos; **nenhum adaptador diário/consolidado real foi ativado e nenhum gráfico numérico de campanha foi habilitado**.
+
+Não foram adicionados serviços, dependências, migrations ou novo frontend por estas melhorias Streamlit/analytics. O protótipo anterior continua nas branches empilhadas como conteúdo herdado; isso não representa sua aprovação para integração.
+
+### Fontes oficiais verificadas e limitação científica do MVP
+
+O catálogo `sus_explorer/analytics/campaign_catalog.json`, versão `2026-10-08.1`, foi verificado em 08/10/2026 e possui hash no resultado. Contém calendários **previstos nos documentos citados**, não cronogramas municipais efetivos nem histórico completo de prorrogações.
+
+| Documento oficial MS | Calendário aplicável ao RS | Evidência e metadados |
+| --- | --- | --- |
+| [Informe Técnico Operacional de Vacinação Contra a Influenza 2023](https://www.gov.br/saude/pt-br/assuntos/saude-de-a-a-z/c/calendario-nacional-de-vacinacao/arquivos/informe-tecnico-operacional-de-vacinacao-contra-a-influenza-2023/@@download/file) | Nacional: 10/04/2023–31/05/2023 | Introdução; seção 13/13.1 exige registro consolidado no módulo da campanha. [Página oficial](https://www.gov.br/saude/pt-br/assuntos/saude-de-a-a-z/c/calendario-nacional-de-vacinacao/arquivos/informe-tecnico-operacional-de-vacinacao-contra-a-influenza-2023/view) informa atualização em 15/03/2023; data de publicação e edição não explicitadas permanecem null, com nota. |
+| [Estratégia de vacinação contra influenza — Nordeste, Centro-Oeste, Sul e Sudeste — 2024](https://www.gov.br/saude/pt-br/vacinacao/publicacoes/estrategia-de-vacinacao-contra-a-influenza-nas-regioes-nordeste-centro-oeste-sul-e-sudeste-2024) | RS pertence à Região Sul: 25/03/2024–31/05/2024 | Seção 3.2; primeira edição eletrônica de 2024. [Página oficial do informe](https://www.gov.br/saude/pt-br/vacinacao/informes/estrategia-de-vacinacao-influenza-2024/view): publicação 16/03/2024, atualização 26/03/2026. |
+
+O catálogo preserva título, URL do documento/metadados, abrangência, localizadores, publicação quando disponível, edição e verificação. Não possui cópia binária/hash dos PDFs; uma URL oficial pode mudar. Seu versionamento não comprova atualização contínua nem doses aplicadas.
+
+`PNIRemote.timeseries` conta registros por partição ano/mês/UF; não agrega por `dt_vacina` nem certifica completude diária, pertencimento à campanha ou equivalência entre microdados e registro consolidado. A existência da coluna de vacinação na análise de latência não resolve essas condições. Neste ambiente não havia credenciais R2 nem cubo local para validar volumes reais.
+
+[A página oficial dos painéis de influenza](https://www.gov.br/saude/pt-br/composicao/seidigi/demas/campanhas-de-vacinacao/vacinacao-contra-a-influenza) distingue residência e ocorrência. Não foi obtida/auditada uma extração histórica compatível com todas as dimensões para este MVP; não se conclui que dados adequados não existam no MS.
+
+Maio é o único mês inteiro comum a 2023/2024, mas a adequação dos microdados à comparação das campanhas não foi comprovada. A aproximação mensal, portanto, também permanece indisponível. Não há rateio de meses em dias. Uma janela de 60 dias ultrapassa o fim previsto de 2023 e não é encurtada silenciosamente.
+
+Quando existir extração adequada auditada, `C(d)=sum(y(i), i=1..d)` e `diferença(d)=C_recente(d)-C_anterior(d)`. Doses observadas são DIRECT, acumulados/diferenças DERIVED e calendário ENRICHED. Dia ausente/nulo invalida acumulados posteriores; o gráfico compara somente o prefixo disponível em ambas as campanhas, com janela incompleta explícita. Filtros e bases geográfica/temporal devem coincidir. Flags do contrato não substituem auditoria. Diferenças não demonstram desempenho, cobertura, eficácia ou causa.
+
+Detalhamento: [docs/official_campaigns.md](official_campaigns.md), [docs/streamlit.md](streamlit.md) e [docs/temporal_queryplan.md](temporal_queryplan.md).
+
+### Evidências de validação
+
+As execuções abaixo são locais, nas árvores das branches citadas; **não são validação do master, dos upgrades Dependabot ou do banco PostgreSQL real**.
+
+| Entrega | Resultado registrado de `python -m pytest tests -q -rs` |
+| --- | --- |
+| PR #13 — percentuais mensais | 303 aprovados, 7 PostgreSQL pulados |
+| PR #14 — contexto sazonal | 314 aprovados, 7 PostgreSQL pulados |
+| PR #15 — cores e acessibilidade | 329 aprovados, 7 PostgreSQL pulados |
+| PR #16 — YoY/barras interrompidas | 352 aprovados, 7 PostgreSQL pulados |
+| PR #17 — campanhas | **380 aprovados, 7 PostgreSQL pulados, 0 falhos** |
+
+A árvore final testada do MVP de campanhas é `1b2214447ea13ea468bb577d716ad1baefade9cf`, publicada no head remoto `04f6cf290a9e895c8cb8a338c48f08cf150d9c26` antes desta atualização documental. Foram acrescentados 28 casos de campanhas. Streamlit AppTest verifica fontes clicáveis, seletores, ausência de nova consulta e preservação do payload; não houve captura de navegador. Dados de acumulados de campanha usados nos testes são sintéticos. YoY também inclui teste PyArrow real em memória com filtros. `git diff --check` passou. Não houve chamada real Gemini/R2, auditoria de doses de campanha ou execução PostgreSQL nesta etapa.
+
+Um teste antigo da interface supunha existir exatamente uma tabela na página; passou a identificar a tabela mensal pelas colunas e verificar os valores preservados, permitindo a seção adicional de evidências. O resultado completo acima inclui essa correção.
+
+## 2026-10-08 — Saneamento dos pull requests abertos
+
+### Referência e critério de classificação
+
+Foi consultada a coleção de PRs abertos com paginação (12 na página 1; página 2 vazia), revisados seus patches/arquivos em relação às bases próprias e comparados à árvore de `master`:
+
+- commit: [`7e7b3976f1feb20c9b0c6c8b080affa76fa2e0b4`](https://github.com/GustavoDMentz/Sus-Explorer/commit/7e7b3976f1feb20c9b0c6c8b080affa76fa2e0b4), merge do PR #9;
+- árvore: `51f0f06038cb4f0634d5a022eab6c4685f29dd79`;
+- verificação: árvores/blobs, patches, versões do CI/dependências e implementações presentes no commit congelado. A presença em outra branch/PR **não** foi tratada como integração ao master.
+
+**Integrado:** alterações já no master. **Obsoleto:** direção substituída/abandonada, sem alteração útil do core a descartar. **Pendente:** trabalho útil ainda não incorporado; PR misto ou parcialmente substituído continua aberto quando possui trabalho útil. Não se classificou um PR como obsoleto apenas por idade, conflito ou bloqueio por dados.
+
+Resultado: **0 integrados, 1 obsoleto fechado (#10), 11 pendentes mantidos abertos**. As atualizações de dependências não foram aprovadas/testadas implicitamente por este saneamento.
+
+| PR | Título | Classificação | Ação | Justificativa contra master |
+| --- | --- | --- | --- | --- |
+| [#3](https://github.com/GustavoDMentz/Sus-Explorer/pull/3) | build(deps): bump actions/setup-python from 6.1.0 to 7.0.0 | Pendente | Mantido aberto | master usa setup-python v6.1.0 (83679a8); o PR propõe v7.0.0 (5fda3b9). Atualização válida, ainda precisa de revisão/CI. |
+| [#4](https://github.com/GustavoDMentz/Sus-Explorer/pull/4) | build(deps): bump actions/checkout from 6 to 7 | Pendente | Mantido aberto | master usa checkout v6.0.1 no CI PostgreSQL e v6 no verify-r2; o PR propõe v7.0.1/v7. Ainda não incorporado. |
+| [#5](https://github.com/GustavoDMentz/Sus-Explorer/pull/5) | build(deps): bump numpy from 2.3.5 to 2.5.3 | Pendente | Mantido aberto | master fixa numpy 2.3.5; o PR propõe 2.5.3 e eleva o requisito mínimo. Compatibilidade ainda requer revisão. |
+| [#6](https://github.com/GustavoDMentz/Sus-Explorer/pull/6) | build(deps): bump pandas from 2.2.3 to 3.0.6 | Pendente | Mantido aberto | master fixa pandas 2.2.3; o PR propõe 3.0.6. Migração de versão principal ainda requer revisão. |
+| [#10](https://github.com/GustavoDMentz/Sus-Explorer/pull/10) | feat(web): dual-mode SUS Explorer prototype with thin Python API | Obsoleto | Fechado com comentário | Somente protótipo Next.js/FastAPI (13 arquivos adicionados), direção substituída por Streamlit direto. Fechado como obsoleto, sem afirmar integração. |
+| [#11](https://github.com/GustavoDMentz/Sus-Explorer/pull/11) | fix(gemini): preserve strict structured output using native JSON Schema | Pendente | Mantido aberto | master ainda usa response_schema=QueryPlan; JSON Schema nativo/validação/retry e testes Gemini continuam úteis. Alterações de API/frontend são parciais obsoletas, não motivo para descartar o core. |
+| [#12](https://github.com/GustavoDMentz/Sus-Explorer/pull/12) | feat(streamlit): restore primary interface with charts and temporal results | Pendente | Mantido aberto | master não tem streamlit_views.py nem testes específicos; formulário/gráficos/exportações, convenção de intervalos e filtro textual de imunobiológico ainda precisam de integração. |
+| [#13](https://github.com/GustavoDMentz/Sus-Explorer/pull/13) | feat(streamlit): clearer temporal charts and exact monthly percentages | Pendente | Mantido aberto | master não tem analytics/percentage.py ou pct_change; percentuais mensais exatos e visualização de lacunas ainda não integrados. |
+| [#14](https://github.com/GustavoDMentz/Sus-Explorer/pull/14) | feat(streamlit): contextualize seasonal vaccination volumes and extreme percentages | Pendente | Mantido aberto | master não tem summarize_series, cards sazonais ou testes. O tratamento visual antigo de extremos evolui no #16, mas resumo e hierarquia continuam válidos. |
+| [#15](https://github.com/GustavoDMentz/Sus-Explorer/pull/15) | feat(streamlit): standardize accessible provenance colors and labels | Pendente | Mantido aberto | master não tem streamlit_provenance.py; cores centralizadas, contraste e rótulos acessíveis ainda não integrados. |
+| [#16](https://github.com/GustavoDMentz/Sus-Explorer/pull/16) | feat(temporal): add calendar YoY comparison and explicit broken percentage bars | Pendente | Mantido aberto | master não tem yoy.py/comparison MoM/YoY; histórico explícito, YoY independente e barras interrompidas ainda não integrados. |
+| [#17](https://github.com/GustavoDMentz/Sus-Explorer/pull/17) | feat(campaigns): add official RS influenza catalog and guarded comparison section | Pendente | Mantido aberto | master não tem catálogo/analytics/campaigns.py/streamlit_campaigns.py. MVP documenta indisponibilidade numérica real e requer revisão; não é obsoleto por estar bloqueado por dados. |
+
+O #10 teve seus 13 arquivos revisados: somente `frontend/`, `web_api.py`, `requirements-web.txt`, testes HTTP e documentação do protótipo; não modifica o core analítico. Foi fechado como **obsoleto, não integrado**, com [comentário explicativo](https://github.com/GustavoDMentz/Sus-Explorer/pull/10#issuecomment-6064607106). A correção Gemini do #11 não foi descartada.
+
+### Heads e dependências preservados
+
+Os heads examinados (antes da atualização documental desta entrada) foram:
+
+| PR | Head | Base do PR |
+| --- | --- | --- |
+| #3 | `ea49aa67591489297a21636ddc966527ce2a5354` | `master` |
+| #4 | `1a3fe9004cf0e046abd65222d879ecc17aa715a2` | `master` |
+| #5 | `2abcf01cd22b60b3bfb3ddcddf9c138cdf3523d1` | `master` |
+| #6 | `ad6bc0557cf51d4a82314bbbde3b6ad7092b8843` | `master` |
+| #10 | `6e96c1b715b56f868acbbccce1b3da585129a309` | `master` |
+| #11 | `4b423b11aab3634dbf86983c62d473562bbb8220` | `feature/web-explorer-v1` |
+| #12 | `b382337fc1bc0ec8bdba526c319e8d3e25006697` | `fix/gemini-native-json-schema` |
+| #13 | `7f138e7fb76136ae05d83a17e6a639c996c5e869` | `feature/streamlit-analytics` |
+| #14 | `d9216cd3ca2c1db7de29256233bce40ac63dc588` | `feature/streamlit-temporal-percent` |
+| #15 | `82149792be7d5c47c2c60a2708ba17d09b26c821` | `feature/streamlit-seasonal-context` |
+| #16 | `1c4610a9999f898c19073f53711a57d980299aa4` | `feature/streamlit-provenance-colors` |
+| #17 | `04f6cf290a9e895c8cb8a338c48f08cf150d9c26` | `feature/temporal-yoy-broken-scale` |
+
+Os PRs #11–#17 estão empilhados: #11 tem base na branch do #10, #12 na do #11, e assim sucessivamente até #17. Fechar #10 não apaga sua branch nem retira código herdado das branches seguintes. **A integração futura precisa revisar/isolar as mudanças úteis e evitar incorporar automaticamente o protótipo Next.js/FastAPI.** Não houve retarget, cherry-pick, merge, exclusão de branch ou reescrita de histórico. O fato de #16 evoluir as barras de #14 não torna o resumo/hierarquia deste último descartáveis antes da integração.
+
+Esta atualização do diário foi adicionada à branch/PR #17 existente, sem criar outro PR ou escrever diretamente em master. O fechamento de #10 é reversível e preserva comentário, commits e branch; os outros PRs continuam disponíveis para revisão.
