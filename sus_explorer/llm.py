@@ -130,8 +130,35 @@ RESULTADOS TEMPORAIS:
 """
 
 
-PLANNER_MAX_OUTPUT_TOKENS = 2048
+PLANNER_MAX_OUTPUT_TOKENS = 8192
 PLANNER_MAX_RESPONSE_BYTES = 16384
+
+
+def planner_output_schema() -> dict:
+    """Inline the small transport schema; domain validation stays in QueryPlan."""
+    original = QueryPlan.model_json_schema()
+    definitions = original.get("$defs", {})
+    def inline(value):
+        if isinstance(value, list):
+            return [inline(item) for item in value]
+        if not isinstance(value, dict):
+            return value
+        if "$ref" in value:
+            return inline(definitions[value["$ref"].split("/")[-1]])
+        result = {key: inline(item) for key, item in value.items()
+                  if key not in ("$defs", "title", "default")}
+        if "const" in result:
+            result["enum"] = [result.pop("const")]
+        return result
+    schema = inline(original)
+    for name, lower, upper in (
+        ("start_year", 2020, 2100), ("end_year", 2020, 2100),
+        ("start_month", 1, 12), ("end_month", 1, 12),
+    ):
+        for option in schema["properties"][name]["anyOf"]:
+            if option.get("type") == "integer":
+                option.update(minimum=lower, maximum=upper)
+    return schema
 
 
 class PlannerResponseError(ValueError):
@@ -154,15 +181,35 @@ class GeminiAnalyst:
         self.model = settings.gemini_model
 
     def plan(self, q: str) -> QueryPlan:
+        # A single JSON-mode retry escapes a failing constrained decoder/SDK
+        # parse. It receives only the same question and public plan contract,
+        # never generated garbage, query results or source data.
+        for structured in (True, False):
+            try:
+                return self._plan_attempt(q, structured=structured)
+            except PlannerResponseError:
+                if not structured:
+                    raise
+        raise PlannerResponseError()
+
+    def _plan_attempt(self, q: str, *, structured: bool) -> QueryPlan:
+        schema = planner_output_schema()
+        prompt = f"{PLANNER}\n\nPergunta: {q}"
+        if not structured:
+            prompt += ("\nRetorne somente um objeto JSON compacto conforme este contrato. "
+                       "Omita campos não utilizados; nunca repita dígitos ou faça cálculos.\n"
+                       + json.dumps(schema, ensure_ascii=False))
         try:
             r = self.client.models.generate_content(
                 model=self.model,
-                contents=f"{PLANNER}\n\nPergunta: {q}",
+                contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0,
+                    thinking_config=(types.ThinkingConfig(thinking_level="LOW")
+                                     if self.model.startswith("gemini-3") else None),
                     max_output_tokens=PLANNER_MAX_OUTPUT_TOKENS,
                     response_mime_type="application/json",
-                    response_json_schema=QueryPlan.model_json_schema(),
+                    response_json_schema=schema if structured else None,
                     automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
                 ),
             )

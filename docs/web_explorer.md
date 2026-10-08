@@ -47,7 +47,7 @@ No migrations, Parquet/R2 execution logic, operational logging, or historical sc
 ## Invalid planner output
 
 The Gemini planner uses native JSON Schema with local QueryPlan validation.
-Output is bounded to 2,048 tokens and accepted response text to 16,384 UTF-8
+Output is bounded to 8,192 tokens and accepted response text to 16,384 UTF-8
 bytes. Truncated/blocked candidates, malformed JSON, invalid plans and SDK
 integer-conversion failures produce HTTP 422 with code
 `INVALID_PLANNER_RESPONSE`. The source query is not executed in this case.
@@ -60,3 +60,25 @@ Regression validation (2026-10-08): `python -m pytest tests -q -rs`:
 configured database and were skipped locally. The SDK's parsing failure with
 a 65,410-digit integer is reproduced offline, including the HTTP error path.
 No live Gemini/R2 query was available in the validation environment.
+
+### Planner recovery
+
+The wire schema is now inlined (no `$ref`/`$defs`), without annotations/defaults,
+with bounded monthly interval integers and `const` represented as `enum`.
+The internal QueryPlan and query semantics are unchanged. Gemini 3 planners
+request LOW thinking; the 8,192-token ceiling leaves more room for thinking
+and the actual JSON than the initial 2,048-token limit.
+
+A failed structured-output attempt is retried once in JSON mode without an
+API-enforced schema. This avoids the SDK's automatic schema JSON parsing path.
+The fallback receives the original question and public schema, never source
+data or the malformed response. Both paths must pass the same strict local
+QueryPlan validation before execution; invalid plans are never repaired by
+coercion or executed. Network/API errors are not retried by this mechanism.
+
+Updated offline validation: **253 passed, 7 skipped, 0 failed**. Recovery tests
+cover the real SDK parser's 65,410-digit failure, truncated output and invalid
+orders, followed by a valid plan and actual TemporalAnalytics execution on
+synthetic monthly aggregates. The expected differences are exactly
+`[null, 10, 10, 10, 10, 10]`, classified DERIVED. A live Gemini/R2 run remains
+necessary to confirm provider behavior with the deployment's model/settings.
