@@ -234,3 +234,38 @@ Streamlit AppTest no tema escuro. Sem novas dependências ou serviços.
 Validação local final: `python -m pytest tests -q -rs` — **329 aprovados,
 7 PostgreSQL pulados por ausência de banco descartável, 0 falhos**. Inclui
 15 novos casos; interface exercitada com AppTest, sem captura de navegador.
+
+## MoM/YoY e barras interrompidas
+
+O seletor **Base da comparação** distingue Mensal (MoM: mês anterior) e
+Interanual (YoY: mesmo mês do ano anterior). O método do plano define a seleção
+inicial; influenza ganha uma sugestão textual, sem troca automática. Quando o
+resultado já contém YoY, alternar é apenas apresentação. Quando ainda não contém,
+selecionar YoY oferece um botão explícito: ele atualiza a consulta principal e
+consulta o histórico com o mesmo período principal/filtros, sem chamada adicional
+ao planner. O resultado anterior é preservado se a execução falhar. Não se
+consulta histórico só por mudar o seletor ou fazer rerun/download.
+
+Na dinâmica mensal, percentual/absoluto usa `pct_change`/diferença solicitada para
+MoM, ou `yoy_pct`/`yoy_delta` para YoY. A tabela exata acrescenta mês e volume de
+referência; os detalhes mostram o histórico separado e sua proveniência. O total
+e o máximo resumem apenas os meses principais; o card de maior mudança é
+explicitamente **mensal**, preservando o resumo anterior.
+
+Esta versão substitui a omissão anterior das barras >+100%: na visão limitada,
+o campo exclusivamente visual `Valor visual` posiciona a barra em +100%, com
+marca **//**, percentual real anotado acima e legenda explícita:
+**Barra interrompida: valor superior ao limite visual de +100%**. `Valor` e
+`Exato` mantêm o percentual original no tooltip; tabela, JSON, fórmulas e dados
+não mudam. A escala completa remove a interrupção. +100% permanece normal;
+valores negativos ficam abaixo de zero. Os volumes DIRECT mantêm gráfico e
+escala próprios. Nada é classificado como anomalia ou causado por uma campanha.
+
+Validação local: `python -m pytest tests -q -rs` — **352 aprovados, 7 pulados,
+0 falhos**; 23 novos casos. Inclui YoY positivo/negativo/zero, janeiro alinhado,
+referência ausente/nula/zero, origem esparsa, filtros e códigos resolvidos
+inconsistentes, precisão exata, Δ1–Δ3/MoM preservados, backend PyArrow em memória,
+projeção externa sanitizada e Streamlit AppTest com seleção/click explícito,
+barras interrompidas e escala completa. PostgreSQL pulado por falta de banco
+local descartável. Sem chamadas Gemini/R2 reais nem captura de navegador.
+Sem dependências, serviços, migrations ou frontend independentes novos.

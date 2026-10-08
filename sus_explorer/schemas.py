@@ -13,6 +13,7 @@ class TemporalRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     order: Annotated[int, Field(strict=True, ge=1, le=3)]
+    comparison: Literal["mom", "yoy"] = "mom"
     metric: Literal["doses"] = "doses"
     granularity: Literal["monthly"] = "monthly"
 

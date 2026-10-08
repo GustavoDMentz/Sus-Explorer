@@ -158,3 +158,46 @@ Arquivos desta integração: `schemas.py`, `llm.py`, `pni.py`, `service.py`,
 Sem novas dependências, alterações em migrations, artefatos científicos,
 publicação atômica de auditoria ou logging. Frontend, API HTTP, atividade pública,
 suavização, anomalias, cobertura e testes estatísticos permanecem fora do escopo.
+
+## Comparação interanual independente
+
+`temporal_analysis.comparison` aceita exclusivamente `mom` (padrão retrocompatível)
+ou `yoy`. A ordem 1–3 continua definindo a diferença finita mensal existente,
+mesmo quando YoY é solicitado. O prompt mapeia pedidos interanuais/YoY/mesmo mês
+do ano anterior para `comparison=yoy`; pede parâmetros ausentes e não transforma
+comparações ambíguas ou anos não adjacentes em YoY.
+
+A execução mantém a consulta principal e executa uma segunda timeseries:
+`start_year - 1/start_month` até `end_year - 1/end_month`. Filtros são copiados
+integralmente do plano validado. As duas séries passam pelo mesmo adaptador de
+validação, com ordenação, precisão, limites e proveniência sanitizada. Se a origem
+declarar filtros distintos do plano, ou a resolução de vacina variar entre
+séries com observações, o cálculo falha controladamente. Não há SQL livre.
+
+`analytics/yoy.py` calcula métricas DERIVED independentes:
+
+- `yoy_delta = y(t) - y(t-12)` (doses), reutilizando a diferença exata existente;
+- `yoy_pct = 100 * (y(t) - y(t-12)) / y(t-12)` (%), como razão exata string.
+
+O vínculo é pelo mês YYYY-MM de calendário, não pela posição na lista. Lacunas
+entre os dois meses não impedem YoY se ambos os meses correspondentes existem;
+isso não altera a regra de continuidade das diferenças mensais. Ausência de
+referência ou de observação atual retorna null com motivo estruturado. Referência
+zero mantém a diferença absoluta e torna só o percentual indisponível.
+
+As linhas principais, suas diferenças e seu resumo não recebem meses históricos.
+Cada métrica YoY registra mês e volume agregado de referência. `provenance.yoy`
+registra consultas/filtros, período de referência, hashes principal/histórico,
+proveniência sanitizada, fórmulas, versão, lag de 12 meses, unidades e políticas.
+FileNotFoundError da consulta histórica produz referência indisponível; falhas
+operacionais/configuração continuam erros controlados, sem fabricar ausência.
+O limite inicial de consulta principal continua 2020; sua referência 2019 é
+explicitamente consultada, sem presumir que haja dados nessa fonte.
+
+A projeção para o LLM acrescenta somente os agregados YoY e metadados públicos
+selecionados. Microdados e metadados arbitrários são excluídos. O LLM não calcula
+nem corrige números. YoY pode ajudar a ler séries sazonais, mas não elimina efeitos
+de calendário de campanhas, disponibilidade dos dados ou população-alvo.
+
+Testes de planner usam mocks; não comprovam compreensão do Gemini real. Testes
+matemáticos não dependem da API externa.
