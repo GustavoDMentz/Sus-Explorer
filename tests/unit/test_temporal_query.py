@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from sus_explorer.analytics.temporal_query import (
     SOURCE_LABEL, TemporalQueryError, execute_temporal, temporal_answer_payload,
 )
-from sus_explorer.llm import ANSWER, PLANNER, GeminiAnalyst
+from sus_explorer.llm import ANSWER, PLANNER, GeminiAnalyst, planner_output_schema
 from sus_explorer.pni import PNIRemote, QueryResult
 from sus_explorer.schemas import QueryPlan, TemporalRequest
 from sus_explorer.service import SUSExplorer
@@ -327,7 +327,8 @@ def test_planner_intent_contract_with_mocked_gemini(question, order, phrase):
     assert actual == expected
     call = llm.client.models.calls[0]
     assert question in call["contents"] and phrase in PLANNER
-    assert call["config"].response_schema is QueryPlan
+    assert call["config"].response_schema is None
+    assert call["config"].response_json_schema == planner_output_schema()
     assert call["config"].automatic_function_calling.disable is True
 
 
