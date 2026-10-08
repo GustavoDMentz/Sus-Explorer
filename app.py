@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import streamlit as st
 from sus_explorer.service import SUSExplorer
+from sus_explorer.schemas import QueryPlan
+from copy import deepcopy
 from sus_explorer.streamlit_views import render_result
 
 st.set_page_config(page_title='SUS Explorer', page_icon='💉', layout='wide')
@@ -13,6 +15,18 @@ st.info('Cálculos no backend Python, com proveniência. Nenhum microdado indivi
 @st.cache_resource
 def get_explorer():
     return SUSExplorer()
+
+
+def execute_yoy_comparison(payload):
+    updated = deepcopy(payload)
+    plan_data = deepcopy(payload['plan'])
+    temporal = plan_data.get('temporal_analysis') or {'order':1}
+    plan_data.update(operation='temporal', temporal_analysis=temporal | {'comparison':'yoy'})
+    plan = QueryPlan.model_validate(plan_data)
+    updated['result'] = get_explorer().pni.execute(plan).model_dump()
+    updated['plan'] = plan.model_dump()
+    updated['answer'] = None  # do not reuse an explanation of a different comparison
+    return updated
 
 
 with st.sidebar:
@@ -50,4 +64,4 @@ if payload := st.session_state.get('query_result'):
         with st.expander('Plano parcial'):
             st.json(payload.get('plan', {}))
     else:
-        render_result(payload, st.session_state.get('result_question', ''))
+        render_result(payload, st.session_state.get('result_question', ''), execute_yoy_comparison)
