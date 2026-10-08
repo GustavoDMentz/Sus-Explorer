@@ -49,7 +49,10 @@ def test_focused_and_full_percentage_views_preserve_exact_result():
     original = deepcopy(result)
     focused = monthly_chart(result,'pct_change',show_extreme=False)
     full = monthly_chart(result,'pct_change',show_extreme=True)
-    assert 4900 not in focused.data['Valor'].tolist()
+    assert 4900 in focused.data['Valor'].tolist()
+    assert 4900 not in focused.data['Valor visual'].tolist()
+    assert focused.data['Interrompida'].tolist() == [False,True,False,False]
+    assert focused.data['Anotação'].tolist()[1] == '4900.00%'
     assert 4900 in full.data['Valor'].tolist()
     assert 100 in focused.data['Valor'].tolist()  # boundary not excluded
     assert -75 in focused.data['Valor'].tolist()
