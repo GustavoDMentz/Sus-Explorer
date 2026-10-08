@@ -82,3 +82,10 @@ orders, followed by a valid plan and actual TemporalAnalytics execution on
 synthetic monthly aggregates. The expected differences are exactly
 `[null, 10, 10, 10, 10, 10]`, classified DERIVED. A live Gemini/R2 run remains
 necessary to confirm provider behavior with the deployment's model/settings.
+
+## Browser wait limit
+
+The browser allows 200 seconds for the complete `/api/ask` request (planning,
+source query and explanation), then aborts its wait. This replaces the original
+90-second limit after an observed source query took 139.491 seconds. Aborting
+the browser request does not guarantee cancellation of backend execution.

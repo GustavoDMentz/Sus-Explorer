@@ -51,7 +51,7 @@ export default function Home() {
     try {
       const base = (process.env.NEXT_PUBLIC_SUS_API_URL || "http://localhost:8000").replace(/\/$/, "");
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90000);
+      const timeout = setTimeout(() => controller.abort(), 200_000);
       try {
         const res = await fetch(base + "/api/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: question.trim() }), signal: controller.signal });
         const json = await res.json();
