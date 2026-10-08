@@ -147,3 +147,49 @@ coleta `smoke_test.py`, que exige configuração R2; a suíte do CI é `pytest t
 Resultado local final: **303 aprovados, 7 pulados, 0 falhos**, com 16 novos
 casos. Os sete skips são integrações PostgreSQL sem banco descartável local;
 nenhuma validação de totais reais Gemini/R2 foi realizada nesta etapa.
+
+## Contexto de volumes, campanhas e percentuais extremos
+
+A apresentação mensal segue: **Resumo → Volume mensal → Dinâmica mensal →
+Interpretação → Detalhes científicos**. O volume DIRECT em doses continua
+sendo o gráfico principal, com escala independente do percentual. O resumo
+DERIVED mostra soma exata dos meses observados (parcial quando há nulls), máximo
+mensal observado e maior diferença absoluta em magnitude, preservando o sinal.
+Empates de máximo e de mudança são explicitados. Sem observações, total e máximo
+são indisponíveis, nunca zero fabricado.
+
+`analytics/percentage.py::summarize_series` gera esse resumo no resultado temporal
+com versão e referência da série na proveniência. Usa a função exata de diferenças
+já existente; somente pares consecutivos observados entram nas transições.
+O resumo descritivo não modifica dados, diferenças ou percentuais. Na apresentação
+de timeseries/retornos anteriores, a mesma função recebe exclusivamente os
+agregados disponíveis, sem mudar o resultado original ou sua exportação.
+
+Aumentos estritamente maiores que +100% permanecem exatos no resultado e tabela.
+Na visão percentual padrão, essas barras são **omitidas explicitamente**, sem
+truncar valores nem mudar os volumes. A tela lista cada transição, doses anterior
+e atual, diferença absoluta e percentual, e explica o possível efeito de uma
+base pequena. O checkbox **Mostrar escala percentual completa** inclui novamente
+todas as barras; alternância e checkbox não repetem consultas. +100% continua no
+gráfico complementar normal. Percentual com denominador zero continua null,
+mesmo quando a diferença absoluta existe. Nenhuma escala é compartilhada entre
+doses e percentuais. Valores fora da representação finita do navegador seguem
+preservados nos detalhes exatos.
+
+O texto contextual é determinístico: máximo e mínimo observados, maior aumento
+até o último máximo e meses com redução consecutiva depois dele. Não descreve
+queda através de lacunas nem assume redução monotônica. Quando o filtro textual
+identifica influenza e há aumento até o máximo seguido de redução, a nota diz
+que o padrão pode ser compatível com dinâmica sazonal, mas não confirma
+sazonalidade nem atribui mudanças à campanha. Não deduz família vacinal de códigos
+isolados nem consulta calendário externo. Não infere causalidade, pessoas
+vacinadas, cobertura ou significância. Percentuais de volume não são pontos
+percentuais.
+
+Validação local: `python -m pytest tests -q -rs` — **314 aprovados, 7 pulados,
+0 falhos**; 11 novos casos, incluindo crescimento abrupto/pico/queda, lacunas,
+zero no denominador, empates, todos os meses ausentes, Decimal sob precisão
+reduzida, +100% versus >+100%, preservação de resultados e hierarquia/checkbox
+com Streamlit AppTest. Os sete skips exigem PostgreSQL descartável, ausente.
+Não foram realizadas consultas Gemini/R2 reais. Sem novas dependências,
+serviços, migrations ou alterações aos artefatos científicos.
