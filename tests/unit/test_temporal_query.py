@@ -118,7 +118,7 @@ def test_temporal_parameters_not_ignored_on_legacy_operation(operation):
 def test_integrated_polynomial_series(power, order, expected):
     result = run([t**power for t in range(6)], order)
     assert values(result, order) == expected
-    assert all(list(row["metrics"]) == [f"delta_{order}"] for row in result.data["rows"])
+    assert all(list(row["metrics"]) == [f"delta_{order}", "pct_change"] for row in result.data["rows"])
 
 
 def test_executor_reuses_timeseries_and_preserves_all_supported_filters():
