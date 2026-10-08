@@ -89,3 +89,25 @@ def test_clarification_renders_without_chart():
     assert not at.exception
     assert at.warning[0].value == 'Qual UF?'
     assert not at.dataframe
+
+
+def test_percent_toggle_preserves_result_and_never_calls_service(monkeypatch):
+    import sus_explorer.service
+    from sus_explorer.analytics.percentage import percentage_changes
+    service = Mock()
+    monkeypatch.setattr(sus_explorer.service, 'SUSExplorer', lambda: service)
+    payload = response()
+    rows = payload['result']['data']['rows']
+    for row, metric in zip(rows, percentage_changes(rows)):
+        row['metrics']['pct_change'] = metric
+    original = deepcopy(payload)
+    at = AppTest.from_file(APP)
+    at.session_state['query_result'] = payload
+    at.run()
+    assert not at.exception
+    assert at.radio[0].value == 'Variação percentual'
+    assert len(at.get('vega_lite_chart')) == 2
+    at.radio[0].set_value('Diferença absoluta').run()
+    assert not at.exception
+    service.ask.assert_not_called()
+    assert at.session_state['query_result'] == original

@@ -92,3 +92,58 @@ Verificação: `python -m pytest tests -q -rs` — **287 passed, 7 skipped, 0 fa
 Inclui união sem duplicação, siglas/códigos, conflitos, filtros adicionais,
 lacunas e diferenças exatas em série variável. Ainda é necessário repetir a
 consulta real no ambiente com Gemini/R2 para verificar os totais corrigidos.
+
+## Refinamento temporal e variação percentual
+
+Diagnóstico: o gráfico anterior usava marcações automáticas num eixo temporal
+contínuo e rótulos YYYY-MM. Os meses sem pontos podiam ser meses ausentes,
+valores null, histórico insuficiente para a diferença ou números não
+representáveis com segurança no navegador. TemporalAnalytics já completava o
+intervalo com nulls explícitos e interrompia diferenças através de lacunas;
+não havia motivo para imputar zero ou alterar doses. A consulta mensal agrega
+por mês, ordena os períodos e o adaptador rejeita duplicidade/desordem.
+
+O cabeçalho mostra pergunta e intervalo; cards mostram observações disponíveis,
+meses indisponíveis e último volume. O eixo tem até oito marcações de meses reais
+com rótulos portugueses jan/26, fev/26 etc. A linha DIRECT tem marcadores apenas
+em valores disponíveis; segmentos separados interrompem lacunas. Séries
+`timeseries` esparsas ganham placeholders null **somente na apresentação**, entre
+primeiro e último mês retornado, sem modificar o contrato nem os dados salvos.
+
+A operação `temporal` acrescenta `metrics.pct_change`, calculada deterministicamente
+em `analytics/percentage.py` após a validação da série e antes da serialização.
+Não muda as diferenças finitas nem a consulta de origem:
+
+`pct_change(t) = 100 * (y(t) - y(t-1)) / y(t-1)`
+
+- Somente pares de meses consecutivos; não lê meses anteriores ao intervalo.
+- Histórico insuficiente, mês/valor ausente e denominador zero retornam null
+  e `unavailable_reasons` estruturados. Zero observado é diferente de ausência.
+- Int e Decimal finitos são aceitos; floats/bools rejeitados. Fraction preserva
+  a razão exata, mesmo para dízimas e sob contexto Decimal de precisão reduzida.
+- `value` é uma string racional exata: `25`, `-20` ou `100/3`. A diferença
+  absoluta correspondente também é exata. JSON e tabela exata preservam isso.
+  Somente gráficos/tooltips e texto resumido arredondam na apresentação.
+- Proveniência adicional `percentage_change` registra fórmula, método v1.0.0,
+  DERIVED, unidade %, políticas de ausência/zero e referência SHA-256 original.
+
+O segundo gráfico alterna percentual e diferença absoluta **solicitada**, com
+barras divergentes e referência zero. Tooltips exibem valor, unidade,
+DIRECT/DERIVED, referência e diferença absoluta. Meses indisponíveis são listados
+explicitamente e nunca aparecem como 0%. A tabela exata fica num expander.
+O resumo percentual descreve os últimos dois pares calculáveis; ordens 2/3
+mantêm também a interpretação da última diferença disponível. A projeção externa
+para o LLM permanece com a diferença solicitada; o resumo percentual é local e
+determinístico, usando os valores calculados. Sem nova dependência ou frontend.
+
+Verificação: `python -m pytest tests -q -rs`. Casos cobrem crescimento, queda,
+zero, denominador zero, lacunas/nulls, um mês, virada de ano, ordenação/duplicidade,
+números grandes e Decimal exato, preservação das diferenças, séries esparsas,
+limite de ticks e alternância Streamlit sem nova consulta. AppTest executa a
+interface com mocks; não acessa Gemini/R2 real. Captura de navegador indisponível
+neste ambiente (binário Chromium ausente). O comando amplo `pytest -q` também
+coleta `smoke_test.py`, que exige configuração R2; a suíte do CI é `pytest tests`.
+
+Resultado local final: **303 aprovados, 7 pulados, 0 falhos**, com 16 novos
+casos. Os sete skips são integrações PostgreSQL sem banco descartável local;
+nenhuma validação de totais reais Gemini/R2 foi realizada nesta etapa.
