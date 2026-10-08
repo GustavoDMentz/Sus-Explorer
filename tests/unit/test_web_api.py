@@ -47,3 +47,24 @@ def test_temporal_failure_is_controlled(monkeypatch):
     response = TestClient(web_api.app).post("/api/ask", json={"question": "Aceleração no RS em 2026?"})
     assert response.status_code == 422
     assert response.json()["detail"]["code"] == "SOURCE_QUERY_FAILED"
+
+
+def test_invalid_planner_response_is_controlled_and_does_not_execute_source(monkeypatch):
+    from sus_explorer.llm import GeminiAnalyst, PlannerResponseError
+    from sus_explorer.service import SUSExplorer
+    import json
+    service = SUSExplorer.__new__(SUSExplorer)
+    service.llm = GeminiAnalyst.__new__(GeminiAnalyst)
+    service.llm.model = 'offline-model'
+    service.llm.client = Mock()
+    def broken_sdk(**kwargs):
+        return json.loads('{"year":' + '9' * 65410 + '}')
+    service.llm.client.models.generate_content.side_effect = broken_sdk
+    service.pni = Mock()
+    monkeypatch.setattr(web_api, 'explorer', lambda: service)
+    response = TestClient(web_api.app).post('/api/ask', json={
+        'question':'Qual foi a variação mensal das doses no RS de janeiro a junho de 2026?'})
+    assert response.status_code == 422
+    assert response.json()['detail']['code'] == PlannerResponseError.code
+    assert '65410' not in response.text
+    service.pni.execute.assert_not_called()

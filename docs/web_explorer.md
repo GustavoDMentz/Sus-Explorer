@@ -43,3 +43,20 @@ cd frontend && npm install && npm run build
 ```
 
 No migrations, Parquet/R2 execution logic, operational logging, or historical scientific artifacts are changed.
+
+## Invalid planner output
+
+The Gemini planner uses native JSON Schema with local QueryPlan validation.
+Output is bounded to 2,048 tokens and accepted response text to 16,384 UTF-8
+bytes. Truncated/blocked candidates, malformed JSON, invalid plans and SDK
+integer-conversion failures produce HTTP 422 with code
+`INVALID_PLANNER_RESPONSE`. The source query is not executed in this case.
+The response never includes generated text or SDK exception details. Python's
+integer conversion guard remains enabled. This bounds and handles invalid
+output; it cannot guarantee a valid plan from an external model.
+
+Regression validation (2026-10-08): `python -m pytest tests -q -rs`:
+**249 passed, 7 skipped, 0 failed**. PostgreSQL tests require a disposable
+configured database and were skipped locally. The SDK's parsing failure with
+a 65,410-digit integer is reproduced offline, including the HTTP error path.
+No live Gemini/R2 query was available in the validation environment.

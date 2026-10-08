@@ -327,7 +327,8 @@ def test_planner_intent_contract_with_mocked_gemini(question, order, phrase):
     assert actual == expected
     call = llm.client.models.calls[0]
     assert question in call["contents"] and phrase in PLANNER
-    assert call["config"].response_schema is QueryPlan
+    assert call["config"].response_schema is None
+    assert call["config"].response_json_schema == QueryPlan.model_json_schema()
     assert call["config"].automatic_function_calling.disable is True
 
 

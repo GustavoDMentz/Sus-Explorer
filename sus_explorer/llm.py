@@ -130,6 +130,19 @@ RESULTADOS TEMPORAIS:
 """
 
 
+PLANNER_MAX_OUTPUT_TOKENS = 2048
+PLANNER_MAX_RESPONSE_BYTES = 16384
+
+
+class PlannerResponseError(ValueError):
+    """Invalid model output; never include model text or SDK details."""
+
+    code = "INVALID_PLANNER_RESPONSE"
+
+    def __init__(self):
+        super().__init__("Não foi possível gerar um plano válido. Tente reformular a pergunta.")
+
+
 class GeminiAnalyst:
     def __init__(self):
         if not settings.gemini_api_key:
@@ -141,28 +154,37 @@ class GeminiAnalyst:
         self.model = settings.gemini_model
 
     def plan(self, q: str) -> QueryPlan:
-        r = self.client.models.generate_content(
-            model=self.model,
-            contents=f"{PLANNER}\n\nPergunta: {q}",
-            config=types.GenerateContentConfig(
-                temperature=0,
-                response_mime_type="application/json",
-                response_json_schema=QueryPlan.model_json_schema(),
-                automatic_function_calling=(
-                    types.AutomaticFunctionCallingConfig(
-                        disable=True
-                    )
+        try:
+            r = self.client.models.generate_content(
+                model=self.model,
+                contents=f"{PLANNER}\n\nPergunta: {q}",
+                config=types.GenerateContentConfig(
+                    temperature=0,
+                    max_output_tokens=PLANNER_MAX_OUTPUT_TOKENS,
+                    response_mime_type="application/json",
+                    response_json_schema=QueryPlan.model_json_schema(),
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
                 ),
-            ),
-        )
-
-        if getattr(r, "parsed", None) is not None:
-            if isinstance(r.parsed, QueryPlan):
-                return r.parsed
-
-            return QueryPlan.model_validate(r.parsed)
-
-        return QueryPlan.model_validate_json(r.text)
+            )
+            candidates = getattr(r, "candidates", None)
+            if isinstance(candidates, list) and any(
+                getattr(candidate, "finish_reason", None) not in (None, "STOP")
+                for candidate in candidates
+            ):
+                raise PlannerResponseError()
+            text = getattr(r, "text", None)
+            if isinstance(text, str) and len(text.encode("utf-8")) > PLANNER_MAX_RESPONSE_BYTES:
+                raise PlannerResponseError()
+            parsed = getattr(r, "parsed", None)
+            if parsed is not None:
+                return QueryPlan.model_validate(parsed)
+            if not isinstance(text, str) or not text.strip():
+                raise PlannerResponseError()
+            return QueryPlan.model_validate_json(text)
+        except ValueError:
+            # Includes SDK json.loads integer-limit failures before r is returned,
+            # plus local Pydantic validation. Keep Python's integer guard enabled.
+            raise PlannerResponseError() from None
 
     def answer(
         self,

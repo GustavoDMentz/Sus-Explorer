@@ -1,5 +1,6 @@
 """Gemini planner structured-output contract (offline, no API key or network)."""
 from unittest.mock import Mock
+import pytest
 from google.genai import types
 from sus_explorer.llm import GeminiAnalyst
 from sus_explorer.schemas import QueryPlan
@@ -40,3 +41,42 @@ def test_native_schema_preserves_additional_properties_in_json_schema():
     analyst.plan("Contagem no RS em 2026")
     sent = analyst.client.models.generate_content.call_args.kwargs["config"].response_json_schema
     assert sent["$defs"]["TemporalRequest"]["additionalProperties"] is False
+
+
+def test_sdk_excessive_integer_is_controlled_without_disabling_guard():
+    import json
+    import sys
+    import pytest
+    from sus_explorer.llm import PlannerResponseError, PLANNER_MAX_OUTPUT_TOKENS
+    analyst = _analyst_with_fake_client(None)
+    limit = sys.get_int_max_str_digits()
+    def sdk_parse(**kwargs):
+        assert kwargs['config'].max_output_tokens == PLANNER_MAX_OUTPUT_TOKENS
+        # Reproduce the SDK's json.loads failure before returning a response.
+        return json.loads('{"year":' + '9' * 65410 + '}')
+    analyst.client.models.generate_content.side_effect = sdk_parse
+    with pytest.raises(PlannerResponseError) as error:
+        analyst.plan('Variação no RS em 2026?')
+    assert error.value.code == 'INVALID_PLANNER_RESPONSE'
+    assert '65410' not in str(error.value)
+    assert error.value.__suppress_context__
+    assert sys.get_int_max_str_digits() == limit
+
+
+@pytest.mark.parametrize('payload', ['', '{', '{"year":' + '9' * 65410 + '}',
+                                     '{"operation":"arbitrary"}'])
+def test_invalid_or_oversized_text_is_rejected(payload):
+    from sus_explorer.llm import PlannerResponseError
+    with pytest.raises(PlannerResponseError):
+        _analyst_with_fake_client(payload).plan('Contagem no RS em 2026')
+
+
+def test_truncated_response_is_rejected_even_with_valid_parsed_plan():
+    from types import SimpleNamespace
+    from sus_explorer.llm import PlannerResponseError
+    analyst = _analyst_with_fake_client('{}')
+    analyst.client.models.generate_content.return_value = SimpleNamespace(
+        parsed={'operation':'count','uf':'RS','year':2026}, text='{}',
+        candidates=[SimpleNamespace(finish_reason=types.FinishReason.MAX_TOKENS)])
+    with pytest.raises(PlannerResponseError):
+        analyst.plan('Contagem no RS em 2026')

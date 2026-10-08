@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from sus_explorer.analytics.temporal_query import TemporalQueryError
 from sus_explorer.service import SUSExplorer
+from sus_explorer.llm import PlannerResponseError
 
 app = FastAPI(title="SUS Explorer API", version="0.1.0")
 origins = [origin.strip() for origin in os.getenv(
@@ -34,7 +35,7 @@ def health():
 def ask(payload: AskRequest):
     try:
         return explorer().ask(payload.question)
-    except TemporalQueryError as exc:
+    except (TemporalQueryError, PlannerResponseError) as exc:
         raise HTTPException(status_code=422, detail={"code": exc.code, "message": str(exc)}) from None
     except Exception:
         # Never return credentials, internal URLs, tracebacks or source microdata.
