@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from google import genai
@@ -66,7 +67,15 @@ ANÁLISE TEMPORAL DERIVADA:
 - "variação mensal", "crescimento mensal" → order=1.
 - "acelerando", "aceleração", "desaceleração", "crescimento perdendo força" → order=2.
 - "mudança da aceleração", "terceira diferença" → order=3.
-- O período usa start_year/start_month/end_year/end_month, todos explícitos.
+- O período usa start_year/start_month/end_year/end_month.
+- Intervalos de anos inteiros, como "de 2024 a 2025", "entre 2024 e 2025" ou
+  "2024 até 2025", significam janeiro do primeiro ano a dezembro do último,
+  inclusive. Não peça meses adicionais: é uma convenção de calendário.
+- Meses explicitamente solicitados sempre prevalecem. "Janeiro a junho de
+  2024 em relação a 2025" pede comparação dos mesmos meses em anos diferentes,
+  não um intervalo contínuo nem anos inteiros. A operação temporal atual não
+  calcula comparação interanual; explique essa limitação sem pedir ao usuário
+  que transforme sua comparação em um intervalo diferente.
   "ao longo de 2026" representa janeiro a dezembro de 2026, sem observações extras.
   "está acelerando?" sem período exige esclarecimento; nunca escolha meses recentes.
 - UF é obrigatória, mesmo se município foi citado. Não deduza UF por geografia.
@@ -161,6 +170,36 @@ def planner_output_schema() -> dict:
     return schema
 
 
+_MONTH_OR_SUBYEAR = re.compile(
+    r"\b(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|"
+    r"outubro|novembro|dezembro|mês|mes|meses|trimestre|semestre|dia|dias)\b|"
+    r"\b\d{1,2}[/.-]\d{1,2}[/.-]\d{4}\b|\b\d{4}[-/]\d{1,2}\b", re.IGNORECASE)
+_YEAR_RANGE = re.compile(
+    r"\b(?:de\s+)?(20\d{2}|2100)\s+(?:a|até)\s+(20\d{2}|2100)\b|"
+    r"\bentre\s+(20\d{2}|2100)\s+e\s+(20\d{2}|2100)\b", re.IGNORECASE)
+
+
+def apply_whole_year_interval(question: str, plan: QueryPlan) -> QueryPlan:
+    """Expand an explicit year-only range, never a comparison/monthly subrange."""
+    if plan.operation not in ("temporal", "timeseries") or _MONTH_OR_SUBYEAR.search(question):
+        return plan
+    matches = list(_YEAR_RANGE.finditer(question))
+    if len(matches) != 1:
+        return plan
+    match = matches[0]
+    start, end = (int(value) for value in match.groups() if value is not None)
+    if not 2020 <= start <= end <= 2100:
+        return plan
+    payload = plan.model_dump()
+    payload.update(start_year=start, start_month=1, end_year=end, end_month=12)
+    date_fields = {"period", "year", "month", "start_year", "start_month", "end_year", "end_month"}
+    payload['missing'] = [field for field in payload['missing'] if field not in date_fields]
+    # Only release a clarification explicitly attributed to missing dates.
+    if plan.status == 'needs_clarification' and plan.missing and not payload['missing']:
+        payload.update(status='ready', clarification_question=None)
+    return QueryPlan.model_validate(payload)
+
+
 class PlannerResponseError(ValueError):
     """Invalid model output; never include model text or SDK details."""
 
@@ -186,7 +225,7 @@ class GeminiAnalyst:
         # never generated garbage, query results or source data.
         for structured in (True, False):
             try:
-                return self._plan_attempt(q, structured=structured)
+                return apply_whole_year_interval(q, self._plan_attempt(q, structured=structured))
             except PlannerResponseError:
                 if not structured:
                     raise
