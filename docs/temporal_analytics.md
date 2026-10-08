@@ -2,8 +2,10 @@
 
 Módulo independente em `sus_explorer.analytics`, sem leitura de banco/bucket,
 logging próprio ou chamada ao LLM. Consome somente séries mensais já agregadas.
-Não está conectado a `QueryPlan`, `PNIRemote`, `SUSExplorer` ou ao frontend;
-as operações e respostas existentes permanecem iguais.
+O cálculo puro permanece independente. A operação tipada `temporal` de
+`QueryPlan` agora o conecta a `PNIRemote`/`SUSExplorer` por um adaptador explícito;
+as operações descritivas existentes permanecem iguais. Ver
+[`temporal_queryplan.md`](temporal_queryplan.md) para o contrato da integração.
 
 ## Contrato de entrada
 

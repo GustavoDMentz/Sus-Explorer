@@ -882,6 +882,11 @@ class PNIRemote:
         )
 
     def execute(self, plan: QueryPlan) -> QueryResult:
+        if plan.operation == "temporal":
+            from .analytics.temporal_query import execute_temporal
+
+            return execute_temporal(plan, self.execute)
+
         operations = {
             "count": self.count,
             "group": self.group,
