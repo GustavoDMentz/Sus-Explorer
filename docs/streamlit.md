@@ -63,3 +63,32 @@ limitação, sem solicitar um intervalo contínuo que mude a pergunta.
 
 Validação atualizada: **280 passed, 7 skipped, 0 failed**, incluindo 13 casos
 de convenção anual, integração com o planner e preservação de subperíodos.
+
+## Correção do filtro textual de vacina
+
+O resultado enviado pelo usuário em 2026-10-08 continha seis observações zero,
+207 fragmentos e o filtro `vaccine_text=influenza`. O filtro anterior procurava
+somente o substring no texto de origem; uma coluna contendo INF3/INF4 não
+correspondia a influenza. Essa falha foi reproduzida com Parquet sintético.
+O arquivo agregado enviado não contém os valores brutos das colunas, portanto
+não permite comprovar sozinho a grafia presente no R2.
+
+O filtro agora corresponde ao texto original **ou** a `co_vacina` resolvido pela
+terminologia MS + SES-GO já existente. Usa apenas rótulos canônicos e definições
+sem conflito; não fixa códigos nem expande siglas por memória. A união não
+conta uma linha duas vezes e continua combinada com os outros filtros.
+A proveniência registra códigos efetivamente resolvidos, método e versões
+públicas da terminologia, inclusive no resultado temporal. Sem terminologia
+acessível, a consulta falha em vez de fabricar uma série zero. O cache existente
+continua permitindo operação quando as fontes estiverem offline.
+
+Não há alteração nas fórmulas, lacunas, ausência de observações anteriores,
+classificações ou contagens sem filtro de vacina. Artefatos científicos,
+migrations, armazenamento e auditoria permanecem preservados. A resolução
+pode incluir várias apresentações da mesma família textual; os códigos ficam
+explícitos na proveniência. Sinônimos ausentes da terminologia não são inferidos.
+
+Verificação: `python -m pytest tests -q -rs` — **287 passed, 7 skipped, 0 failed**.
+Inclui união sem duplicação, siglas/códigos, conflitos, filtros adicionais,
+lacunas e diferenças exatas em série variável. Ainda é necessário repetir a
+consulta real no ambiente com Gemini/R2 para verificar os totais corrigidos.
