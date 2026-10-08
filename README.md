@@ -8,6 +8,8 @@ Pergunta → Gemini (plano JSON) → Pydantic → PyArrow/R2 → agregado + prov
 
 ## Instalação
 
+Use Python 3.12 ou superior: NumPy 2.5.3 exige Python >=3.12. O CI valida Python 3.12.
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
