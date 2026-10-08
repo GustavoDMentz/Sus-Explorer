@@ -69,7 +69,7 @@ def percent_display(value):
         return f"{Decimal(ratio.numerator) / Decimal(ratio.denominator):.2f}"
 
 
-def monthly_chart(result, key=None):
+def monthly_chart(result, key=None, *, show_extreme=True):
     """Calendar spacing, bounded tick labels and explicit gap-separated segments."""
     rows = calendar_rows(result)
     records, segment, previous = [], 0, None
@@ -86,6 +86,8 @@ def monthly_chart(result, key=None):
                 number = None
         else:
             number = chart_number(value)
+        if key == 'pct_change' and not show_extreme and value is not None and Fraction(value) > 100:
+            number = None
         if previous is not None and period.ordinal != previous.ordinal + 1:
             segment += 1
         if number is None:
@@ -127,56 +129,149 @@ def percentage_summary(rows):
     return ' '.join(phrases) or 'Não há pares mensais consecutivos com variação percentual calculável.'
 
 
+def dose_display(value):
+    if value is None:
+        return '—'
+    exact = Fraction(value)
+    if exact.denominator == 1:
+        return f'{exact.numerator:,}'.replace(',', '.')
+    with localcontext() as context:
+        context.prec = max(40, len(str(abs(exact.numerator))) + len(str(exact.denominator)) + 4)
+        decimal = Decimal(exact.numerator) / Decimal(exact.denominator)
+        return format(decimal, 'f').rstrip('0').rstrip('.').replace('.', ',')
+
+
+def contextual_summary(summary):
+    if summary['observed_months'] == 0:
+        return 'Não há volumes mensais observados para descrever o comportamento da série.'
+    peak = summary['peak']
+    periods = ', '.join(month_label(p) for p in peak['periods'])
+    parts = [f"O maior volume mensal observado foi {dose_display(peak['value'])} doses/registros, em {periods}."]
+    minimum = summary['minimum']
+    if minimum['value'] != peak['value']:
+        parts.append(f"O menor volume observado foi {dose_display(minimum['value'])}, em " +
+                     ', '.join(month_label(p) for p in minimum['periods']) + '.')
+    increases = summary.get('increases_before_last_peak', [])
+    if increases:
+        increase = max(increases, key=lambda t: Fraction(t['absolute_change']))
+        parts.append(f"O maior aumento até esse máximo ocorreu de {month_label(increase['from_period'])} a {month_label(increase['period'])}: {dose_display(increase['previous_value'])} → {dose_display(increase['value'])} doses/registros.")
+    declines = summary['declines_after_last_peak']
+    if declines:
+        parts.append('Após o último mês de maior volume, houve redução frente ao mês anterior em ' +
+                     ', '.join(month_label(t['period']) for t in declines[:3]) +
+                     (' e outros meses.' if len(declines) > 3 else '.'))
+    if summary['total_is_partial']:
+        parts.append('Há meses indisponíveis; o total soma somente os volumes observados.')
+    return ' '.join(parts)
+
+
+def _plot_dynamics(chart):
+    if chart is None:
+        return
+    baseline = alt.Chart(pd.DataFrame({'zero': [0]})).mark_rule(color='#67717a').encode(y='zero:Q')
+    base = chart.copy()
+    base.config = alt.Undefined
+    st.altair_chart((base + baseline).configure_axis(labelFontSize=12, titleFontSize=13).configure_view(stroke=None), width='stretch')
+
+
+def render_monthly(payload, question=''):
+    from .analytics.percentage import summarize_series
+    result = deepcopy(payload['result'])
+    result['data']['rows'] = calendar_rows(result)
+    rows = result['data']['rows']
+    temporal = result['operation'] == 'temporal'
+    provenance = result.get('provenance', {})
+    canonical = [{'period': row['period'], 'value':
+                  Decimal(row.get('value' if temporal else 'doses'))
+                  if isinstance(row.get('value' if temporal else 'doses'), str)
+                  else row.get('value' if temporal else 'doses'),
+                  'observation_status': row.get('observation_status')} for row in rows]
+    summary = result['data'].get('summary') or summarize_series(canonical)
+    st.subheader(question or 'Análise mensal')
+    st.caption(f"{month_label(rows[0]['period'])} — {month_label(rows[-1]['period'])} · Doses/registros, não pessoas vacinadas")
+    st.subheader('Resumo')
+    cards = st.columns(3)
+    cards[0].metric('Total observado · DERIVED' + (' (parcial)' if summary['total_is_partial'] else ''), dose_display(summary['observed_total']))
+    cards[1].metric('Maior volume mensal · DIRECT', dose_display(summary['peak']['value']))
+    cards[1].caption(', '.join(month_label(p) for p in summary['peak']['periods']) or 'Indisponível')
+    greatest = summary['greatest_absolute_changes']
+    cards[2].metric('Maior mudança absoluta · DERIVED', dose_display(greatest[0]['absolute_change']) if greatest else '—')
+    cards[2].caption('; '.join(f"{month_label(t['from_period'])} → {month_label(t['period'])}" for t in greatest) or 'Sem par consecutivo disponível')
+    st.caption(f"{summary['observed_months']} meses observados · {summary['unavailable_months']} meses indisponíveis")
+
+    st.subheader('Volume mensal · DIRECT')
+    chart = monthly_chart(result)
+    if chart is not None:
+        st.altair_chart(chart, width='stretch')
+    else:
+        st.info('Não há valores representáveis no gráfico; consulte a tabela exata.')
+    missing = [month_label(r['period']) for r in canonical if r['value'] is None]
+    if missing:
+        st.info('Sem dados: ' + ', '.join(missing) + '. Ausência não significa zero.')
+
+    if temporal:
+        st.subheader('Dinâmica mensal · DERIVED')
+        order = provenance['order']
+        percent_available = any('pct_change' in r.get('metrics', {}) for r in rows)
+        selection = st.radio('Métrica derivada', ['Variação percentual', 'Diferença absoluta'], horizontal=True) if percent_available else 'Diferença absoluta'
+        key = 'pct_change' if selection == 'Variação percentual' else f'delta_{order}'
+        extremes = summary['extreme_increases']
+        show_extreme = True
+        if key == 'pct_change':
+            st.caption('Variação do volume mensal em %. Não são pontos percentuais.')
+            if extremes:
+                st.warning('Variações acima de +100% podem resultar de uma base de comparação pequena. Elas são válidas e permanecem exatas no resultado e na tabela. Compare também os volumes em doses.')
+                show_extreme = st.checkbox('Mostrar escala percentual completa, incluindo aumentos acima de +100%', value=False)
+                if not show_extreme:
+                    st.caption(f"Visão complementar: {len(extremes)} transições acima de +100% estão fora das barras e destacadas abaixo. Nenhum percentual foi truncado.")
+                for transition in extremes:
+                    st.write(f"**{month_label(transition['from_period'])} → {month_label(transition['period'])}**: " +
+                             f"{dose_display(transition['previous_value'])} → {dose_display(transition['value'])} doses/registros " +
+                             f"(diferença: {dose_display(transition['absolute_change'])}; +{percent_display(transition['pct_change'])}%).")
+        else:
+            st.caption(f"{LABELS[order]} · {provenance['formula']} · {provenance['units'][key]}")
+        unavailable = [month_label(r['period']) for r in rows if r.get('metrics', {}).get(key, {}).get('value') is None]
+        if unavailable:
+            st.caption('Métrica indisponível: ' + ', '.join(unavailable))
+        chart = monthly_chart(result, key, show_extreme=show_extreme)
+        if chart is not None:
+            _plot_dynamics(chart)
+        else:
+            st.info('Não há barras calculáveis nesta visão. Consulte os destaques e os detalhes científicos.')
+
+    st.subheader('Interpretação')
+    st.write(contextual_summary(summary))
+    filters = provenance.get('filters', payload.get('plan', {}))
+    vaccine_text = filters.get('vaccine_text') or ''
+    if ('influenza' in vaccine_text.casefold() and summary.get('increases_before_last_peak')
+            and summary['declines_after_last_peak']):
+        st.caption('O padrão pode ser compatível com uma dinâmica sazonal de vacinação, mas os dados de doses aplicadas, isoladamente, não permitem atribuir as mudanças à campanha nem confirmar sazonalidade.')
+    st.caption('Descrição dos volumes observados; não demonstra causalidade, cobertura vacinal ou significância estatística.')
+
+    with st.expander('Detalhes científicos · tabela exata, diferenças e proveniência'):
+        table = monthly_table(result)
+        st.dataframe(table, hide_index=True, width='stretch')
+        if temporal:
+            st.caption(f"Diferença solicitada: {provenance['formula']} · {provenance['units'][f'delta_{provenance['order']}']}")
+            st.caption('Uma segunda diferença negativa pode representar crescimento ainda positivo, porém desacelerando.')
+        st.caption('Nulls não são zero; diferenças não atravessam lacunas. Números sem representação segura no navegador permanecem na tabela exata.')
+        for warning in result.get('warnings', []):
+            st.warning(warning)
+        st.download_button('Baixar tabela CSV', table.to_csv(index=False).encode('utf-8-sig'), 'sus_explorer_mensal.csv', 'text/csv', on_click='ignore')
+        st.download_button('Baixar resultado e proveniência JSON', json.dumps(payload, ensure_ascii=False, indent=2), 'sus_explorer_resultado.json', 'application/json', on_click='ignore')
+        st.json(payload.get('plan', {}))
+        st.json(payload['result'])  # source result, not presentation placeholders
+
+
 def render_result(payload, question=''):
-    result = deepcopy(payload.get('result') or {})
-    if result.get('operation') == 'timeseries':
-        result['data']['rows'] = calendar_rows(result)
+    result = payload.get('result') or {}
     operation = result.get('operation')
+    if operation in ('timeseries', 'temporal') and result.get('data', {}).get('rows'):
+        render_monthly(payload, question)
+        return
     data, provenance = result.get('data', {}), result.get('provenance', {})
     origin = provenance.get('source_provenance', provenance)
-    if operation in ('timeseries', 'temporal') and data.get('rows'):
-        rows = data['rows']
-        st.subheader(question or 'Análise mensal')
-        st.caption(f"{month_label(rows[0]['period'])} — {month_label(rows[-1]['period'])} · Doses/registros, não pessoas vacinadas")
-        observed = [r for r in rows if r.get('value' if operation == 'temporal' else 'doses') is not None]
-        cards = st.columns(3)
-        cards[0].metric('Meses com observações', len(observed))
-        cards[1].metric('Meses indisponíveis', len(rows)-len(observed))
-        latest = observed[-1] if observed else None
-        cards[2].metric('Último volume mensal · DIRECT', f"{int(latest.get('value' if operation == 'temporal' else 'doses')):,}".replace(',', '.') if latest and isinstance(latest.get('value' if operation == 'temporal' else 'doses'), int) else str(latest.get('value' if operation == 'temporal' else 'doses')) if latest else '—')
-        st.subheader('Doses/registros por mês · DIRECT')
-        chart = monthly_chart(result)
-        if chart is not None:
-            st.altair_chart(chart, width='stretch')
-        if operation == 'temporal':
-            order = provenance['order']
-            percent_available = any('pct_change' in r.get('metrics', {}) for r in rows)
-            selection = st.radio('Métrica derivada', ['Variação percentual', 'Diferença absoluta'], horizontal=True) if percent_available else 'Diferença absoluta'
-            key = 'pct_change' if selection == 'Variação percentual' else f'delta_{order}'
-            st.subheader(('Variação percentual mensal' if key == 'pct_change' else LABELS[order]) + ' · DERIVED')
-            st.caption('100 × (atual − anterior) / anterior · %' if key == 'pct_change' else f"{provenance['formula']} · {provenance['units'][key]}")
-            unavailable = [month_label(r['period']) for r in rows if r.get('metrics', {}).get(key, {}).get('value') is None]
-            if unavailable:
-                st.caption('Métrica indisponível: ' + ', '.join(unavailable))
-            chart = monthly_chart(result, key)
-            if chart is not None:
-                baseline = alt.Chart(pd.DataFrame({'zero': [0]})).mark_rule(color='#67717a').encode(y='zero:Q')
-                base = chart.copy()
-                base.config = alt.Undefined
-                st.altair_chart((base + baseline).configure_axis(labelFontSize=12, titleFontSize=13).configure_view(stroke=None), width='stretch')
-            else:
-                st.info('Não há diferenças disponíveis para o intervalo consultado.')
-            st.caption('Uma segunda diferença negativa pode representar crescimento ainda positivo, porém desacelerando. Diferenças finitas não demonstram causalidade ou inflexão confirmada.')
-        missing_observations = [month_label(r['period']) for r in rows if r.get('value' if operation == 'temporal' else 'doses') is None]
-        if missing_observations:
-            st.info('Observações indisponíveis: ' + ', '.join(missing_observations))
-        st.caption('Meses ausentes e diferenças indisponíveis não são zero. Os gráficos não conectam lacunas. Valores que não podem ser representados com segurança no navegador ficam apenas na tabela exata.')
-        table = monthly_table(result)
-        with st.expander('Tabela mensal · valores exatos e motivos de indisponibilidade'):
-            st.dataframe(table, hide_index=True, width='stretch')
-        st.download_button('Baixar tabela CSV', table.to_csv(index=False).encode('utf-8-sig'),
-                           'sus_explorer_mensal.csv', 'text/csv', on_click='ignore')
-    elif operation == 'count':
+    if operation == 'count':
         st.metric('Doses/registros', str(data.get('doses', '—')))
     elif operation == 'group' and data.get('rows'):
         rows = data['rows']
@@ -196,18 +291,6 @@ def render_result(payload, question=''):
         st.caption(f"Registros válidos: {data.get('n_valid', '—')}")
     st.subheader('Interpretação')
     st.write(percentage_summary(data['rows']) if operation == 'temporal' and any('pct_change' in r.get('metrics', {}) for r in data.get('rows', [])) else payload.get('answer') or 'Nenhuma interpretação disponível.')
-    if operation == 'temporal' and provenance.get('order', 1) > 1:
-        order = provenance['order']
-        available = [(r['period'], r['metrics'][f'delta_{order}']['value']) for r in data['rows']
-                     if r['metrics'][f'delta_{order}']['value'] is not None]
-        if available:
-            period, value = available[-1]
-            sign = Decimal(str(value))
-            action = 'aumentando' if sign > 0 else 'diminuindo' if sign < 0 else 'inalterada'
-            subject = 'A variação mensal' if order == 2 else 'A segunda diferença'
-            st.write(f"{subject} está {action} em {month_label(period)}: {value} {provenance['units'][f'delta_{order}']}.")
-    if operation == 'temporal':
-        st.caption('Percentuais descrevem variação do volume de doses; não são pontos percentuais, cobertura ou evidência de significância estatística.')
     for warning in result.get('warnings', []):
         st.warning(warning)
     st.download_button('Baixar resultado e proveniência JSON', json.dumps(payload, ensure_ascii=False, indent=2),
