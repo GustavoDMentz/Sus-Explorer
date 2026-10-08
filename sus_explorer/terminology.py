@@ -245,6 +245,26 @@ class ImmunobiologicalTerminology:
             return None
         return self.load()["concepts"].get(str(code))
 
+    def resolve_text(self, text: str) -> list[str]:
+        """Resolve public codes using canonical labels and non-conflicting definitions.
+
+        No guessed codes or acronym expansion. Short queries match labels exactly
+        to avoid incidental substrings in full definitions.
+        """
+        def normalize(value):
+            value = unicodedata.normalize("NFKD", str(value or ""))
+            return " ".join("".join(c for c in value if not unicodedata.combining(c)).casefold().split())
+        term = normalize(text)
+        if not term:
+            return []
+        codes = []
+        for code, concept in self.load()["concepts"].items():
+            label = normalize(concept.get("official_display"))
+            definition = normalize(concept.get("definition")) if not concept.get("conflict") else ""
+            if label == term or (len(term) >= 4 and (term in label or term in definition)):
+                codes.append(str(code))
+        return sorted(set(codes))
+
     def metadata(self) -> dict:
         p = self.load()
         return {
