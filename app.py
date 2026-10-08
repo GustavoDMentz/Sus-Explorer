@@ -45,10 +45,9 @@ if st.session_state.get('query_error'):
     st.error(st.session_state.query_error)
 
 if payload := st.session_state.get('query_result'):
-    st.caption(st.session_state.get('result_question', ''))
     if payload.get('needs_clarification'):
         st.warning(payload.get('clarification_question') or 'Informe os parâmetros ausentes.')
         with st.expander('Plano parcial'):
             st.json(payload.get('plan', {}))
     else:
-        render_result(payload)
+        render_result(payload, st.session_state.get('result_question', ''))

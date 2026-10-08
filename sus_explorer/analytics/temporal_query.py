@@ -185,6 +185,8 @@ def execute_temporal(plan: QueryPlan, execute_source) -> TemporalAnalyticsResult
     result.provenance["units"] = {key: result.provenance["units"][key]}
     if any(row["observation_status"] != "OBSERVED" for row in result.data["rows"]):
         result.warnings.append("Meses ou valores indisponíveis: null, sem imputação nem diferenças atravessando lacunas.")
+    from .percentage import add_percentages
+    add_percentages(result)
     return result
 
 
