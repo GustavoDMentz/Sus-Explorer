@@ -15,6 +15,7 @@ FIELD_LABELS = {
     "start_month": "mês inicial",
     "end_year": "ano final",
     "end_month": "mês final",
+    "temporal_analysis": "ordem da diferença temporal",
 }
 
 
@@ -110,7 +111,7 @@ class SUSExplorer:
             if plan.year is None:
                 missing.append("year")
 
-        elif plan.operation == "timeseries":
+        elif plan.operation in {"timeseries", "temporal"}:
             required = {
                 "start_year": plan.start_year,
                 "start_month": plan.start_month,
@@ -121,6 +122,9 @@ class SUSExplorer:
             for field, value in required.items():
                 if value is None:
                     missing.append(field)
+
+            if plan.operation == "temporal" and plan.temporal_analysis is None:
+                missing.append("temporal_analysis")
 
         elif plan.operation is None:
             raise ValueError(
