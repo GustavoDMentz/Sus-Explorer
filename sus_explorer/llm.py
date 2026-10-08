@@ -147,7 +147,7 @@ class GeminiAnalyst:
             config=types.GenerateContentConfig(
                 temperature=0,
                 response_mime_type="application/json",
-                response_schema=QueryPlan,
+                response_json_schema=QueryPlan.model_json_schema(),
                 automatic_function_calling=(
                     types.AutomaticFunctionCallingConfig(
                         disable=True
