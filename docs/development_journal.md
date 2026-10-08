@@ -930,3 +930,32 @@ O master funcional validado terminou em `cde441c10dfe3d560d7385b0781dcf2054a7283
 Os originais #11–#16 foram fechados com comentários apontando para #18–#23, como **substituídos pela integração limpa**, sem alegar merge integral das branches originais. #10 permanece fechado. #17 permanece aberto e não foi integrado: catálogo/seção de campanhas oficiais e suas limitações continuam fora deste master. #3–#6 não foram modificados. Branches e histórico preservados.
 
 A interface foi validada com Streamlit AppTest, inclusive tema escuro, consultas mockadas, persistência, lacunas, filtros, MoM/YoY e escala interrompida. Não foi feita captura de navegador nem consulta real Gemini/R2 nesta execução; testes offline não comprovam latência ou volumes remotos atuais. Não foi implementado novo gráfico de campanhas, extração diária, cobertura ou RAG. Os registros históricos/prospectivos anteriores deste diário foram preservados.
+
+## 2026-10-08 — Atualizações de dependências e GitHub Actions (#3–#6)
+
+### Revisão e integração incremental
+
+Master inicial: `844c813e8d6213d6f5120ee09b650ac871d78041`. Os quatro PRs tinham checks antigos aprovados, anteriores às melhorias Streamlit, insuficientes para validar os componentes novos. Cada branch recebeu um merge do master atualizado, preservando seu head anterior como primeiro pai e o master como segundo. A árvore revisada combina somente o master e o diff de dependência aprovado; pins de atualizações anteriores foram preservados, inclusive nas linhas adjacentes de workflow/constraints. Não houve force-push, rebase, exclusão de branches ou incorporação do #17.
+
+Ordem #3 → #4 → #5 → #6: Actions primeiro, NumPy isoladamente com pandas 2.2.3, depois pandas 3.0.6 com NumPy 2.5.3. Cada PR teve novo CI aprovado antes do merge, com Python 3.12, instalação sob constraints e serviço PostgreSQL 17 + pgvector. A árvore resultante do merge no master foi comparada com a árvore publicada e testada.
+
+| PR | Atualização | Head atualizado/testado | Merge no master | Novo CI |
+|---|---|---|---|---|
+| [#3](https://github.com/GustavoDMentz/Sus-Explorer/pull/3) | setup-python 7.0.0 | `121cb65c4662d7df4efe167487c7c372b2dcc598` | `d8773fd5206c495c2eddb5ebcf178cc86cc8a046` | 353 aprovados |
+| [#4](https://github.com/GustavoDMentz/Sus-Explorer/pull/4) | checkout 7.0.1 no teste / v7 no workflow R2 | `58b4207cd1ca797351a0bbbc2cb0c259f0d83b36` | `c3ce6eed30fb9a29e11b0868a6debadbc8b4b3b4` | 353 aprovados |
+| [#5](https://github.com/GustavoDMentz/Sus-Explorer/pull/5) | NumPy 2.5.3 | `b70585d4e7b2d05bc8926ec0873946211c3a9dee` | `0121decd5fdded409812b6147b54573f1ac9e62b` | 353 aprovados |
+| [#6](https://github.com/GustavoDMentz/Sus-Explorer/pull/6) | pandas 3.0.6 | `8e129f2bf86eb066e5dbc44774a5a52b807f4e81` | `134b0e8e2790e34d70b1e7ac4273775f54881aac` | 353 aprovados |
+
+Evidências pré-merge: jobs `113466115394`, `113467350102`, `113468450491`, `113469575932`. Os logs confirmam instalação das versões pinadas, inclusive pandas 3.0.6 e NumPy 2.5.3 no #6. São 353 casos, sem falhas ou skips, cobrindo Streamlit AppTest, proveniência, MoM/YoY, precisão/lacunas/zero, transformações/auditoria e PostgreSQL. Não foram modificados testes nem código funcional para fazer as atualizações passarem.
+
+### Compatibilidade e limites da validação
+
+As definições oficiais [setup-python v7](https://github.com/actions/setup-python/blob/5fda3b95a4ea91299a34e894583c3862153e4b97/action.yml) e [checkout v7.0.1](https://github.com/actions/checkout/blob/3d3c42e5aac5ba805825da76410c181273ba90b1/action.yml) usam Node 24; os inputs atuais são suportados pelo runner hospedado utilizado. Não há uso de pip-install removido no setup-python nem eventos pull_request_target/workflow_run afetados pelas novas restrições de checkout. A política de segurança não foi desabilitada. O teste mantém pins de Actions por SHA; o workflow R2 mantém o estilo anterior de tag major, agora v7.
+
+O [NumPy 2.5.3](https://github.com/numpy/numpy/blob/v2.5.3/pyproject.toml) exige Python >=3.12. O [pandas 3.0.6](https://github.com/pandas-dev/pandas/blob/v3.0.6/pyproject.toml) exige Python >=3.11; o requisito combinado é >=3.12. O README agora informa esse mínimo e a versão efetivamente validada, Python 3.12. Não foi declarada validação de outros interpretadores ou sistemas operacionais.
+
+Nesta execução o ambiente local estava sem pytest; a tentativa de obter wheels novas falhou por timeout no files.pythonhosted.org. Não há alegação de suíte local executada com as versões novas. A evidência é o CI real, que instalou as versões sob constraints e executou os 353 casos com PostgreSQL. `git diff --check` local aprovado em todas as alterações. Nenhuma consulta Gemini/R2 real, captura de navegador, nova auditoria oficial ou execução do workflow manual R2 foi feita; sucesso do checkout no CI não comprova acesso ao bucket.
+
+Os quatro CIs pós-merge no master também aprovaram os 353 casos. No master funcional final, o job `113470416871` confirmou **353 aprovados, zero falhas e zero skips** em 7,68 segundos.
+
+O master funcional após os quatro merges é `134b0e8e2790e34d70b1e7ac4273775f54881aac`, árvore `6510fd63ca715cd9ca8df96ae69b87a77bc6b499`. A atualização deste diário e do requisito Python no README é um commit separado apenas documental, filho desse master. PR #17 permanece aberto e não integrado; arquitetura, contratos científicos, diferenças finitas, filtros, proveniência e migrations permanecem intactos. Os registros históricos anteriores foram preservados.
