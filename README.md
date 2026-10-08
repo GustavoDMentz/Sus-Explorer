@@ -27,11 +27,18 @@ python smoke_test.py
 
 Deve contar a partição RS / maio de 2026 diretamente no R2.
 
-## Interface
+## Interface principal — Streamlit
 
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
+
+O Streamlit consulta diretamente o serviço Python: não é necessário iniciar
+Uvicorn nem Next.js. A interface mostra gráficos mensais e diferenças temporais,
+agrupamentos, tabelas exatas, exportações CSV/JSON e proveniência. Consultas só
+são executadas ao clicar em **Explorar**; o resultado permanece na sessão.
+
+Veja [`docs/streamlit.md`](docs/streamlit.md).
 
 ## CLI
 
@@ -44,7 +51,8 @@ python demo.py "Quantas doses foram aplicadas em Porto Alegre em maio de 2026?"
 - `count`: contagem de doses/registros;
 - `group`: agrupamento por vacina, município, sexo, idade, dose, CNES, sistema de origem ou raça/cor;
 - `timeseries`: série mensal;
-- `latency`: mediana/P90/P95 entre vacinação e entrada na RNDS.
+- `latency`: mediana/P90/P95 entre vacinação e entrada na RNDS;
+- `temporal`: diferenças mensais de ordem 1, 2 ou 3, calculadas no Python.
 
 ## Limites
 

@@ -70,6 +70,19 @@ def safe_source_provenance(origin: dict) -> dict:
         ):
             raise ValueError("Invalid missing-partition metadata")
         safe["missing_partitions"] = list(values)
+    if "vaccine_filter" in origin:
+        value = origin["vaccine_filter"]
+        if (not isinstance(value, dict) or value.get("method") != "source_text_or_authoritative_code_v1"
+                or value.get("terminology_source") != "MS + SES-GO"
+                or not isinstance(value.get("resolved_codes"), list)
+                or any(not isinstance(code, str) or not re.fullmatch(r"[0-9]{1,8}", code)
+                       for code in value["resolved_codes"])):
+            raise ValueError("Invalid vaccine resolution metadata")
+        safe["vaccine_filter"] = {key: value[key] for key in
+            ("method", "terminology_source", "resolved_codes")}
+        for key in ("ms_version", "ses_go_version"):
+            if value.get(key) is None or isinstance(value.get(key), str) and re.fullmatch(r"[A-Za-z0-9._-]{1,64}", value[key]):
+                safe["vaccine_filter"][key] = value.get(key)
     if origin.get("microdata_sent_to_llm") is True:
         raise ValueError("Source violates aggregate-only contract")
     safe["microdata_sent_to_llm"] = False
