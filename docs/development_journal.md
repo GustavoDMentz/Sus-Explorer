@@ -886,3 +886,47 @@ Os itens abaixo são **requisitos prospectivos solicitados para este diário**, 
 3. **Atividade pública anonimizada:** oferecer no site uma visão de atividade, como acesso e tipo de operação executada, por uma projeção pública específica de eventos. Não publicar JSONL bruto, payloads, credenciais, IPs, identificadores pessoais ou perguntas livres potencialmente identificáveis. Definir campos permitidos, anonimização, granularidade temporal, retenção e testes antes da exposição. Critério de entrega: somente eventos mínimos sanitizados, com verificação de ausência de informação identificável e sem confundir atividade operacional com evidência científica.
 
 A redação do logger atual é uma defesa operacional; por si só, não comprova anonimização suficiente para publicação. Esses requisitos não ativam analytics novos, não substituem a interface e não tornam logs públicos nesta atualização documental.
+
+## 2026-10-08 — Integração sequencial limpa de Gemini e Streamlit (#11–#16)
+
+### Auditoria e separação da arquitetura abandonada
+
+O master inicial era `7e7b3976f1feb20c9b0c6c8b080affa76fa2e0b4`. A primeira tentativa parou no #11: sua base era a branch do #10, e seu diff próprio também alterava Next.js/FastAPI. Os seis PRs originais estavam empilhados; seus checks falhavam. No #11, a coleta de `test_web_api.py` falhava por ausência de FastAPI. Instalar a dependência abandonada apenas para fazer o CI passar não seria uma correção arquitetural.
+
+O usuário autorizou separar o trabalho útil e descartar a parte dependente do frontend/API separados. A integração foi reconstruída a partir do master em branches novas, mantendo a ordem #11, #12, #13, #14, #15, #16. Nenhum ancestral do #10 foi incorporado. Foram excluídos da entrega `frontend/`, `web_api.py`, `requirements-web.txt`, `test_web_api.py` e `docs/web_explorer.md`; o master inicial já não os continha, portanto não houve remoção de funcionalidades existentes no master. No #11 foram extraídos apenas o planejador Gemini e os testes Gemini/temporal. Nos demais, os arquivos funcionais Python/Streamlit foram preservados. A documentação foi ajustada para não anunciar o protótipo como disponível.
+
+Não foram adicionadas dependências ou serviços. O Streamlit acessa SUSExplorer diretamente. PostgreSQL operacional opt-in e Parquet/R2 analítico permanecem complementares; migrations, contratos de persistência, consultas existentes e artefatos científicos não foram modificados por esta separação.
+
+### Integrações e evidências
+
+Cada etapa teve suíte completa local antes e depois, `git diff --check`, CI do PR aprovado antes do merge e CI no master aprovado. As árvores dos commits de merge foram comparadas com as árvores publicadas/testadas. As branches originais não foram reescritas ou excluídas.
+
+| Origem | PR limpo integrado | Commit de merge no master | Local antes/depois | CI com PostgreSQL |
+|---|---|---|---|---|
+| #11 | [#18](https://github.com/GustavoDMentz/Sus-Explorer/pull/18) | `2890a0e2f1c22479ed05ea6b80e184e1418aca04` | 247 aprovados, 7 pulados | 254 aprovados |
+| #12 | [#19](https://github.com/GustavoDMentz/Sus-Explorer/pull/19) | `74601f6aad0cc7e1f04e40c0616a0dcaadd0c7d5` | 281 aprovados, 7 pulados | 288 aprovados |
+| #13 | [#20](https://github.com/GustavoDMentz/Sus-Explorer/pull/20) | `fb363b936c1914d0c12af47844757898bfedf312` | 297 aprovados, 7 pulados | 304 aprovados |
+| #14 | [#21](https://github.com/GustavoDMentz/Sus-Explorer/pull/21) | `2e6ac81b0282f38a7b9a053d81af28c682564722` | 308 aprovados, 7 pulados | 315 aprovados |
+| #15 | [#22](https://github.com/GustavoDMentz/Sus-Explorer/pull/22) | `e9d968e4728058c2de5b148b31343bdff51b80c8` | 323 aprovados, 7 pulados | 330 aprovados |
+| #16 | [#23](https://github.com/GustavoDMentz/Sus-Explorer/pull/23) | `cde441c10dfe3d560d7385b0781dcf2054a72836` | 346 aprovados, 7 pulados | 353 aprovados |
+
+Os sete casos pulados localmente requerem PostgreSQL descartável. No CI foram executados com PostgreSQL 17 + pgvector; não houve skips. O baseline local do master inicial tinha 234 aprovados e 7 pulados. A suíte final local apresentou **346 aprovados, 7 pulados, zero falhas**; o CI do master funcional apresentou **353 aprovados, zero falhas**. A diferença de seis casos em relação aos resultados históricos das branches originais vem da exclusão dos testes da API web; não foram removidos testes analíticos para ocultar regressões.
+
+A revisão automática rejeitou duas tentativas de merge (#19/#20), citando CI ainda em andamento. Os checks e, no #19, as etapas/logs foram consultados novamente; as tentativas só foram repetidas após evidência explícita de conclusão com sucesso. Não houve bypass, merge forçado, resolução silenciosa de conflito ou alteração de contrato para acomodar falhas. Não foram encontrados conflitos na extração dos arquivos úteis.
+
+### Funcionalidades e decisões metodológicas
+
+- **#11:** JSON Schema nativo inline no transporte Gemini, validação Pydantic preservada, limites de resposta e uma tentativa adicional controlada em modo JSON. Sem microdados ou saída inválida no retry.
+- **#12:** formulário Streamlit, resultado agregado persistido na sessão, gráficos/tabelas/CSV/JSON, esclarecimentos e reruns sem consultas extras. Intervalos explícitos de anos completos e filtro textual de vacina por texto ou códigos da terminologia MS + SES-GO, com união sem duplicação e resolução na proveniência.
+- **#13:** volume mensal observado como gráfico principal; MoM `100 × (y(t) − y(t−1)) / y(t−1)` como métrica DERIVED adicional. Somente meses de calendário consecutivos; lacunas/nulos não viram zero. Base zero produz null com justificativa; precisão racional preservada, arredondamento só na apresentação.
+- **#14:** resumo determinístico de total observado, pico, variações absolutas e transições; totais incompletos explicitamente parciais. Percentuais extremos destacados por transição absoluta e alerta de base pequena. Sem causalidade, cobertura, eficácia, desempenho ou significância inferidos.
+- **#15:** configuração central de DIRECT/Observado verde, DERIVED/Calculado roxo e ENRICHED/Contextualizado azul; rótulos textuais, legenda, contraste e tema escuro testados. ENRICHED somente quando há fonte externa efetivamente documentada; dados não são reclassificados pela apresentação.
+- **#16:** YoY independente de Δ1/Δ2/Δ3, por mesmo mês do ano anterior e filtros iguais. Diferença `y(t) − y(t−12)`; percentual `100 × (y(t) − y(t−12)) / y(t−12)`. Referência histórica consultada explicitamente e mantida fora do período principal. Mês de referência ausente ou valor nulo produz null com justificativa; denominador zero invalida somente o percentual. Barras acima de +100% têm interrupção visual, anotação real, tooltip/tabela exatos e opção de escala completa; dados originais não são truncados.
+
+### Estado final, rastreabilidade e pendências
+
+O master funcional validado terminou em `cde441c10dfe3d560d7385b0781dcf2054a72836`, árvore `be3d18106306d4132cca36ec546e40cde0d2911f`. Esta entrada será publicada em commit separado **somente documental**, filho desse master; o SHA do commit documental é identificável no histórico, sem autorreferência circular no texto. Os arquivos executáveis permanecem idênticos aos validados.
+
+Os originais #11–#16 foram fechados com comentários apontando para #18–#23, como **substituídos pela integração limpa**, sem alegar merge integral das branches originais. #10 permanece fechado. #17 permanece aberto e não foi integrado: catálogo/seção de campanhas oficiais e suas limitações continuam fora deste master. #3–#6 não foram modificados. Branches e histórico preservados.
+
+A interface foi validada com Streamlit AppTest, inclusive tema escuro, consultas mockadas, persistência, lacunas, filtros, MoM/YoY e escala interrompida. Não foi feita captura de navegador nem consulta real Gemini/R2 nesta execução; testes offline não comprovam latência ou volumes remotos atuais. Não foi implementado novo gráfico de campanhas, extração diária, cobertura ou RAG. Os registros históricos/prospectivos anteriores deste diário foram preservados.
