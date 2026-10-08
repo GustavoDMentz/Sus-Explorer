@@ -269,3 +269,12 @@ projeção externa sanitizada e Streamlit AppTest com seleção/click explícito
 barras interrompidas e escala completa. PostgreSQL pulado por falta de banco
 local descartável. Sem chamadas Gemini/R2 reais nem captura de navegador.
 Sem dependências, serviços, migrations ou frontend independentes novos.
+
+## Comparação entre campanhas oficiais
+
+A seção independente de influenza/RS mostra o catálogo documental versionado e
+fontes MS clicáveis. As janelas diárias e a aproximação mensal permanecem
+indisponíveis enquanto não houver uma extração de campanha adequada e auditada;
+nenhum volume dos microdados mensais é convertido em total oficial de campanha.
+Gráficos mensais, diferenças finitas e YoY permanecem preservados, sem consultas
+adicionais ao trocar a janela. Veja [diagnóstico e regras](official_campaigns.md).

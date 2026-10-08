@@ -334,6 +334,8 @@ def render_result(payload, question='', comparison_executor=None):
     operation = result.get('operation')
     if operation in ('timeseries', 'temporal') and result.get('data', {}).get('rows'):
         render_monthly(payload, question, comparison_executor)
+        from .streamlit_campaigns import render_campaigns
+        render_campaigns(payload)
         return
     data, provenance = result.get('data', {}), result.get('provenance', {})
     origin = provenance.get('source_provenance', provenance)

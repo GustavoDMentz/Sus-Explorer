@@ -34,7 +34,10 @@ def test_form_only_runs_on_submit_and_preserves_result_across_reruns(monkeypatch
     at.text_area[0].set_value('Variação mensal no RS de janeiro a março de 2026?')
     at.button[0].click().run()
     assert not at.exception
-    assert len(at.dataframe) == 1
+    monthly_tables = [table.value for table in at.dataframe
+                      if 'Doses/registros (DIRECT)' in table.value.columns]
+    assert len(monthly_tables) == 1
+    assert monthly_tables[0]['Doses/registros (DIRECT)'].tolist() == ['10', '20', '30']
     assert len(at.get('vega_lite_chart')) == 2
     service.ask.assert_called_once()
     at.run()
