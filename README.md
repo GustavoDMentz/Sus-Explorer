@@ -4,7 +4,8 @@ Protótipo para consultar microdados públicos do SI-PNI diretamente de Parquet 
 
 ## Fluxo
 
-Pergunta → Gemini (plano JSON) → Pydantic → PyArrow/R2 → agregado + proveniência → Gemini → resposta.
+Pergunta → Gemini (plano JSON) → Pydantic → executor determinístico (R2 por padrão;
+PostgreSQL para contagem mensal estritamente elegível) → agregado + proveniência → Gemini → resposta.
 
 ## Instalação
 
@@ -56,6 +57,10 @@ python demo.py "Quantas doses foram aplicadas em Porto Alegre em maio de 2026?"
 - `latency`: mediana/P90/P95 entre vacinação e entrada na RNDS;
 - `temporal`: diferenças mensais de ordem 1, 2 ou 3, calculadas no Python.
 
+Consultas para um dia específico ou com granularidade diária são recusadas:
+o esquema e o formato de `dt_vacina` no Parquet R2 não foram validados para esse fluxo.
+Consultas `timeseries` e `temporal` aceitam no máximo 36 meses consecutivos.
+
 ## Limites
 
 - A partição `uf=` é a UF do estabelecimento.
@@ -72,7 +77,13 @@ O projeto mantém dois backends complementares e suportados:
 - **PostgreSQL:** persistência operacional opt-in para estado e proveniência de
   ingestões, documentos JSONB, revisões imutáveis e projeções normalizadas.
 
-PostgreSQL não substitui nem é fallback silencioso para Parquet/R2. A extensão
+PostgreSQL recebe apenas partições mensais/UF selecionadas por operador, por meio
+de uma ingestão idempotente. Com `POSTGRES_COUNT_ENABLED=1`, uma consulta `count`
+sem filtros para uma única partição mensal pode usar o banco se a ingestão mais
+recente foi completa e a origem R2 ainda corresponde aos arquivos registrados.
+Qualquer outra consulta continua no R2. Quando a cobertura ou o banco falham,
+o executor consulta R2 e preserva sua proveniência; não apresenta uma contagem
+parcial do PostgreSQL como completa. A extensão
 pgvector é instalada como fundação para uma futura camada de recuperação/RAG,
 mas esta mudança não cria embeddings nem altera respostas do assistente. O LLM
 continua limitado ao planejamento validado e à explicação de agregados: ele não

@@ -12,7 +12,7 @@ import pyarrow.dataset as pds
 import pyarrow.fs as fs
 
 from .config import settings
-from .schemas import QueryPlan
+from .schemas import QueryPlan, monthly_interval_months
 from .terminology import terminology
 
 
@@ -91,14 +91,19 @@ def ascii_upper(s: str) -> str:
 
 
 def months(year: int, month: int, end_year: int, end_month: int):
-    while (year, month) <= (end_year, end_month):
-        yield year, month
+    count = monthly_interval_months(year, month, end_year, end_month)
+    start = year * 12 + month - 1
+    for offset in range(count):
+        current_year, zero_based_month = divmod(start + offset, 12)
+        yield current_year, zero_based_month + 1
 
-        if month == 12:
-            year += 1
-            month = 1
-        else:
-            month += 1
+
+def require_ready_plan(plan: QueryPlan) -> QueryPlan:
+    """Revalidate copied/constructed plans before any remote read."""
+    validated = QueryPlan.model_validate(plan.model_dump())
+    if validated.status != "ready":
+        raise ValueError(validated.clarification_question or "Plano precisa de esclarecimento.")
+    return validated
 
 
 @dataclass
@@ -128,11 +133,16 @@ class PNIRemote:
         )
 
     def dataset(self, year: int, month: int, uf: str):
-        return pds.dataset(
+        dataset = pds.dataset(
             self.path(year, month, uf),
             filesystem=self.s3,
             format="parquet",
         )
+        if not any(dataset.get_fragments()):
+            raise FileNotFoundError(
+                f"Nenhum fragmento Parquet na partição ano={year}/mes={month:02d}/uf={uf}"
+            )
+        return dataset
 
     def col(self, ds, key: str) -> str:
         names = set(ds.schema.names)
@@ -282,6 +292,7 @@ class PNIRemote:
         self,
         plan: QueryPlan,
     ) -> tuple[list[tuple[int, int, object]], list[str]]:
+        plan = require_ready_plan(plan)
         datasets = []
         missing_partitions = []
 
@@ -670,6 +681,7 @@ class PNIRemote:
         )
 
     def timeseries(self, plan: QueryPlan) -> QueryResult:
+        plan = require_ready_plan(plan)
         start = time.perf_counter()
 
         rows = []
@@ -897,6 +909,7 @@ class PNIRemote:
         )
 
     def execute(self, plan: QueryPlan) -> QueryResult:
+        plan = require_ready_plan(plan)
         if plan.operation == "temporal":
             from .analytics.temporal_query import execute_temporal
 

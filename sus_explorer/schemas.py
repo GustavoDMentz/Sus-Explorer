@@ -7,6 +7,30 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Operation = Literal["count", "group", "timeseries", "latency", "temporal"]
 PlanStatus = Literal["ready", "needs_clarification"]
 ResultClassification = Literal["DIRECT", "DERIVED", "ENRICHED"]
+MAX_MONTHLY_INTERVAL_MONTHS = 36
+DAILY_QUERY_UNSUPPORTED = (
+    "Consultas diárias não são suportadas. Reformule a pergunta para um mês ou ano."
+)
+
+
+def monthly_interval_months(
+    start_year: int, start_month: int, end_year: int, end_month: int,
+    *, minimum_year: int = 2019,
+) -> int:
+    """Validate a bounded inclusive calendar interval before reading partitions."""
+    if any(type(value) is not int for value in
+           (start_year, start_month, end_year, end_month)):
+        raise ValueError("Monthly interval requires integer years and months")
+    if not minimum_year <= start_year <= 2100 or not minimum_year <= end_year <= 2100:
+        raise ValueError("Monthly year outside supported range")
+    if not 1 <= start_month <= 12 or not 1 <= end_month <= 12:
+        raise ValueError("Monthly month must be between 1 and 12")
+    count = (end_year - start_year) * 12 + end_month - start_month + 1
+    if count < 1:
+        raise ValueError("Monthly start must not follow end")
+    if count > MAX_MONTHLY_INTERVAL_MONTHS:
+        raise ValueError(f"Monthly interval exceeds {MAX_MONTHLY_INTERVAL_MONTHS} months")
+    return count
 
 
 class TemporalRequest(BaseModel):
@@ -53,11 +77,15 @@ class QueryPlan(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate_temporal_input(cls, values):
-        if isinstance(values, dict) and values.get("operation") == "temporal":
-            unknown = set(values) - set(cls.model_fields)
-            if unknown:
-                raise ValueError("Unsupported temporal plan fields")
-            for name in ("start_year", "start_month", "end_year", "end_month", "age_min", "age_max"):
+        if isinstance(values, dict) and values.get("operation") in ("temporal", "timeseries"):
+            if values.get("operation") == "temporal":
+                unknown = set(values) - set(cls.model_fields)
+                if unknown:
+                    raise ValueError("Unsupported temporal plan fields")
+            fields = ("start_year", "start_month", "end_year", "end_month")
+            if values.get("operation") == "temporal":
+                fields += ("age_min", "age_max")
+            for name in fields:
                 if values.get(name) is not None and type(values[name]) is not int:
                     raise ValueError(f"{name} must be an integer")
         return values
@@ -71,15 +99,6 @@ class QueryPlan(BaseModel):
         valid_ufs = set("AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split())
         if self.uf and self.uf not in valid_ufs:
             raise ValueError("Invalid temporal UF")
-        for name in ("start_year", "end_year", "start_month", "end_month"):
-            value = getattr(self, name)
-            if value is not None:
-                lower, upper = (2020, 2100) if name.endswith("year") else (1, 12)
-                if not lower <= value <= upper:
-                    raise ValueError(f"Invalid temporal {name}")
-        if all(value is not None for value in (self.start_year, self.start_month, self.end_year, self.end_month)):
-            if (self.start_year, self.start_month) > (self.end_year, self.end_month):
-                raise ValueError("Temporal start must not follow end")
         if self.top_n != 20 or any(getattr(self, name) is not None for name in ("year", "month", "day", "group_by")):
             raise ValueError("Temporal plans require an explicit monthly interval, without day/group_by")
         for name in ("age_min", "age_max"):
@@ -107,6 +126,23 @@ class QueryPlan(BaseModel):
         if self.uf:
             self.uf = self.uf.upper()
 
+        if self.operation in ("timeseries", "temporal"):
+            minimum_year = 2020 if self.operation == "temporal" else 2019
+            for name in ("start_year", "end_year", "start_month", "end_month"):
+                value = getattr(self, name)
+                if value is not None:
+                    lower, upper = (minimum_year, 2100) if name.endswith("year") else (1, 12)
+                    if not lower <= value <= upper:
+                        raise ValueError(f"Invalid monthly {name}")
+            if self.start_year is not None and self.end_year is not None and self.start_year > self.end_year:
+                raise ValueError("Monthly start must not follow end")
+            if all(getattr(self, name) is not None for name in
+                   ("start_year", "start_month", "end_year", "end_month")):
+                monthly_interval_months(
+                    self.start_year, self.start_month, self.end_year, self.end_month,
+                    minimum_year=minimum_year,
+                )
+
         if self.operation == "temporal":
             self.validate_temporal()
             if self.status == "ready" and (missing := self.temporal_missing_fields()):
@@ -115,6 +151,11 @@ class QueryPlan(BaseModel):
                 self.clarification_question = "Informe os parâmetros temporais ausentes: " + ", ".join(missing)
         elif self.temporal_analysis is not None:
             raise ValueError("temporal_analysis requires operation=temporal")
+
+        if self.day is not None:
+            self.status = "needs_clarification"
+            self.missing = []
+            self.clarification_question = DAILY_QUERY_UNSUPPORTED
 
         # Se o planner já reconheceu falta de informação,
         # não exige plano executável.

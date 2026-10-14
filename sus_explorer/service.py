@@ -1,7 +1,24 @@
 from __future__ import annotations
 
+import re
+
 from .llm import GeminiAnalyst
 from .pni import PNIRemote
+from .hybrid import HybridQueryExecutor
+from .schemas import DAILY_QUERY_UNSUPPORTED
+
+
+_DAILY_INTENT = re.compile(
+    r"\b(?:dia\s+\d{1,2}|por\s+dia|dia\s+a\s+dia|"
+    r"(?:últimos?|primeiro|segundo|terceiro)\s+dias?|"
+    r"todos?\s+os?\s+dias|diári[ao]s?|hoje|ontem|anteontem)\b|"
+    r"\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b|"
+    r"\b\d{4}-\d{2}-\d{2}\b|"
+    r"\b\d{1,2}\s+de\s+"
+    r"(?:janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|"
+    r"setembro|outubro|novembro|dezembro)\b",
+    re.IGNORECASE,
+)
 
 
 FIELD_LABELS = {
@@ -30,8 +47,19 @@ class SUSExplorer:
     def __init__(self):
         self.llm = GeminiAnalyst()
         self.pni = PNIRemote()
+        self.executor = HybridQueryExecutor(self.pni)
 
     def ask(self, question: str) -> dict:
+        if _DAILY_INTENT.search(question):
+            return {
+                "needs_clarification": True,
+                "clarification_question": DAILY_QUERY_UNSUPPORTED,
+                "missing": [],
+                "missing_internal": [],
+                "plan": {},
+                "result": None,
+                "answer": None,
+            }
         plan = self.llm.plan(question)
 
         if plan.status == "needs_clarification":
@@ -74,7 +102,7 @@ class SUSExplorer:
                 "answer": None,
             }
 
-        result = self.pni.execute(plan)
+        result = getattr(self, "executor", self.pni).execute(plan)
 
         answer = self.llm.answer(
             question,
