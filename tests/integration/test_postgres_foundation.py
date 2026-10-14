@@ -61,6 +61,7 @@ def test_atomic_raw_normalization_history_and_completion(database):
     assert migrate(connection, schema=schema) == [
         "001_foundation.sql",
         "002_security_hardening.sql",
+        "003_partition_lookup_indexes.sql",
     ]
     assert migrate(connection, schema=schema) == []
 
@@ -193,7 +194,7 @@ def test_concurrent_migrations_are_serialized(database):
         results = list(pool.map(lambda _: apply_once(), range(2)))
     assert sorted(results, key=len) == [
         [],
-        ["001_foundation.sql", "002_security_hardening.sql"],
+        ["001_foundation.sql", "002_security_hardening.sql", "003_partition_lookup_indexes.sql"],
     ]
 
 
