@@ -89,6 +89,16 @@ def test_initial_rerun_batch_revision_provenance_and_postgres_count(database, so
     assert (second["status"], second["records_inserted"], second["records_updated"]) == ("SUCCESS", 0, 0)
     assert database.execute("SELECT count(*) AS n FROM datasus_raw_records").fetchone()["n"] == 3
     assert database.execute("SELECT count(*) AS n FROM datasus_raw_record_observations").fetchone()["n"] == 6
+    schema = database.execute("SELECT current_schema() AS name").fetchone()["name"]
+    with connect() as reopened:
+        reopened.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))
+        persisted = reopened.execute("""
+            SELECT count(*) AS n FROM immunization_records i
+            JOIN datasus_raw_records r ON r.id = i.source_record_id
+            WHERE i.source_revision = r.revision
+              AND i.vaccine_code = r.payload->>'co_vacina'
+        """).fetchone()
+        assert persisted["n"] == 3
     plan = QueryPlan(operation="count", year=2026, month=5, uf="RS")
     result = HybridQueryExecutor(pni, postgres_enabled=True,
                                  connect_db=lambda: borrow(database)).execute(plan)

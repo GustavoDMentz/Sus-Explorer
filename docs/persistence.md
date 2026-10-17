@@ -8,6 +8,59 @@ e projeções normalizadas. R2 permanece o executor padrão. Apenas a contagem
 sem filtros de uma única partição mensal/UF pode usar PostgreSQL, por opt-in e
 após conferência de cobertura e versão exata dos arquivos R2.
 
+O histórico de consultas é um recurso separado, habilitado com
+`POSTGRES_HISTORY_ENABLED=1`. A migration `004_query_history.sql` cria uma tabela
+de metadados: UUID, instante, operação, parâmetros estruturados, executor
+analítico, status, duração e proveniência limitada. Não grava perguntas,
+prompts, microdados ou resultados completos. `result_ref` fica nulo enquanto
+não houver armazenamento externo de resultados. Uma falha na gravação é mostrada
+na interface como histórico indisponível; o resultado analítico continua válido.
+O histórico **não** é cache de resultados.
+
+## Inicialização e verificação no Windows (PowerShell)
+
+Use um PostgreSQL descartável para testes. Com Docker Desktop ativo, o script
+abaixo cria um contêiner com armazenamento temporário, senha aleatória local,
+porta vinculada a `127.0.0.1`, executa `SELECT 1`, migrations e a suíte inteira,
+e remove o contêiner ao final. Ele não usa as credenciais de `.env` nem altera
+o banco configurado para desenvolvimento/produção.
+
+```powershell
+.\scripts\test_postgres.ps1
+```
+
+O teste de integração cria schemas com nomes aleatórios, aplica migrations,
+grava ingestões e histórico, relê dados após nova conexão e remove apenas seus
+schemas. `SUS_EXPLORER_TEST_DB=1` deve ser usado **somente** com banco descartável;
+o script o configura apenas no seu processo. Para desenvolvimento persistente,
+preencha `.env` a partir de `.env.example`, execute `docker compose up -d postgres`,
+depois o health check e a migration. Em um banco existente, confira host, nome,
+usuário e permissão antes de aplicar migrations; a migration não apaga/recria o banco.
+
+Validação local em 17/10/2026 com Docker Desktop e
+`pgvector/pgvector:0.8.6-pg17`: `SELECT 1`, migrations `001`–`004` e
+`.\scripts\test_postgres.ps1` concluídos; **397 testes aprovados, 0 pulados,
+0 falhas**. O contêiner descartável foi removido após a execução. Essa prova
+usa Parquet sintético local nos testes de ingestão; não comprova acesso a R2 ou
+Gemini reais nem migração em banco de produção.
+
+Para verificar dados gravados, conecte um leitor ao schema configurado e use:
+
+```sql
+SELECT id, status, records_received, source_resource_id
+FROM sus_explorer.datasus_ingestion_runs ORDER BY id DESC LIMIT 20;
+SELECT id, operation, executor, status, duration_ms
+FROM sus_explorer.query_history ORDER BY executed_at DESC LIMIT 20;
+```
+
+Se `SELECT 1` falhar, confira a disponibilidade do serviço e as variáveis
+`POSTGRES_*`; o comando não imprime senha nem DSN. Se a migration falhar, confira
+extensão `vector`, roles e permissões de migração. Se a ingestão ficar `PARTIAL`,
+inspecione contagens e esquema da partição selecionada; não habilite a contagem
+PostgreSQL como se a cobertura fosse completa. Se o histórico ficar indisponível,
+confira se `004_query_history.sql` foi aplicada e se o login de runtime recebeu
+`sus_explorer_runtime`.
+
 ## Ingestão controlada R2 → PostgreSQL
 
 Após aplicar as migrations existentes e configurar R2 e PostgreSQL, selecione

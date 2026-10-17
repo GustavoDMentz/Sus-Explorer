@@ -14,6 +14,8 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from sus_explorer.data.persistence.database import connect
+from sus_explorer.data.persistence.healthcheck import check_postgres
+from sus_explorer.data.persistence.history import record_query, recent_queries
 from sus_explorer.data.persistence.migrate import MIGRATIONS, migrate
 from sus_explorer.data.persistence.repositories import (
     ImmunizationProjection,
@@ -21,6 +23,9 @@ from sus_explorer.data.persistence.repositories import (
     OperationalPersistence,
     RawRecordRepository,
 )
+from sus_explorer.pni import QueryResult
+from sus_explorer.schemas import QueryPlan
+from sus_explorer.data.persistence.history import safe_provenance
 
 
 pytestmark = pytest.mark.skipif(
@@ -55,6 +60,31 @@ def rejected(connection, statement, values=()):
             connection.execute(statement, values)
 
 
+def test_health_and_query_history_survive_new_connection(database):
+    connection, schema = database
+    assert check_postgres()
+    migrate(connection, schema=schema)
+    query_id = uuid4()
+    plan = QueryPlan(operation="count", year=2026, month=5, uf="RS",
+                     vaccine_text="texto livre omitido")
+    result = QueryResult("count", {"doses": 3}, {
+        "source": "R2", "period": "2026-05",
+        "partitions": ["ano=2026/mes=05/uf=RS"],
+    })
+    record_query(query_id=query_id, plan=plan, executor="r2", status="SUCCESS",
+                 duration_ms=25, provenance=safe_provenance(result), connection=connection)
+    connection.commit()
+    with connect() as reopened:
+        reopened.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))
+        rows = recent_queries(connection=reopened)
+        assert len(rows) == 1
+        assert rows[0]["id"] == query_id
+        assert rows[0]["executor"] == "r2"
+        assert rows[0]["parameters"]["year"] == 2026
+        assert "vaccine_text" not in rows[0]["parameters"]
+        assert "doses" not in rows[0]["provenance"]
+
+
 def test_atomic_raw_normalization_history_and_completion(database):
     connection, _ = database
     schema = database[1]
@@ -62,6 +92,7 @@ def test_atomic_raw_normalization_history_and_completion(database):
         "001_foundation.sql",
         "002_security_hardening.sql",
         "003_partition_lookup_indexes.sql",
+        "004_query_history.sql",
     ]
     assert migrate(connection, schema=schema) == []
 
@@ -194,7 +225,8 @@ def test_concurrent_migrations_are_serialized(database):
         results = list(pool.map(lambda _: apply_once(), range(2)))
     assert sorted(results, key=len) == [
         [],
-        ["001_foundation.sql", "002_security_hardening.sql", "003_partition_lookup_indexes.sql"],
+        ["001_foundation.sql", "002_security_hardening.sql", "003_partition_lookup_indexes.sql",
+         "004_query_history.sql"],
     ]
 
 
@@ -266,6 +298,12 @@ def test_runtime_and_reader_least_privilege(secured_database):
         rejected(runtime, statement)
 
     assert reader.execute("SELECT count(*) AS n FROM datasus_raw_records").fetchone()["n"] == 0
+    assert reader.execute("SELECT count(*) AS n FROM query_history").fetchone()["n"] == 0
+    record_query(query_id=uuid4(), plan=QueryPlan(operation="count", year=2026, uf="RS"),
+                 executor="r2", status="SUCCESS", duration_ms=1, connection=runtime)
+    assert reader.execute("SELECT count(*) AS n FROM query_history").fetchone()["n"] == 1
+    rejected(runtime, "UPDATE query_history SET status = 'FAILED'")
+    rejected(runtime, "DELETE FROM query_history")
     for statement in (
         "INSERT INTO datasus_ingestion_runs (source, resource_type, source_resource_id) VALUES ('x','y','z')",
         "UPDATE datasus_ingestion_runs SET records_received = 1",

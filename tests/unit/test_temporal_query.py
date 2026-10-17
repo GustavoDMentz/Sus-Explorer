@@ -357,7 +357,7 @@ def test_answer_receives_only_sanitized_aggregates_and_no_free_user_text():
     assert '"microdata_sent_to_llm": false' in contents
 
 
-def test_natural_language_service_end_to_end_with_mocks():
+def test_natural_language_service_with_mocked_boundaries():
     p = plan(2, end_month=4, vaccine_text="influenza")
     explorer = SUSExplorer.__new__(SUSExplorer)
     backend = PNIRemote.__new__(PNIRemote)
