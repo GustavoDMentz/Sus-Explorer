@@ -34,6 +34,15 @@ def test_planner_keeps_strict_local_pydantic_validation():
         analyst.plan("Terceira diferença no RS em 2026")
 
 
+@pytest.mark.parametrize("failure", ["authentication rejected", "service unavailable"])
+def test_transport_failure_is_not_mistaken_for_invalid_plan_or_retried(failure):
+    analyst = _analyst_with_fake_client(None)
+    analyst.client.models.generate_content.side_effect = RuntimeError(failure)
+    with pytest.raises(RuntimeError, match=failure):
+        analyst.plan("Quantas doses no RS em maio de 2026?")
+    assert analyst.client.models.generate_content.call_count == 1
+
+
 def test_native_schema_preserves_additional_properties_in_json_schema():
     schema = QueryPlan.model_json_schema()
     assert schema["$defs"]["TemporalRequest"]["additionalProperties"] is False
@@ -64,7 +73,8 @@ def test_sdk_excessive_integer_is_controlled_without_disabling_guard():
 
 
 @pytest.mark.parametrize('payload', ['', '{', '{"year":' + '9' * 65410 + '}',
-                                     '{"operation":"arbitrary"}'])
+                                     '{"operation":"arbitrary"}'],
+                         ids=['empty', 'truncated', 'oversized_integer', 'invalid_operation'])
 def test_invalid_or_oversized_text_is_rejected(payload):
     from sus_explorer.llm import PlannerResponseError
     with pytest.raises(PlannerResponseError):

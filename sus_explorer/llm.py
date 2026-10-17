@@ -60,6 +60,9 @@ Resposta:
 
 Nunca escolha um ano por conta própria.
 Nunca complete informação ausente por inferência ou conveniência.
+Consultas para um dia específico ou com granularidade diária não são suportadas.
+Nunca transforme um pedido diário em agregado mensal ou anual. Se identificar um
+dia no pedido, informe day no plano; o backend devolverá uma mensagem explícita.
 
 ANÁLISE TEMPORAL DERIVADA:
 - Use operation="temporal" e temporal_analysis={"order": 1|2|3,
@@ -73,6 +76,7 @@ ANÁLISE TEMPORAL DERIVADA:
 - "acelerando", "aceleração", "desaceleração", "crescimento perdendo força" → order=2.
 - "mudança da aceleração", "terceira diferença" → order=3.
 - O período usa start_year/start_month/end_year/end_month.
+- O intervalo mensal pode conter no máximo 36 meses, inclusive.
 - Intervalos de anos inteiros, como "de 2024 a 2025", "entre 2024 e 2025" ou
   "2024 até 2025", significam janeiro do primeiro ano a dezembro do último,
   inclusive. Não peça meses adicionais: é uma convenção de calendário.
