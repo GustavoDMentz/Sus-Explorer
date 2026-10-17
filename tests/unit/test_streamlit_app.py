@@ -80,6 +80,17 @@ def test_existing_operations_render_without_backend_initialization(operation,dat
     at.session_state['query_result'] = {'result':{'operation':operation,'data':data,'provenance':{}},'answer':'Resultado'}
     at.run()
     assert not at.exception
+    if operation == 'count':
+        assert [(item.label, item.value) for item in at.metric] == [
+            ('Doses/registros · DIRECT — Observado', '1179648')]
+    elif operation == 'latency':
+        assert [item.value for item in at.metric] == ['2', '4', '5']
+    elif operation == 'group':
+        assert len(at.dataframe) == 1
+        assert len(at.get('vega_lite_chart')) == 1
+    else:
+        assert len(at.dataframe) == 1
+        assert at.metric[0].value == '10'
 
 
 def test_clarification_renders_without_chart():
@@ -89,6 +100,44 @@ def test_clarification_renders_without_chart():
     assert not at.exception
     assert at.warning[0].value == 'Qual UF?'
     assert not at.dataframe
+
+
+def test_service_configuration_failure_is_visible_without_stale_result(monkeypatch):
+    import sus_explorer.service
+    import streamlit as st
+
+    def unavailable():
+        raise RuntimeError('GEMINI_API_KEY não configurada')
+
+    monkeypatch.setattr(sus_explorer.service, 'SUSExplorer', unavailable)
+    st.cache_resource.clear()
+    try:
+        at = AppTest.from_file(APP).run()
+        at.text_area[0].set_value('Quantas doses no RS em maio de 2026?')
+        at.button[0].click().run()
+        assert not at.exception
+        assert at.error[0].value == 'Não foi possível concluir a consulta. Confira a configuração e tente novamente.'
+        assert 'query_result' not in at.session_state
+        assert 'GEMINI_API_KEY' not in at.error[0].value
+    finally:
+        st.cache_resource.clear()
+
+
+def test_source_tab_uses_analytical_executor_even_when_history_is_saved():
+    at = AppTest.from_file(APP)
+    at.session_state['query_result'] = {
+        'result': {'operation': 'count', 'data': {'doses': 4},
+                   'provenance': {'source': 'SI-PNI / R2', 'period': '2026-05',
+                                  'partitions': ['ano=2026/mes=05/uf=RS']}},
+        'answer': 'Quatro doses.', 'history_status': 'saved',
+    }
+    at.run()
+    assert not at.exception
+    text = ' '.join(item.value for item in at.markdown)
+    assert 'R2 / Parquet' in text
+    assert 'Histórico operacional salvo no PostgreSQL' in ' '.join(
+        item.value for item in at.caption
+    )
 
 
 def test_percent_toggle_preserves_result_and_never_calls_service(monkeypatch):

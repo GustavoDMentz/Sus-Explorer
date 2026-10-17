@@ -17,6 +17,8 @@ sus_explorer/
 ├── build_cache.py              # CLI/Script de construção do cubo de cache
 ├── pni.py                      # Mecanismo de consulta e execução remota/local
 ├── service.py                  # Fachada principal da aplicação
+├── hybrid.py                   # Roteamento determinístico R2/PostgreSQL
+├── query_history.py            # Fronteira opcional do histórico operacional
 ├── llm.py                      # Integração com o Google Gemini (LLM)
 ├── terminology.py              # Dicionários e padronização de imunobiológicos
 ├── analytics/
@@ -28,6 +30,9 @@ sus_explorer/
 │   ├── persistence/             # PostgreSQL operacional opt-in
 │   │   ├── database.py          # Conexão explícita, sem efeito em imports
 │   │   ├── migrate.py           # Migrations transacionais com checksum
+│   │   ├── ingest_r2.py         # Ingestão explícita de uma partição mensal/UF
+│   │   ├── history.py           # Metadados de consultas, sem perguntas ou resultados
+│   │   ├── healthcheck.py       # SELECT 1 real
 │   │   ├── migrations/          # Esquema versionado e append-only
 │   │   └── repositories.py      # Fronteiras transacionais de persistência
 │   └── remote/
@@ -60,7 +65,10 @@ graph TD
         Builder["build_cache.py"] --> R2
         Builder --> Transform
         Builder --> Manifest
-        Service["service.py"] --> PNIRemote["pni.py"]
+        Service["service.py"] --> Router["hybrid.py"]
+        Router --> PNIRemote["pni.py / R2"]
+        Router --> PostgresCount["PostgreSQL: count elegível"]
+        Service --> QueryHistory["query_history.py"]
         Service --> Terminology["terminology.py"]
         Service --> Gemini["llm.py"]
     end
@@ -71,6 +79,7 @@ graph TD
 
     subgraph Operational Persistence
         Postgres["PostgreSQL + JSONB"] --> Ingestion["Estado e proveniência"]
+        Postgres --> History["Histórico de metadados"]
         Postgres --> Normalized["Projeções normalizadas"]
         Postgres -. futuro .-> Pgvector["pgvector / RAG"]
     end
@@ -97,9 +106,11 @@ em [`temporal_queryplan.md`](temporal_queryplan.md).
 1. **Invariância de Dados**: Nenhum arquivo do cache `cache/pni_cube` é reescrito durante refatorações.
 2. **Backward Compatibility**: Imports históricos de `sus_explorer.build_cache` continuam funcionando através de re-exportações delegadas.
 3. **Independência da Auditoria**: `sus_explorer/audit_ms_2023_10.py` e `recover_pni_2023_10.py` mantêm sua capacidade de auditoria determinística independente da produção.
-4. **Backends Complementares**: Parquet/R2 permanece responsável pela análise
-   dos microdados e cubos. PostgreSQL é persistência operacional opt-in e não
-   pode substituir ou alterar silenciosamente o caminho analítico.
+4. **Backends Complementares**: Parquet/R2 permanece o executor padrão para a
+   análise dos microdados e cubos. PostgreSQL armazena metadados, revisões e
+   projeções selecionadas. Por opt-in, apenas `count` mensal/UF sem filtros pode
+   usar PostgreSQL quando a ingestão mais recente, a contagem e o hash da origem
+   comprovam cobertura completa; os demais planos permanecem no R2.
 5. **Autoridade Determinística**: o LLM planeja consultas validadas e explica
    agregados; números vêm dos backends determinísticos e nenhum microdado
    individual é enviado ao modelo.

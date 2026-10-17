@@ -198,20 +198,20 @@ def ingest_partition(
         fetched_at = datetime.now(timezone.utc)
         scanner = dataset.scanner(batch_size=batch_size, use_threads=False)
         for batch in scanner.to_batches():
-            for row in batch.to_pylist():
-                seen += 1
-                try:
-                    key, payload, projection = project(row, uf)
-                except (ValueError, TypeError):
-                    invalid += 1
-                    continue
-                persisted.save_immunization(
-                    source=SOURCE, resource_type=RESOURCE_TYPE,
-                    source_resource_id=resource_id, record_key=key,
-                    external_id=key, payload=payload, fetched_at=fetched_at,
-                    ingestion_run_id=run_id, projection=projection,
-                )
-            connection.commit()
+            with connection.transaction():
+                for row in batch.to_pylist():
+                    seen += 1
+                    try:
+                        key, payload, projection = project(row, uf)
+                    except (ValueError, TypeError):
+                        invalid += 1
+                        continue
+                    persisted.save_immunization(
+                        source=SOURCE, resource_type=RESOURCE_TYPE,
+                        source_resource_id=resource_id, record_key=key,
+                        external_id=key, payload=payload, fetched_at=fetched_at,
+                        ingestion_run_id=run_id, projection=projection,
+                    )
             event("r2_ingestion_batch", ingestion_run_id=run_id, rows_seen=seen,
                   rows_invalid=invalid)
         if source_snapshot(pni, dataset) != snapshot or seen != expected_rows:
