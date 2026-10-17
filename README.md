@@ -1,204 +1,299 @@
 # SUS Explorer
 
-**Exploração de microdados públicos do SI-PNI com linguagem natural, análise determinística e proveniência verificável.**
+## Apresentação
 
-O SUS Explorer permite consultar dados de vacinação disponibilizados pelo Ministério da Saúde, armazenados em **Parquet no Cloudflare R2**, por meio de perguntas em português. O **Gemini interpreta a intenção e produz um plano estruturado**; o **Python valida os parâmetros, executa os cálculos e produz os resultados**. O modelo pode explicar os agregados, mas não é autoridade sobre contagens ou métricas.
+Explorador experimental de registros públicos de vacinação do SI-PNI. Uma pergunta em português chega ao Gemini, que propõe um `QueryPlan`; Pydantic valida o plano; Python consulta Parquet no Cloudflare R2 e calcula os agregados; Streamlit apresenta números, explicação e proveniência. O modelo não calcula os números nem recebe microdados individuais.
 
-**Nenhum microdado individual é enviado ao LLM.** Os resultados apresentados são agregados e devem ser interpretados como **doses/registros**, não como pessoas vacinadas ou cobertura vacinal.
+> **Estado:** MVP em desenvolvimento. Disponibilidade e correção das respostas dependem das partições remotas, da configuração e da interpretação do Gemini. Este README descreve o código atual; resultados históricos em `docs/` não substituem uma validação do ambiente de destino.
 
-> **Estado do projeto:** MVP em desenvolvimento, com interface principal em Streamlit. Disponibilidade de meses, filtros e resultados depende das partições Parquet efetivamente acessíveis e da configuração do ambiente.
+## Sumário
 
-## O que o projeto faz
+- [Apresentação](#apresentação)
+- [Objetivos e escopo](#objetivos-e-escopo)
+- [Funcionalidades implementadas](#funcionalidades-implementadas)
+- [Funcionalidades experimentais e limitações](#funcionalidades-experimentais-e-limitações)
+- [Arquitetura do sistema](#arquitetura-do-sistema)
+- [Fluxo de uma consulta](#fluxo-de-uma-consulta)
+- [Tecnologias utilizadas](#tecnologias-utilizadas)
+- [Estrutura do repositório](#estrutura-do-repositório)
+- [Pré-requisitos](#pré-requisitos)
+- [Instalação no Windows](#instalação-no-windows)
+- [Instalação no Linux/macOS](#instalação-no-linuxmacos)
+- [Configuração do Gemini](#configuração-do-gemini)
+- [Configuração do Cloudflare R2](#configuração-do-cloudflare-r2)
+- [Configuração do PostgreSQL](#configuração-do-postgresql)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Docker Compose](#docker-compose)
+- [Migrations](#migrations)
+- [Ingestão controlada](#ingestão-controlada)
+- [Persistência e histórico](#persistência-e-histórico)
+- [Roteamento híbrido](#roteamento-híbrido)
+- [Execução do Streamlit](#execução-do-streamlit)
+- [Testes automatizados](#testes-automatizados)
+- [Testes com serviços reais](#testes-com-serviços-reais)
+- [Troubleshooting](#troubleshooting)
+- [Segurança e gerenciamento de credenciais](#segurança-e-gerenciamento-de-credenciais)
+- [Limitações conhecidas](#limitações-conhecidas)
+- [Próximos passos tecnicamente justificados](#próximos-passos-tecnicamente-justificados)
+- [Guia de contribuição](#guia-de-contribuição)
 
-- **Perguntas em linguagem natural:** planejamento com Gemini, `QueryPlan` tipado e validação Pydantic antes da execução.
-- **Consultas determinísticas:** contagens, agrupamentos, séries mensais e indicadores de latência entre vacinação e entrada na RNDS.
-- **Análise temporal:** diferenças finitas mensais de primeira, segunda e terceira ordem (Δ1, Δ2 e Δ3), variação mensal **MoM** e comparação com o mesmo mês do ano anterior **YoY**.
-- **Visualização Streamlit:** volumes absolutos como referência principal, tabelas exatas, filtros e informações de proveniência; percentuais superiores a +100% recebem **barras visualmente interrompidas**, com valor real preservado e opção de escala completa.
-- **Terminologia de imunobiológicos:** códigos e nomes canônicos do Ministério da Saúde, com definições complementares da SES-GO somente quando compatíveis.
-- **Rastreabilidade:** proveniência dos dados e das transformações, logging estruturado e mecanismos de auditoria.
-- **Exportação:** CSV para tabelas mensais e JSON dos resultados com proveniência, quando aplicável.
+## Objetivos e escopo
 
-### Proveniência
+O projeto explora **doses/registros**, não pessoas únicas. Cada linha consultada representa um registro de vacinação; não há deduplicação confiável por indivíduo nem denominador populacional adequado para calcular cobertura vacinal. A UF usada nas partições é a **UF do estabelecimento**, não necessariamente a residência do paciente. A análise é descritiva e não prova causalidade, efetividade ou significância epidemiológica.
 
-| Classe | Significado | Identidade visual |
-| --- | --- | --- |
-| **DIRECT** | Observado nos dados consultados | Verde `#16A34A` |
-| **DERIVED** | Calculado deterministicamente a partir das observações | Roxo `#9333EA` |
-| **ENRICHED** | Contextualizado com informação externa documentada | Azul `#2563EB` |
+## Funcionalidades implementadas
 
-A classificação é aplicada a cada informação, não indiscriminadamente a toda a consulta. A presença de uma legenda **não** significa que determinado resultado possua enriquecimento externo.
+- Planejamento estruturado por Gemini, validação Pydantic e esclarecimento quando faltam UF ou período; pedidos diários são recusados.
+- Contagem, agrupamento, séries mensais e estatísticas de latência RNDS sobre Parquet/R2. Filtros disponíveis dependem das colunas da origem.
+- Diferenças finitas mensais de ordens 1 a 3, variação absoluta e percentual MoM e comparação com o mesmo mês do ano anterior (YoY). O intervalo mensal tem limite de 36 meses.
+- Resultado exato e proveniência: `DIRECT` para observações, `DERIVED` para cálculos e `ENRICHED` somente quando há fonte complementar documentada. Mês sem partição é ausente; partição existente com zero registros é zero.
+- Streamlit com tabela, gráficos, exportações quando aplicáveis, estado de sessão, origem da consulta e histórico opcional. Alterar uma visualização não repete a consulta; buscar uma referência YoY ausente requer ação explícita.
+- Catálogo de imunobiológicos: código/nome do Ministério da Saúde, definição SES-GO somente quando compatível; conflito não é preenchido por adivinhação.
+- PostgreSQL operacional opcional: migrations, ingestão explícita de uma partição R2, revisões/observações, projeções normalizadas, histórico de metadados e roteamento restrito de contagens elegíveis.
 
-## Como funciona
+## Funcionalidades experimentais e limitações
+
+O construtor de cubo, o manifest e a auditoria independente MS × cubo são ferramentas separadas da consulta ativa. O cubo derivado em `cache/pni_cube` ou em `sus-dados/cache/pni_cube` **não** é lido pelo `sus_explorer/pni.py` durante perguntas. A auditoria versionada de outubro de 2023 é um resultado histórico específico, não certificação de todas as partições. A extensão pgvector está presente como fundação; embeddings, RAG, chatbot com documentos e importação automática não estão ativos.
+
+Gemini e R2 reais não são validados pela suíte padrão. A explicação do Gemini pode falhar ou divergir semanticamente; os números exibidos vêm do executor Python. Consultas a serviços reais exigem credenciais, custos e uma verificação independente dos dados esperados.
+
+## Arquitetura do sistema
+
+O Streamlit chama o serviço Python diretamente. O planejador, o executor analítico e o histórico PostgreSQL têm responsabilidades separadas. A ingestão e a auditoria são comandos administrativos fora da interface pública.
+
+## Fluxo de uma consulta
 
 ```text
-Pergunta em português
-        │
-        ▼
-Gemini → plano JSON estruturado
-        │
-        ▼
-Pydantic → validação do QueryPlan
-        │
-        ▼
-Python / PyArrow → consulta Parquet no Cloudflare R2
-        │
-        ▼
-Agregações, análise temporal e proveniência
-        │
-        ├──► Streamlit: gráficos, tabelas e exportações
-        └──► Gemini: explicação baseada em agregados
+app.py (Streamlit)
+  → sus_explorer/service.py (SUSExplorer)
+  → llm.py (Gemini → QueryPlan)
+  → schemas.py (Pydantic)
+  → hybrid.py (roteamento determinístico)
+      → pni.py (PyArrow → Parquet no R2, padrão)
+      → PostgreSQL (somente count mensal/UF sem filtros e com cobertura comprovada)
+  → analytics/ (diferenças, percentuais e YoY em Python)
+  → llm.py (explicação dos agregados)
+  → Streamlit; query_history.py → PostgreSQL opcional
 ```
 
-O LLM **não executa SQL, não acessa o bucket diretamente e não calcula os valores apresentados**. Consultas analíticas usam o backend Parquet/R2; o PostgreSQL é uma camada operacional independente e opcional.
+O Gemini não recebe acesso ao bucket nem escreve SQL. Na análise temporal, `pni.py` agrega a série, `analytics/temporal_query.py` valida a origem e `analytics/temporal.py`, `percentage.py` e `yoy.py` calculam valores exatos. Diferenças não atravessam lacunas; percentual com denominador zero fica indisponível. YoY busca explicitamente o mesmo mês do ano anterior com os mesmos filtros. A referência SHA-256 da série identifica consulta e agregados; não prova por si só a identidade dos bytes do R2.
 
-## Requisitos e instalação
+| Local | Conteúdo | Uso na consulta |
+| --- | --- | --- |
+| `healthbr-data/sipni/microdados` no R2 | Parquet de origem | Leitura analítica padrão por PyArrow |
+| `sus-dados/cache/pni_cube` e cache local | Cubo derivado e manifest | Construção/auditoria; a consulta ativa não usa cache-first |
+| PostgreSQL | Apenas partições selecionadas, revisões, observações e projeções | Contagem mensal elegível por opt-in; não substitui o R2 |
+| PostgreSQL `query_history` | UUID, data, operação, parâmetros tipados, executor, estado, duração e proveniência limitada | Histórico; **não** guarda pergunta livre ou resultado completo e **não** é cache de resultados |
 
-- **Python 3.12 ou superior**, conforme as dependências atuais; o CI utiliza Python 3.12.
-- Acesso e credenciais válidas para **Gemini** e **Cloudflare R2** nas consultas remotas.
-- **PostgreSQL** somente para operações de persistência que o utilizem.
+## Tecnologias utilizadas
+
+Python, Streamlit, Pydantic, Google GenAI SDK, PyArrow, Pandas, PostgreSQL 17/pgvector, psycopg, Cloudflare R2 compatível com S3, pytest e GitHub Actions. `requirements.txt` define compatibilidade; `constraints.txt` fixa versões diretas revisadas para CI.
+
+## Estrutura do repositório
+
+| Caminho | Responsabilidade |
+| --- | --- |
+| `app.py`, `demo.py` | Interface principal e CLI de consulta |
+| `sus_explorer/llm.py`, `schemas.py`, `service.py` | Plano, validação e orquestração |
+| `sus_explorer/pni.py`, `hybrid.py`, `analytics/` | Leitura e cálculo analítico |
+| `sus_explorer/data/persistence/` | Migrations, ingestão explícita, repositórios e histórico |
+| `sus_explorer/build_cache.py`, `data/cache/`, `cli/audit_ms.py` | Cubo, manifest e auditoria independente |
+| `tests/unit`, `tests/integration`, `tests/e2e` | Níveis A, B e C de teste |
+| `docs/` | Registro histórico e especificações detalhadas; este README rege a operação atual |
+
+## Pré-requisitos
+
+Use Python 3.12 ou superior compatível com as dependências; o CI usa 3.12. Acesso à internet e credenciais próprias para Gemini/R2 são necessários nas consultas remotas. PostgreSQL é opcional para a aplicação; Docker Desktop ou Docker Engine é necessário para o script de teste com banco descartável.
+
+## Instalação no Windows
+
+```powershell
+git clone https://github.com/GustavoDMentz/sus-explorer.git
+Set-Location sus-explorer
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -c constraints.txt -r requirements-dev.txt
+Copy-Item .env.example .env
+```
+
+Instale Python 3.12 antes, se necessário. Edite `.env` antes de consultar serviços. Usar o executável da `.venv` evita o alias `python` da Microsoft Store.
+
+## Instalação no Linux/macOS
 
 ```bash
-git clone https://github.com/GustavoDMentz/Sus-Explorer.git
-cd Sus-Explorer
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
+git clone https://github.com/GustavoDMentz/sus-explorer.git
+cd sus-explorer
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -c constraints.txt -r requirements-dev.txt
 cp .env.example .env
 ```
 
-Edite `.env` com as configurações necessárias, consultando `.env.example`. **Não versione credenciais nem publique seu arquivo `.env`.** PostgreSQL não é inicializado automaticamente durante imports ou consultas Parquet/R2.
+Os comandos Python são portáveis; o script `scripts/test_postgres.ps1` é específico de PowerShell. No Linux/macOS, configure manualmente um banco **descartável** para os testes PostgreSQL.
 
-### Interface principal — Streamlit
+## Configuração do Gemini
 
-```bash
-python -m streamlit run app.py
+Obtenha uma chave válida para o projeto e configure `GEMINI_API_KEY`; `GEMINI_MODEL` seleciona o modelo de planejamento e explicação. Nenhuma chave de exemplo é fornecida. Uma chave ausente impede criar o serviço.
+
+## Configuração do Cloudflare R2
+
+Configure `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, bucket e prefixo da origem Parquet com permissão de leitura. O bucket independente de auditoria usa `SUS_DATA_R2_*`; não existe fallback automático de um para o outro.
+
+## Configuração do PostgreSQL
+
+O banco é opcional. Quando habilitado, configure host, porta, banco, usuário, senha e schema; mantenha `POSTGRES_COUNT_ENABLED=0` e `POSTGRES_HISTORY_ENABLED=0` até aplicar migrations e conferir permissões. Use credenciais distintas para migração, runtime e leitura fora do desenvolvimento local.
+
+## Variáveis de ambiente
+
+`sus_explorer/config.py` lê `.env` via `python-dotenv` na importação; a conexão PostgreSQL lê variáveis quando aberta. Altere `.env` antes de iniciar o Streamlit, pois o serviço é mantido em cache. Copie `.env.example`; deixe opcionais desativados até configurá-los. Exemplo sem segredos:
+
+```dotenv
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.5-flash-lite
+R2_ENDPOINT=
+R2_ACCESS_KEY=
+R2_SECRET_KEY=
+R2_REGION=auto
+R2_BUCKET=healthbr-data
+R2_PREFIX=sipni/microdados
+POSTGRES_COUNT_ENABLED=0
+POSTGRES_HISTORY_ENABLED=0
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=sus_explorer
+POSTGRES_USER=sus_explorer
+POSTGRES_PASSWORD=
+POSTGRES_SCHEMA=sus_explorer
+POSTGRES_SSLMODE=prefer
 ```
 
-Digite uma pergunta e clique em **Explorar**. A consulta é executada mediante submissão explícita; o último resultado permanece na sessão, e mudanças de visualização normalmente não repetem a consulta remota. A opção YoY pode exigir **uma nova consulta explícita** para recuperar o mesmo período do ano anterior.
-
-Não é necessário iniciar **Uvicorn, FastAPI ou Next.js** para a interface principal.
-
-Mais detalhes: [Interface Streamlit](docs/streamlit.md).
-
-### CLI
-
-```bash
-python demo.py "Quantas doses foram aplicadas em Porto Alegre, RS, em maio de 2026?"
-```
-
-### Teste de acesso a dados, sem LLM
-
-```bash
-python smoke_test.py
-```
-
-O teste de fumaça consulta a partição **RS / maio de 2026** no R2. Requer a configuração de acesso remoto; **não** é um teste totalmente offline.
-
-### Testes automatizados
-
-```bash
-python -m pip install -r requirements-dev.txt
-python -m pytest tests -q -rs
-```
-
-A suíte contém testes unitários e de interface com mocks. Testes de integração PostgreSQL requerem um banco descartável configurado; a execução local sem esse banco pode apresentar skips. A execução da suíte não equivale a validar contagens reais no Gemini/R2.
-
-## Operações analíticas
-
-| Operação | Resultado |
+| Grupo | Uso |
 | --- | --- |
-| `count` | Contagem de doses/registros |
-| `group` | Agrupamentos por dimensões disponíveis, incluindo imunobiológico, município, sexo, idade, dose, CNES, sistema de origem e raça/cor |
-| `timeseries` | Série mensal de doses/registros |
-| `latency` | Mediana, P90 e P95 do intervalo entre vacinação e entrada na RNDS, para registros válidos |
-| `temporal` | Diferenças mensais Δ1–Δ3, variação MoM e comparação interanual YoY |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Planejamento e explicação. A chave vazia impede criar `GeminiAnalyst`. |
+| `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_REGION`, `R2_BUCKET`, `R2_PREFIX` | Leitura PyArrow dos Parquet da consulta ativa. Endpoint deve ser o do serviço S3 da conta. |
+| `SUS_DATA_R2_*` | Bucket e credenciais **independentes** de auditoria do cubo; não são fallback da consulta. |
+| `POSTGRES_COUNT_ENABLED`, `POSTGRES_HISTORY_ENABLED` | Flags independentes, valores `0`/`1`; ambas desativadas por padrão. |
+| `POSTGRES_HOST`, `PORT`, `DB`, `USER`, `PASSWORD`, `SCHEMA`, `SSLMODE` | Conexão operacional. Para banco remoto use TLS verificado (`verify-full`) e CA confiável. |
+| `POSTGRES_CONNECT_TIMEOUT`, `POSTGRES_STATEMENT_TIMEOUT_MS`, `POSTGRES_LOCK_TIMEOUT_MS`, `POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS`, `POSTGRES_APPLICATION_NAME` | Limites e identificação da conexão; defaults em `.env.example`. |
 
-**MoM** compara o volume com o mês imediatamente anterior. **YoY** compara com o mesmo mês do ano anterior, mantendo os filtros aplicados. YoY pode tornar séries sazonais mais legíveis, mas não elimina diferenças de calendários de campanha, população-alvo ou disponibilidade de dados.
+As credenciais de auditoria são `SUS_DATA_R2_ENDPOINT`, `SUS_DATA_R2_ACCESS_KEY_ID`, `SUS_DATA_R2_SECRET_ACCESS_KEY`, `SUS_DATA_R2_BUCKET` e `SUS_DATA_R2_CUBE_PREFIX`. `MAX_GROUP_ROWS` limita resultados de agrupamento; padrão 50.
 
-Mês ausente **não vira zero**; diferenças não atravessam lacunas. Percentuais com denominador zero permanecem indisponíveis. Os gráficos podem arredondar valores para apresentação, mas tabelas e exportações preservam os resultados exatos.
+## Docker Compose
 
-Documentação: [Análise temporal](docs/temporal_analytics.md) · [Integração com QueryPlan](docs/temporal_queryplan.md).
+O Compose publica PostgreSQL somente em `127.0.0.1`. Defina uma senha local em `.env` antes de `docker compose`; o arquivo não contém senha versionada. **Volumes existentes mantêm credenciais e dados da inicialização anterior**; mudar `.env` não altera usuários já criados. Não use o banco persistente para a suíte destrutiva.
 
-## Armazenamento e arquitetura híbrida
-
-O SUS Explorer mantém **dois backends complementares**:
-
-- **Parquet / Cloudflare R2:** armazenamento e leitura analítica dos microdados e cubos, com acesso via PyArrow.
-- **PostgreSQL:** persistência operacional opt-in para estado e proveniência de ingestões, documentos JSONB, revisões imutáveis e projeções normalizadas.
-
-O PostgreSQL **não substitui** o Parquet/R2 e não é um fallback silencioso das consultas. A extensão **pgvector** está disponível como fundação para uma possível recuperação/RAG futura; sua presença **não** significa que embeddings ou RAG já façam parte das respostas.
-
-Para iniciar o banco local:
-
-```bash
+```powershell
+docker compose config --quiet
 docker compose up -d postgres
-python -m sus_explorer.data.persistence.migrate
+.\.venv\Scripts\python.exe -m sus_explorer.data.persistence.healthcheck
+.\.venv\Scripts\python.exe -m sus_explorer.data.persistence.migrate
 ```
 
-Para testes de integração, **use apenas um banco descartável**:
+No Linux/macOS, substitua `.\.venv\Scripts\python.exe` por `.venv/bin/python`.
 
-```bash
-SUS_EXPLORER_TEST_DB=1 python -m pytest tests/integration
+## Migrations
+
+O comando `sus_explorer.data.persistence.migrate` acima aplica, na ordem, as versões 001–004: fundação e pgvector; hardening e roles; índices de partição; histórico de consultas. O migrador usa transação, lock e SHA-256; não possui down migration nem detecta mudanças manuais fora das versões. Para bancos existentes, confira previamente usuário, extensão pgvector e janela de manutenção para criação de índices. Não reescreva arquivos SQL já aplicados: o checksum fará a execução falhar.
+
+## Ingestão controlada
+
+A ingestão é comando administrativo explícito de **uma** partição mensal/UF; Streamlit não a inicia. Requer R2 real, banco preparado e identidade `co_documento` no Parquet.
+
+```powershell
+.\.venv\Scripts\python.exe -m sus_explorer.data.persistence.ingest_r2 --year 2026 --month 5 --uf RS --batch-size 1000
 ```
 
-Documentação: [Arquitetura](docs/architecture.md) · [Persistência PostgreSQL](docs/persistence.md).
+Antes de escrever, valida colunas/tipos e captura SHA-256 dos fragmentos. Cada lote é transacional. Reexecução com mesmo payload registra observação sem duplicar raw; mudança arquiva a revisão anterior. Linhas inválidas/duplicadas impedem status `SUCCESS`; interrupção pode ser retomada somente no mesmo snapshot e em execução `RUNNING`:
 
-## Terminologia oficial MS + SES-GO
-
-O catálogo de imunobiológicos utiliza:
-
-- **Ministério da Saúde / BRImunobiologico:** autoridade para `code` e `official_display`.
-- **SES-GO / BRImunobiologico:** fonte complementar para `definition`, incorporada apenas quando o nome do mesmo código é compatível com o nome canônico do MS.
-
-Se houver divergência, `definition` permanece `null` e `terminology_conflict` é marcado como `true`. O LLM não deve completar a definição por memória.
-
-O cache local fica em:
-
-```text
-~/.cache/sus_explorer/BRImunobiologico_ms_go.json
+```powershell
+.\.venv\Scripts\python.exe -m sus_explorer.data.persistence.ingest_r2 --year 2026 --month 5 --uf RS --resume-run-id 123
 ```
 
-Para atualizar e verificar a terminologia:
+`PARTIAL` e `FAILED` não comprovam cobertura. Não rode este comando como teste de instalação em dados reais.
 
-```bash
-python refresh_terminology.py
+## Persistência e histórico
+
+`POSTGRES_HISTORY_ENABLED=1` grava metadados da tentativa, inclusive falha após obter o plano. Falha de histórico não altera o resultado analítico; a interface indica indisponibilidade.
+
+## Roteamento híbrido
+
+`POSTGRES_COUNT_ENABLED=1` só permite PostgreSQL para `count` sem filtros, em uma partição `year`/`month`/`uf`, se a execução mais recente está completa e hash, fragmentos, linhas, observações e projeções ainda correspondem ao R2. Caso contrário, consulta R2. Séries, agrupamentos, latência, temporal e contagens filtradas permanecem no R2.
+
+O hash dos arquivos é recalculado na consulta elegível, o que pode ser caro. Roles de migração, runtime e leitura são distintas; não use a credencial de migração no serviço. Payloads individuais no banco exigem política própria de acesso/retenção antes de produção.
+
+## Execução do Streamlit
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-Exemplo de linha agregada (RS, maio de 2026; **não** corresponde a um registro individual):
+Digite uma pergunta com UF e período e clique **Explorar**. Exemplo: “Qual foi a variação mensal das doses no RS de janeiro a abril de 2026?”. A resposta numérica está na tabela/JSON exato; gráficos podem arredondar a apresentação. A aba de fontes indica o executor analítico; histórico só aparece quando habilitado. Sem PostgreSQL, deixe as duas flags em `0`. Falta de Gemini ou R2 impede executar uma nova pergunta e aparece como erro genérico na UI.
 
-```json
-{
-  "code": "33",
-  "display": "INF3",
-  "official_display": "INF3",
-  "definition": "Vacina influenza trivalente",
-  "definition_source": "SES-GO / BRImunobiologico",
-  "terminology_conflict": false,
-  "count": 616927
-}
+```powershell
+.\.venv\Scripts\python.exe demo.py "Quantas doses foram aplicadas no RS em maio de 2026?"
+.\.venv\Scripts\python.exe smoke_test.py
 ```
 
-## Limitações e interpretação
+`smoke_test.py` consulta R2 real sem LLM; não é teste offline. `refresh_terminology.py`, `recover_pni_2023_10.py` e a auditoria são ferramentas administrativas separadas; consulte `--help` ou o código antes de executá-las em fontes reais.
 
-- `uf=` identifica a **UF do estabelecimento**, não necessariamente a residência da pessoa vacinada.
-- O projeto conta **doses/registros**, não indivíduos únicos, efetividade, eficácia ou cobertura vacinal.
-- **Cobertura vacinal não é calculada** no MVP; dependeria de denominadores e definições de população-alvo compatíveis.
-- O comportamento temporal é **descritivo**: aumentos, quedas e diferenças não comprovam campanhas como causa, nem significância estatística.
-- Séries interanuais não garantem equivalência entre estratégias oficiais distintas.
-- Informações externas só devem receber `ENRICHED` quando acompanhadas de fonte verificável.
-- A disponibilidade e completude das partições devem ser verificadas; dados ausentes não autorizam estimativas implícitas.
+## Testes automatizados
 
-**Comparação entre campanhas oficiais:** há trabalho de desenvolvimento para combinar calendários do Ministério da Saúde e doses observadas. Não confundir essa funcionalidade em evolução com um consolidado oficial já reconciliado e disponível para todas as campanhas.
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests -q -rs
+.\.venv\Scripts\python.exe -m pytest tests -m unit -q
+.\.venv\Scripts\python.exe -m pytest tests -m integration -q -rs
+```
 
-## Documentação técnica
+`pytest.ini` limita a coleta a `tests/` e marca `unit` (A), `integration` (B) e `external` (C). A classificação indica componentes exercitados, não que todo teste B use banco: `tests/integration/test_local_query_pipeline.py` percorre PyArrow/Parquet local, análise e AppTest com o transporte Gemini substituído. Os testes PostgreSQL criam/removem schemas e só executam com `SUS_EXPLORER_TEST_DB=1` em banco descartável. No Windows, com Docker Desktop ativo:
 
-- [Interface e visualizações](docs/streamlit.md)
-- [Análise temporal](docs/temporal_analytics.md)
-- [Contrato temporal e QueryPlan](docs/temporal_queryplan.md)
-- [Arquitetura](docs/architecture.md)
-- [Persistência PostgreSQL](docs/persistence.md)
-- [Diário de desenvolvimento](docs/development_journal.md)
+```powershell
+.\scripts\test_postgres.ps1
+```
 
----
+Esse script cria um contêiner temporário, senha aleatória, aplica migrations e executa a suíte, removendo somente o contêiner criado por ele. O workflow `test-postgres.yml` usa serviço PostgreSQL descartável no CI. `verify-r2.yml` é manual e verifica acesso/listagem de cache, não o fluxo Gemini → resposta. O diagnóstico por grupo e as lacunas estão em [Auditoria de testes](docs/test_audit.md).
 
-**Fontes de dados:** Ministério da Saúde / SI-PNI, com terminologia complementar documentada da SES-GO quando aplicável. O SUS Explorer é um projeto independente de exploração analítica de dados públicos; seus resultados não substituem indicadores oficiais do Ministério da Saúde.
+Nesta revisão, o script concluiu health check, migrations 001–004 e **402 testes aprovados, 0 pulados, 1 externo deselecionado**. O contêiner temporário foi removido. A cobertura de branches combinada no mesmo tipo de banco foi 71% no pacote completo e 85% nos módulos críticos selecionados; detalhes no relatório.
+
+## Testes com serviços reais
+
+O teste C usa **Gemini e R2 reais**, Streamlit e histórico em schema descartável. Ele é excluído da suíte padrão, pode gerar custo de API e exige contagens de referência independentes para dois meses consecutivos. Só execute em ambiente controlado com `SUS_EXPLORER_EXTERNAL_TEST=1`, `SUS_EXPLORER_TEST_DB=1`, `POSTGRES_DB` terminado em `_test`, credenciais normais de Gemini/R2/PostgreSQL e `SUS_EXPLORER_EXTERNAL_YEAR`, `SUS_EXPLORER_EXTERNAL_MONTH` (2 a 12), `SUS_EXPLORER_EXTERNAL_UF`, `SUS_EXPLORER_EXTERNAL_COUNT` (mês selecionado) e `SUS_EXPLORER_EXTERNAL_PREVIOUS_COUNT` (mês anterior). Exemplo de invocação após configurar esses valores por um operador:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/e2e -m external -q -rs
+```
+
+Não coloque esses segredos em CI automático, argumentos de comando, commits ou logs. O teste não ingere dados e lê duas partições para uma contagem e uma variação mensal; seu resultado não certifica todas as perguntas ou partições. Um `skip` significa **não validado**, nunca aprovação do serviço real.
+
+## Troubleshooting
+
+| Sintoma | Verificação |
+| --- | --- |
+| `python` abre Microsoft Store | Use o Python da `.venv` ou `py -3.12` no Windows. |
+| `GEMINI_API_KEY não configurada` | Preencha `.env`, reinicie o Streamlit e confira o projeto/chave fora do Git. |
+| `Configuração R2 ausente` / erro de rede | Confira endpoint S3, bucket, prefixo, permissões de leitura e partição; não confunda os dois buckets. |
+| Partição ausente | Não converta em zero; confirme publicação, ano, mês e UF do estabelecimento. |
+| Histórico indisponível | Confira flag, conexão, schema, migration 004 e role runtime. O resultado analítico pode continuar válido. |
+| Compose exige senha | Preencha `POSTGRES_PASSWORD` em `.env`; não use valor versionado. |
+| PostgreSQL tests pulados | Execute `scripts/test_postgres.ps1` com Docker Desktop, ou prepare um banco descartável equivalente. |
+| Plano temporal falha | Confira intervalo de até 36 meses, UF e formato da pergunta; saída inválida do Gemini pode provocar erro controlado. |
+
+## Segurança e gerenciamento de credenciais
+
+`.env` e variantes são ignorados pelo Git; `.env.example` contém apenas placeholders. Use credenciais R2 somente leitura para consulta e credenciais independentes para auditoria. Não passe credenciais PostgreSQL ao LLM. O histórico omite pergunta livre, texto de vacina/município e resultado completo. Logs operacionais removem segredos conhecidos, mas ainda exigem política de acesso. Antes de publicar, revise permissões de buckets, TLS do banco, roles separadas e retenção de payloads individuais.
+
+## Limitações conhecidas
+
+A suíte local confirmou PostgreSQL em contêiner descartável, mas não confirma Gemini/R2 reais; o workflow R2 manual verifica o cubo de auditoria, não as perguntas no backend ativo. O modelo pode interpretar uma intenção de forma incorreta mesmo quando o plano recebido é válido. O PostgreSQL materializa somente partições explicitamente selecionadas. A interface usa AppTest nos testes, sem captura de navegador real.
+
+## Próximos passos tecnicamente justificados
+
+- Reproduzir a falha de variação mensal no RS contra uma partição real conhecida e uma expectativa independente; o teste local cobre o caminho de cálculo sem provar o comportamento do Gemini ou R2 remoto.
+- Executar o canário externo controlado e registrar plano, contagem esperada e proveniência sem expor dados ou credenciais. Validar erros de autenticação e rede em ambiente de staging.
+- Medir cobertura de branches e mutações em cálculo, validação e roteamento; a aprovação de pytest não garante correção semântica do modelo nem dos dados de origem.
+- Verificar esquema/identidade `co_documento`, custo de hash e recuperação de ingestão antes de ativar `POSTGRES_COUNT_ENABLED` em produção.
+- Auditar mais partições do cubo contra fonte independente. Não generalizar a auditoria histórica de outubro de 2023.
+- Resolver separadamente a duplicação de aliases e clientes S3 quando houver evidência de falha; a auditoria deve continuar independente do construtor.
+
+## Guia de contribuição
+
+Abra uma issue com pergunta, plano esperado, período/UF e evidência sanitizada. Para mudanças de cálculo, adicione um caso com valores esperados calculados independentemente, inclusive zero/ausência/erro. Rode a suíte A/B e, quando afetar persistência, o banco descartável; relate skips e testes externos separadamente. Não adicione segredos, dados individuais ou totais de produção sem fonte auditável. Preserve migrations aplicadas e documente novas versões. Não execute ingestões ou chamadas pagas como efeito colateral de testes padrão.
+
+`docs/development_journal.md` preserva a cronologia; `docs/temporal_analytics.md`, `docs/temporal_queryplan.md`, `docs/architecture.md`, `docs/persistence.md` e `docs/streamlit.md` registram decisões e contratos detalhados de entregas anteriores. Em caso de divergência operacional, confira o código atual e atualize este README.

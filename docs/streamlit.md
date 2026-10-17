@@ -1,5 +1,24 @@
 # Interface Streamlit
 
+## Interface atual
+
+O app organiza o explorador, o histórico opcional e a proveniência em abas.
+O explorador mantém submissão explícita e o último resultado na sessão.
+`POSTGRES_HISTORY_ENABLED=1` libera leitura sob demanda de metadados de consultas
+no PostgreSQL; a interface mostra quando a gravação de um resultado falhou.
+A aba de fontes mostra o **executor analítico** (R2 ou PostgreSQL), período,
+fragmentos e partições ausentes quando esses campos constam da proveniência.
+Salvar histórico no PostgreSQL não muda o rótulo do executor. A administração de
+ingestões permanece na CLI porque esta interface não possui autenticação de
+operador. A paleta usa `.streamlit/config.toml` e APIs oficiais do Streamlit.
+
+O botão que calcula YoY faz uma nova consulta explícita e recebe um novo ID de
+consulta; quando o histórico está ativo, a execução também é registrada.
+Resultados continuam agregados em doses/registros.
+
+As seções datadas abaixo documentam etapas anteriores da interface e seus
+resultados de teste na época; o estado atual é descrito nesta seção.
+
 A interface principal usa o serviço SUSExplorer diretamente, sem API HTTP
 intermediária e sem timeout de 90/200 segundos no navegador para `/api/ask`.
 Isso não acelera a leitura remota: planejamento, agregação e explicação ainda

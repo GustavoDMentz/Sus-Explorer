@@ -1,7 +1,28 @@
 from __future__ import annotations
 
+import os
+import re
+import time
+from uuid import uuid4
+
 from .llm import GeminiAnalyst
 from .pni import PNIRemote
+from .hybrid import HybridQueryExecutor
+from .query_history import record_query, safe_provenance, event
+from .schemas import DAILY_QUERY_UNSUPPORTED
+
+
+_DAILY_INTENT = re.compile(
+    r"\b(?:dia\s+\d{1,2}|por\s+dia|dia\s+a\s+dia|"
+    r"(?:últimos?|primeiro|segundo|terceiro)\s+dias?|"
+    r"todos?\s+os?\s+dias|diári[ao]s?|hoje|ontem|anteontem)\b|"
+    r"\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b|"
+    r"\b\d{4}-\d{2}-\d{2}\b|"
+    r"\b\d{1,2}\s+de\s+"
+    r"(?:janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|"
+    r"setembro|outubro|novembro|dezembro)\b",
+    re.IGNORECASE,
+)
 
 
 FIELD_LABELS = {
@@ -30,8 +51,37 @@ class SUSExplorer:
     def __init__(self):
         self.llm = GeminiAnalyst()
         self.pni = PNIRemote()
+        self.executor = HybridQueryExecutor(self.pni)
+        self.history_enabled = os.getenv("POSTGRES_HISTORY_ENABLED") == "1"
+
+    def _record_history(self, query_id, plan, result, status, duration_ms):
+        if not getattr(self, "history_enabled", False):
+            return "disabled"
+        try:
+            provenance = safe_provenance(result) if result is not None else {}
+            source = (result.provenance.get("source_provenance", result.provenance)
+                      if result is not None else {})
+            executor = source.get("executor", "r2") if result is not None else "unknown"
+            record_query(query_id=query_id, plan=plan, executor=executor,
+                         status=status, duration_ms=duration_ms,
+                         provenance=provenance)
+            return "saved"
+        except Exception as exc:
+            event("query_history_unavailable", level="WARNING",
+                  error_type=type(exc).__name__)
+            return "unavailable"
 
     def ask(self, question: str) -> dict:
+        if _DAILY_INTENT.search(question):
+            return {
+                "needs_clarification": True,
+                "clarification_question": DAILY_QUERY_UNSUPPORTED,
+                "missing": [],
+                "missing_internal": [],
+                "plan": {},
+                "result": None,
+                "answer": None,
+            }
         plan = self.llm.plan(question)
 
         if plan.status == "needs_clarification":
@@ -74,12 +124,19 @@ class SUSExplorer:
                 "answer": None,
             }
 
-        result = self.pni.execute(plan)
-
-        answer = self.llm.answer(
-            question,
-            plan,
-            result,
+        query_id = uuid4()
+        started = time.perf_counter()
+        result = None
+        try:
+            result = getattr(self, "executor", self.pni).execute(plan)
+            answer = self.llm.answer(question, plan, result)
+        except Exception:
+            self._record_history(query_id, plan, result, "FAILED",
+                                 int((time.perf_counter() - started) * 1000))
+            raise
+        history_status = self._record_history(
+            query_id, plan, result, "SUCCESS",
+            int((time.perf_counter() - started) * 1000),
         )
 
         return {
@@ -90,6 +147,8 @@ class SUSExplorer:
             "plan": plan.model_dump(),
             "result": result.model_dump(),
             "answer": answer,
+            "query_id": str(query_id),
+            "history_status": history_status,
         }
 
     @staticmethod
