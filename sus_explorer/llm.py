@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from typing import Any
 
@@ -232,6 +233,12 @@ class GeminiAnalyst:
         self.model = settings.gemini_model
 
     def plan(self, q: str) -> QueryPlan:
+        # Experimental opt-in only; leave existing production behavior unchanged.
+        if os.getenv("SUS_DETERMINISTIC_PLANNER") == "1":
+            from .deterministic_planner import deterministic_plan
+            deterministic = deterministic_plan(q)
+            if deterministic is not None:
+                return deterministic
         # A single JSON-mode retry escapes a failing constrained decoder/SDK
         # parse. It receives only the same question and public plan contract,
         # never generated garbage, query results or source data.
