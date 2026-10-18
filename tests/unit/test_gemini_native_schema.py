@@ -93,7 +93,9 @@ def test_truncated_response_is_rejected_even_with_valid_parsed_plan():
 
 
 @pytest.mark.parametrize('failure', ['sdk_integer', 'truncated', 'invalid_plan'])
-def test_planner_recovers_with_json_mode_and_real_temporal_execution(failure):
+def test_planner_recovers_with_json_mode_and_real_temporal_execution(failure, monkeypatch):
+    # Exercise Gemini's retry contract, not the deterministic fast path.
+    monkeypatch.delenv('SUS_DETERMINISTIC_PLANNER', raising=False)
     from types import SimpleNamespace
     from sus_explorer.analytics.temporal_query import execute_temporal, SOURCE_LABEL
     from sus_explorer.pni import QueryResult
