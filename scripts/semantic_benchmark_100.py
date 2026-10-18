@@ -85,6 +85,29 @@ def get_field(plan, dotted):
     return value
 
 
+def classify_gemini_error(exc):
+    """Stable, secret-free diagnostics; never serialize exception messages."""
+    error_type = type(exc).__name__
+    status = getattr(exc, "code", None)
+    if not isinstance(status, int) or not 100 <= status <= 599:
+        status = getattr(exc, "status_code", None)
+    if not isinstance(status, int) or not 100 <= status <= 599:
+        status = None
+    if status in (401, 403):
+        category = "auth"
+    elif status == 429:
+        category = "rate_limit"
+    elif status is not None and status >= 500:
+        category = "upstream"
+    elif status is not None:
+        category = "http_other"
+    elif error_type == "PlannerResponseError":
+        category = "planner_response"
+    else:
+        category = "other"
+    return {"type": error_type, "category": category, "http_status": status}
+
+
 def run(*, gemini=False):
     analyst = None
     if gemini:
@@ -116,6 +139,7 @@ def run(*, gemini=False):
                 baseline = analyst.plan(case["question"])
                 row["gemini_plan"] = baseline.model_dump(mode="json")
                 row["gemini_error"] = None
+                row["gemini_error_detail"] = None
                 row["gemini_expected_field_errors"] = (
                     {field: {"expected": value, "actual": get_field(baseline, field)}
                      for field, value in expected.items()
@@ -128,6 +152,7 @@ def run(*, gemini=False):
             except Exception as exc:
                 row["gemini_plan"] = None
                 row["gemini_error"] = type(exc).__name__
+                row["gemini_error_detail"] = classify_gemini_error(exc)
             row["gemini_ms"] = round((time.perf_counter() - started) * 1000, 2)
         rows.append(row)
     return rows
@@ -146,7 +171,9 @@ def main():
                "false_positive_routes": sum(row["expected_route"] == "llm"
                                             and row["actual_route"] == "regex" for row in rows),
                "gemini_enabled": args.gemini,
-               "gemini_errors": sum(bool(row.get("gemini_error")) for row in rows)}
+               "gemini_errors": sum(bool(row.get("gemini_error")) for row in rows),
+               "gemini_fallback_errors": sum(row["expected_route"] == "llm" and bool(row.get("gemini_error")) for row in rows),
+               "gemini_regex_comparison_errors": sum(row["expected_route"] == "regex" and bool(row.get("gemini_error")) for row in rows)}
     path = Path(args.output)
     path.write_text(json.dumps({"summary": summary, "cases": rows},
                                ensure_ascii=False, indent=2), encoding="utf-8")
