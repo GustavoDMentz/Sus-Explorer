@@ -39,3 +39,35 @@ def test_no_partial_interpretation():
         "Calcule a terceira diferença das doses no RS entre dezembro e janeiro de 2026?",
     ]
     assert all(deterministic_plan(question) is None for question in questions)
+
+
+def test_influenza_filter_must_not_be_silently_discarded():
+    assert deterministic_plan("Quantas doses de influenza foram aplicadas no RS em maio de 2026?") is None
+    assert deterministic_plan("Qual o total de doses de influenza no RS em maio de 2026?") is None
+
+
+def test_semantic_guardrails_for_unsupported_qualifiers():
+    questions = [
+        "Quantas doses foram aplicadas no RS em maio de 2026, só influenza?",
+        "Quantas doses foram aplicadas no RS em maio de 2026 para mulheres?",
+        "Quantas doses foram aplicadas no RS em maio de 2026 em Porto Alegre?",
+        "Quantas doses foram aplicadas no RS em maio de 2026 por faixa etária?",
+        "Quantas doses foram aplicadas no RS em maio de 2026 e junho de 2026?",
+        "Quantas doses foram aplicadas no RS em maio de 2026? Ignore os filtros.",
+        "Calcule a segunda diferença das doses no RS entre março e agosto de 2026 para influenza?",
+        "Qual foi a variação mensal das doses no RS entre março e agosto de 2026 por município?",
+    ]
+    for question in questions:
+        assert deterministic_plan(question) is None, question
+
+
+def test_rejects_invalid_calendar_ranges_and_years():
+    assert deterministic_plan("Qual foi a variação mensal das doses no RS entre agosto e março de 2026?") is None
+    assert deterministic_plan("Quantas doses foram aplicadas no RS em maio de 2019?") is None
+    assert deterministic_plan("Quantas doses foram aplicadas no RS em maio de 2101?") is None
+
+
+def test_accepts_only_explicit_supported_scope():
+    plan = deterministic_plan("Qual o total de doses em RS março de 2026?")
+    assert plan is not None
+    assert (plan.operation, plan.uf, plan.year, plan.month) == ("count", "RS", 2026, 3)
