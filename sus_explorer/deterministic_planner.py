@@ -26,7 +26,7 @@ def _normalize(value: str) -> str:
 # Full-string patterns intentionally exclude unsupported qualifiers and filters.
 _COUNT = re.compile(
     rf"(?:quantas doses foram aplicadas|qual o total de doses|total de doses)"
-    rf" (?:de influenza )?(?:no|em) (?P<uf>{UF})"
+    rf" (?:no|em) (?P<uf>{UF})"
     rf" (?:em )?(?:(?P<month>{MONTH}) de )?(?P<year>{YEAR})\??",
     re.IGNORECASE,
 )
