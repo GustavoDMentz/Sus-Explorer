@@ -83,7 +83,7 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
         assert app.session_state["query_result"]["answer"] == "Resumo dos agregados."
         app.run()
         assert not app.exception
-        assert len(calls) == 2
+        assert len(calls) == expected_calls
     finally:
         st.cache_resource.clear()
 
