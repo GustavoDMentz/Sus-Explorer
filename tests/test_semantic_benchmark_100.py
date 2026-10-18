@@ -16,3 +16,23 @@ def test_benchmark_regex_semantics_and_fallback():
         (row["id"], row["field_errors"], row["actual_route"])
         for row in rows if not row["regex_pass"]
     ]
+
+
+def test_gemini_error_diagnostics_do_not_expose_messages():
+    from scripts.semantic_benchmark_100 import classify_gemini_error
+
+    class FakeClientError(Exception):
+        code = 429
+
+    detail = classify_gemini_error(FakeClientError("secret-key-in-error"))
+    assert detail == {"type": "FakeClientError", "category": "rate_limit", "http_status": 429}
+    assert "secret-key-in-error" not in str(detail)
+
+
+def test_gemini_planner_response_diagnostic():
+    from scripts.semantic_benchmark_100 import classify_gemini_error
+    from sus_explorer.llm import PlannerResponseError
+
+    detail = classify_gemini_error(PlannerResponseError())
+    assert detail["category"] == "planner_response"
+    assert detail["http_status"] is None
