@@ -1,8 +1,10 @@
 # Diário técnico do SUS Explorer
 
-> **Atualização contemporânea — 2026-10-07**
+> **Última atualização — 2026-10-20**
 >
-> **Intervalo total coberto:** 2026-09-19 a 2026-10-07.
+> **Intervalo total coberto:** 2026-09-19 a 2026-10-20.
+>
+> **Critério de leitura:** as seções antigas registram o estado e a evidência disponíveis nas datas indicadas; a atualização de 2026-10-20 ao final distingue código integrado, PRs abertos, propostas e validações pendentes. Não interpretar snapshots antigos como descrição da `master` atual.
 >
 > A nota metodológica e todo o texto histórico abaixo, até “Débitos técnicos conhecidos”, são a **reconstrução retrospectiva de 2026-09-19 a 2026-09-26**, preservada integralmente. Seu intervalo, inventário, pendências e afirmações de ausência de evidência descrevem aquela revisão histórica; não são automaticamente afirmações sobre o estado atual.
 >
@@ -959,3 +961,42 @@ Nesta execução o ambiente local estava sem pytest; a tentativa de obter wheels
 Os quatro CIs pós-merge no master também aprovaram os 353 casos. No master funcional final, o job `113470416871` confirmou **353 aprovados, zero falhas e zero skips** em 7,68 segundos.
 
 O master funcional após os quatro merges é `134b0e8e2790e34d70b1e7ac4273775f54881aac`, árvore `6510fd63ca715cd9ca8df96ae69b87a77bc6b499`. A atualização deste diário e do requisito Python no README é um commit separado apenas documental, filho desse master. PR #17 permanece aberto e não integrado; arquitetura, contratos científicos, diferenças finitas, filtros, proveniência e migrations permanecem intactos. Os registros históricos anteriores foram preservados.
+
+
+---
+
+## 2026-10-09 a 2026-10-20 — Consolidação de testes, planejamento, BYOK, histórico versionado e início da auditoria de segurança
+
+### Escopo e método desta atualização (2026-10-20)
+
+Esta entrada é **contemporânea**, construída a partir dos PRs #1–#34, seus estados/descrições, arquivos da `master` consultados em 2026-10-20 e documentação versionada. **Não** reproduz execução local, CI, consulta Gemini/R2 ou ataque adversarial nesta revisão documental. Contagens de testes relatadas em PRs são atribuídas às respectivas evidências; não representam testes refeitos aqui. Horários exatos de merge referem-se aos metadados GitHub em UTC. A reconstrução histórica anterior permanece intacta.
+
+### 2026-10-09 a 2026-10-17 — Trabalho acumulado e revisão de arquitetura
+
+- [#28](https://github.com/GustavoDMentz/Sus-Explorer/pull/28), integrado em 2026-10-14: revisão do README para a arquitetura Streamlit + Gemini/QueryPlan + Python/PyArrow/R2, cálculos temporais MoM/YoY e proveniência. A documentação não cobria ainda as integrações posteriores #29–#32.
+- [#29](https://github.com/GustavoDMentz/Sus-Explorer/pull/29), integrado em 2026-10-17: PR de escopo amplo (`Feature/g`), modificando interface, testes, ingestão, persistência, esquema de consultas e documentação. Seu título e descrição vazia são insuficientes para rastrear decisões isoladas; consultar diff e testes por arquivo antes de atribuir comportamento específico. Não confundir esta integração com os PRs antigos #11–#16, incorporados seletivamente por #18–#23 em 2026-10-08.
+- O plano de segurança anterior incluiu revisão de logs, roles PostgreSQL, proveniência, proteção de credenciais e superfícies de consumo. A existência de um controle no código não equivale a demonstração de contenção de danos após comprometimento.
+
+### 2026-10-19 a 2026-10-20 — Planner e credenciais de sessão
+
+- [#30](https://github.com/GustavoDMentz/Sus-Explorer/pull/30), integrado em 2026-10-20: caminho determinístico experimental habilitado por `SUS_DETERMINISTIC_PLANNER=1`, com `fullmatch` e fallback Gemini para perguntas fora da gramática. O PR relata **404 passed, 12 skipped, 1 deselected** em validação local de 2026-10-19, além de benchmark **sintético offline** de 100 casos (60 roteados pelo caminho determinístico). Esses números não medem acurácia Gemini ou desempenho em produção.
+- [#31](https://github.com/GustavoDMentz/Sus-Explorer/pull/31), integrado em 2026-10-20: instâncias `SUSExplorer` por sessão Streamlit e injeção de chave Gemini, evitando cache global de credenciais. **O código efetivo de `app.py` solicita somente chave Gemini na UI; o acesso R2 é compartilhado e configurado no servidor.** O título/corpo original do PR menciona R2 BYOK, mas isso não descreve a interface integrada. O suporte a configuração R2 por instância existe no backend; não equivale a um formulário R2 BYOK publicado. Os testes offline não demonstram isolamento contra comprometimento do processo servidor.
+
+### 2026-10-20 — Versionamento analítico e dependências
+
+- [#32](https://github.com/GustavoDMentz/Sus-Explorer/pull/32), integrado em 2026-10-20: `analytical_queries` e `analytical_result_versions` via migration 005, `observe_result` e `get_versions`, com snapshot agregado criptografado por AES-GCM e verificação HMAC, chave `ANALYTICAL_HISTORY_KEY` e habilitação opt-in. Resultados iguais atualizam contagem de observações; mudanças produzem versões adicionais. A documentação original do PR ainda contém checklist de implementação pendente e não deve ser tomada como status atual. O versionamento não estabelece autorização multiusuário por si só, nem valida externamente a integridade de todos os metadados de proveniência.
+- [#24](https://github.com/GustavoDMentz/Sus-Explorer/pull/24) (google-genai 2.29.0), [#25](https://github.com/GustavoDMentz/Sus-Explorer/pull/25) (Pydantic 2.14.1) e [#27](https://github.com/GustavoDMentz/Sus-Explorer/pull/27) (NumPy 2.5.4) foram integrados em 2026-10-20. [#26](https://github.com/GustavoDMentz/Sus-Explorer/pull/26) (PyArrow 26.0.0) permanece **aberto, não integrado**; `constraints.txt` na `master` ainda fixa PyArrow 25.0.1 na consulta desta data.
+
+### 2026-10-20 — Auditoria estática orientada a contenção de danos
+
+A auditoria examinou caminhos Streamlit, serviço, planejador, persistência de histórico, criptografia, logging, ingestão e executor híbrido. Os riscos identificados são **hipóteses ou evidências estáticas**, não explorações reproduzidas: histórico operacional global acessível pela aba Streamlit quando habilitado; `get_versions(query_key)` sem identidade de proprietário no repositório; falta de limites explícitos de bytes da pergunta no serviço original; materialização potencialmente onerosa de dados; privilégios de runtime PostgreSQL e acesso a registros brutos a revisar; `source_fingerprint` fora da autenticação do payload; TLS PostgreSQL configurável com padrão `prefer`; fallback PostgreSQL → R2; redação de logs dependente de padrões. A ameaça prioritária foi redefinida como **assumir comprometimento e minimizar o raio de impacto**, não somente impedir acesso inicial.
+
+- [#33](https://github.com/GustavoDMentz/Sus-Explorer/pull/33), **draft aberto**, branch `security/bound-natural-language-input`: valida texto não vazio e limita pergunta a 4.096 bytes UTF-8 antes do Gemini, com testes adicionados. **Não integrado e não testado nesta revisão**. Não substitui limitação de concorrência/rate limit.
+- [#34](https://github.com/GustavoDMentz/Sus-Explorer/pull/34), **draft aberto**, branch `security/session-scoped-history-ui`: substitui a leitura do histórico PostgreSQL global na UI por lista de metadados em `st.session_state` limitada a 20 itens. **Não integrado e não testado nesta revisão**. Não implementa isolamento por usuário no banco nem proteção contra comprometimento do processo Streamlit.
+- [#17](https://github.com/GustavoDMentz/Sus-Explorer/pull/17), comparação de campanhas, permanece **aberto e não integrado**; não atribuir à `master` o catálogo e a seção do PR.
+
+### Política de documentação e próximas verificações
+
+A fonte de verdade do comportamento implementado é o **código da `master` no commit consultado**, complementado por migrations e testes. O README descreve operação atual; `docs/query-result-version-history.md` descreve o contrato de versionamento e deve diferenciar implementação de requisitos pendentes; este diário preserva decisões e evidências datadas. PR aberto/draft significa **proposta não entregue**; teste relatado por PR não significa execução nesta atualização. A revisão documental identificou divergências no texto histórico do #31 (R2 BYOK), no checklist do #32 e no README anterior às mudanças recentes. Padronização desses documentos deve preservar o histórico, evitar alegações de testes não executados e não modificar código funcional.
+
+**Pendências técnicas prioritárias:** verificar permissões efetivas do PostgreSQL com credencial runtime em banco descartável; limitar acesso do serviço a microdados; testar adulteração de proveniência; confirmar isolamento de sessões com AppTest e navegador; testar PRs #33/#34 antes de merge; rever dependências e CI. Não executar testes adversariais contra serviços reais ou credenciais de produção.
