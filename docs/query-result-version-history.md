@@ -4,7 +4,7 @@
 >
 > **Implementado:** snapshots agregados com AES-GCM e HMAC, chave `ANALYTICAL_HISTORY_KEY`, opt-in `ANALYTICAL_HISTORY_ENABLED=1`, versões por consulta canônica e deduplicação do resultado consecutivo idêntico; leitura de versões da consulta atual na UI. **Não demonstrado/pendente:** isolamento por proprietário no PostgreSQL, política de rotação/retenção, integridade autenticada de `source_fingerprint`, teste adversarial completo e aprovação dos PRs #33/#34. O fingerprint de origem não é parte do MAC de `get_versions`.
 >
- **Base histórica da proposta:** merge do PR #31 (`83a2d8d5eccc4682f139ccafa3967ea211067609`).
+> **Base histórica da proposta:** merge do PR #31 (`83a2d8d5eccc4682f139ccafa3967ea211067609`).
 
 ## Objetivo
 Persistir de modo compacto, seguro e auditável **mudanças de resultados** de consultas determinísticas do SUS Explorer. Não registrar perguntas livres, chaves BYOK, respostas narrativas do Gemini ou microdados pessoais.
