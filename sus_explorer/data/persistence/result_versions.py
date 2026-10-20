@@ -60,15 +60,14 @@ def observe_result(*, plan, result, connection=None) -> dict:
         connection = connect()
     try:
         with connection.transaction():
+            # Transaction-scoped lock works with restricted INSERT/SELECT grants.
+            connection.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))", (key,),
+            )
             connection.execute(
                 """INSERT INTO analytical_queries (query_key, plan, semantics_version)
                    VALUES (%s, %s, %s) ON CONFLICT (query_key) DO NOTHING""",
                 (key, Jsonb(safe_plan), SEMANTICS_VERSION),
-            )
-            # Serialize concurrent writers on the query row.
-            connection.execute(
-                "SELECT query_key FROM analytical_queries WHERE query_key = %s FOR UPDATE",
-                (key,),
             )
             latest = connection.execute(
                 """SELECT version, result_hash FROM analytical_result_versions
