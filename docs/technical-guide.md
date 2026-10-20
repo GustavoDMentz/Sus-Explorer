@@ -262,7 +262,7 @@ Faça essa cópia **dentro da pasta do repositório**. Edite somente os campos n
 
 ### Gemini
 
-`GEMINI_API_KEY` permite configurar a chave no ambiente, em vez de digitá-la no aplicativo. `GEMINI_MODEL` escolhe o modelo utilizado para interpretar a pergunta e explicar os resultados. Na interface atual, **é necessário fornecer uma chave Gemini na barra lateral** para iniciar o serviço, mesmo que você tenha editado um `.env`.
+`GEMINI_API_KEY` é uma opção de configuração para ferramentas e execuções fora da interface; `GEMINI_MODEL` escolhe o modelo utilizado para interpretar a pergunta e explicar os resultados. Na interface Streamlit atual, **é necessário fornecer a chave Gemini na barra lateral** para iniciar o serviço, mesmo que você tenha editado um `.env`.
 
 ### Cloudflare R2 (dados de vacinação)
 
