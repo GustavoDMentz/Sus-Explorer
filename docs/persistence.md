@@ -1,5 +1,7 @@
 # Persistência operacional PostgreSQL
 
+> **Atualização de estado — 2026-10-20:** a migration `005_analytical_result_versions.sql` e o versionamento agregado criptografado do PR #32 já estão na `master`. O histórico operacional `query_history` (migration 004) é diferente do histórico analítico versionado. A interface Streamlit da `master` ainda permite leitura global de metadados operacionais quando `POSTGRES_HISTORY_ENABLED=1`; o PR #34 propõe alterar **somente a UI** para histórico por sessão e ainda está em draft. Nenhum dos dois mecanismos implementa autorização por proprietário dentro do banco. As seções abaixo foram escritas antes do PR #32 e devem ser lidas com esse recorte temporal.
+
 ## Papel no sistema
 
 PostgreSQL complementa o backend analítico Parquet/R2. Ele registra operações
@@ -106,7 +108,7 @@ mais recente e contar raws de uma partição, sem alterar tabelas ou invariantes
 
 `POSTGRES_COUNT_ENABLED=0` mantém todas as consultas no R2. Com valor `1`, o
 roteador avalia apenas `count` sem filtros de `year` + `month` + `uf`. Configure
-essa opção antes de iniciar/reiniciar o Streamlit (o serviço é mantido em cache).
+essa opção antes de iniciar/reiniciar o Streamlit (o serviço é instanciado por sessão; não há cache global de credenciais).
 O roteador exige a execução mais recente `SUCCESS`, hash e número de fragmentos atuais iguais aos
 registrados, contagem de linhas R2 igual à registrada, e igualdade entre
 linhas recebidas, observações, raws correntes e projeções da revisão corrente.
