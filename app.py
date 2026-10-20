@@ -9,7 +9,6 @@ from sus_explorer.service import SUSExplorer
 from sus_explorer.schemas import QueryPlan
 from copy import deepcopy
 from sus_explorer.streamlit_views import render_result
-from sus_explorer.data.persistence.history import recent_queries
 
 st.set_page_config(page_title='SUS Explorer', page_icon='💉', layout='wide',
                    initial_sidebar_state='expanded')
@@ -45,11 +44,25 @@ def configure_byok():
                     st.error('Não foi possível inicializar as credenciais. Confira os dados.')
         if st.button('Limpar credenciais e resultados', key='byok_clear'):
             for key in ('byok_explorer', 'byok_gemini', 'query_result',
-                        'query_error', 'result_question', 'history_error', 'recent_queries', 'analytical_versions'):
+                        'query_error', 'result_question', 'history_error', 'recent_queries', 'analytical_versions', 'session_query_history'):
                 st.session_state.pop(key, None)
             st.rerun()
 
 
+
+
+def remember_query(question, payload):
+    """Keep a small, session-only list; never write questions to PostgreSQL."""
+    if payload.get('needs_clarification') or not payload.get('result'):
+        return
+    entries = st.session_state.setdefault('session_query_history', [])
+    entries.insert(0, {
+        'question': question,
+        'query_id': payload.get('query_id'),
+        'operation': (payload.get('plan') or {}).get('operation', '—'),
+        'result': deepcopy(payload),
+    })
+    del entries[20:]
 
 
 def execute_yoy_comparison(payload):
@@ -92,6 +105,9 @@ with st.sidebar:
     st.write('A vacinação contra influenza no RS está acelerando de janeiro a junho de 2026?')
     st.write('Quantas doses foram aplicadas em Porto Alegre, RS, em maio de 2026?')
     st.caption('Consultas remotas podem levar alguns minutos. Alterar a visualização não refaz a consulta.')
+    with st.expander('Recursos desta sessão'):
+        st.checkbox('Guardar histórico nesta sessão', value=True, key='session_history_enabled', help='Até 20 consultas, somente na memória desta sessão do Streamlit. Não requer PostgreSQL.')
+        st.caption('Histórico persistente e executor híbrido exigem configuração administrativa e não são ativados por este controle.')
 
 explorer_tab, history_tab, sources_tab = st.tabs(
     ['Explorador de dados', 'Histórico', 'Fontes e proveniência']
@@ -115,6 +131,8 @@ with explorer_tab:
                 with st.spinner('Planejando, consultando os dados e preparando o resultado. Aguarde…', show_time=True):
                     st.session_state.query_result = get_explorer().ask(question.strip())
                 st.session_state.result_question = question.strip()
+                if st.session_state.get('session_history_enabled', True):
+                    remember_query(question.strip(), st.session_state.query_result)
             except Exception:
                 st.session_state.query_error = 'Não foi possível concluir a consulta. Confira a configuração e tente novamente.'
 
@@ -151,33 +169,23 @@ with explorer_tab:
             render_result(payload, st.session_state.get('result_question', ''), execute_yoy_comparison)
 
 with history_tab:
-    st.subheader('Consultas registradas')
-    st.caption('Metadados de consultas; os resultados e as perguntas não são armazenados aqui.')
-    if os.getenv('POSTGRES_HISTORY_ENABLED') != '1':
-        st.info('Histórico PostgreSQL desativado neste ambiente.')
-    elif st.button('Carregar histórico', key='load_history'):
-        try:
-            with st.spinner('Consultando histórico…'):
-                st.session_state['recent_queries'] = recent_queries()
-            st.session_state.pop('history_error', None)
-        except Exception:
-            st.session_state.pop('recent_queries', None)
-            st.session_state['history_error'] = 'Histórico indisponível. Confira a conexão e as migrations PostgreSQL.'
-    if os.getenv('POSTGRES_HISTORY_ENABLED') == '1':
-        if st.session_state.get('history_error'):
-            st.error(st.session_state['history_error'])
-        elif 'recent_queries' in st.session_state:
-            rows = st.session_state['recent_queries']
-            if rows:
-                frame = pd.DataFrame([{
-                    'Data e hora': row['executed_at'], 'Consulta': str(row['id']),
-                    'Operação': row['operation'], 'Executor': row['executor'].upper(),
-                    'Status': row['status'], 'Duração (ms)': row['duration_ms'],
-                    'Período': row['provenance'].get('period', '—'),
-                } for row in rows])
-                st.dataframe(frame, hide_index=True, width='stretch')
-            else:
-                st.info('Ainda não há consultas registradas.')
+    st.subheader('Histórico desta sessão')
+    st.caption('Consultas mantidas somente na memória da sessão atual; não exige PostgreSQL.')
+    if st.button('Limpar histórico da sessão', key='clear_session_history'):
+        st.session_state.pop('session_query_history', None)
+        st.rerun()
+    entries = st.session_state.get('session_query_history', [])
+    if not entries:
+        st.info('Nenhuma consulta registrada nesta sessão.')
+    else:
+        for i, entry in enumerate(entries):
+            with st.expander(f"{entry['operation']} · {entry['question'][:100]}", expanded=False):
+                st.caption('Identificador: ' + str(entry.get('query_id') or '—'))
+                if st.button('Abrir resultado', key=f'open_session_query_{i}'):
+                    st.session_state['query_result'] = deepcopy(entry['result'])
+                    st.session_state['result_question'] = entry['question']
+                    st.session_state.pop('query_error', None)
+                    st.info('Resultado restaurado. Abra a aba Explorador de dados para visualizá-lo.')
 
 with sources_tab:
     st.subheader('Origem da consulta atual')
