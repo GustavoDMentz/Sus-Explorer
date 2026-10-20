@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from datetime import datetime, timezone
 
 import pyarrow.fs as fs
 import pytest
@@ -16,8 +17,8 @@ class FakeFS:
             raise OSError("temporary unavailable")
         if month == 5:
             return [
-                SimpleNamespace(type=fs.FileType.File, path=selector.base_dir + "part-0.parquet"),
-                SimpleNamespace(type=fs.FileType.File, path=selector.base_dir + "part-1.parquet"),
+                SimpleNamespace(type=fs.FileType.File, path=selector.base_dir + "part-0.parquet", size=1048576, mtime=datetime(2026, 5, 10, tzinfo=timezone.utc)),
+                SimpleNamespace(type=fs.FileType.File, path=selector.base_dir + "part-1.parquet", size=2097152, mtime=datetime(2026, 5, 12, tzinfo=timezone.utc)),
                 SimpleNamespace(type=fs.FileType.File, path=selector.base_dir + "_SUCCESS"),
             ]
         return []
@@ -33,13 +34,22 @@ def fake_pni(*, fail_month=None):
 def test_catalog_reports_parquet_fragments_and_absence():
     result = inspect_competencies(fake_pni(), uf="RS", year=2026)
     assert len(result["rows"]) == 12
-    assert result["rows"][4] == {"Mês": "05/2026", "Situação": "Disponível", "Fragmentos": 2}
-    assert result["rows"][0] == {"Mês": "01/2026", "Situação": "Não encontrada", "Fragmentos": 0}
+    assert result["rows"][4] == {
+        "Mês": "05/2026", "Situação": "Disponível", "Fragmentos": 2,
+        "Tamanho (MiB)": 3.0, "Última modificação (UTC)": "2026-05-12T00:00:00+00:00",
+    }
+    assert result["rows"][0] == {
+        "Mês": "01/2026", "Situação": "Não encontrada", "Fragmentos": 0,
+        "Tamanho (MiB)": 0.0, "Última modificação (UTC)": None,
+    }
 
 
 def test_catalog_does_not_turn_network_failure_into_absence():
     result = inspect_competencies(fake_pni(fail_month=6), uf="RS", year=2026)
-    assert result["rows"][5] == {"Mês": "06/2026", "Situação": "Não verificada", "Fragmentos": None}
+    assert result["rows"][5] == {
+        "Mês": "06/2026", "Situação": "Não verificada", "Fragmentos": None,
+        "Tamanho (MiB)": None, "Última modificação (UTC)": None,
+    }
 
 
 @pytest.mark.parametrize("uf,year", [("R", 2026), ("rs", 2026), ("RS", 1999), ("RS", 2101)])
