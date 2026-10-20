@@ -9,7 +9,7 @@ from sus_explorer.service import SUSExplorer
 from sus_explorer.schemas import QueryPlan
 from copy import deepcopy
 from sus_explorer.streamlit_views import render_result
-from sus_explorer.data.persistence.history import recent_queries
+from sus_explorer.session_history import append_session_history
 
 st.set_page_config(page_title='SUS Explorer', page_icon='💉', layout='wide',
                    initial_sidebar_state='expanded')
@@ -39,13 +39,15 @@ def configure_byok():
                     st.session_state['byok_explorer'] = SUSExplorer(gemini_api_key=gemini.strip())
                     st.session_state.pop('query_result', None)
                     st.session_state.pop('query_error', None)
+                    st.session_state.pop('session_query_history', None)
                     st.success('Credenciais configuradas para esta sessão.')
                 except Exception:
                     st.session_state.pop('byok_explorer', None)
                     st.error('Não foi possível inicializar as credenciais. Confira os dados.')
         if st.button('Limpar credenciais e resultados', key='byok_clear'):
             for key in ('byok_explorer', 'byok_gemini', 'query_result',
-                        'query_error', 'result_question', 'history_error', 'recent_queries', 'analytical_versions'):
+                        'query_error', 'result_question', 'history_error', 'recent_queries',
+                        'session_query_history', 'analytical_versions'):
                 st.session_state.pop(key, None)
             st.rerun()
 
@@ -74,6 +76,9 @@ def execute_yoy_comparison(payload):
     updated['plan'] = plan.model_dump()
     updated['answer'] = None  # do not reuse an explanation of a different comparison
     updated['query_id'] = str(query_id)
+    st.session_state['session_query_history'] = append_session_history(
+        st.session_state.get('session_query_history', []), updated
+    )
     updated['history_status'] = (
         get_explorer()._record_history(
             query_id, plan, result, 'SUCCESS', int((time.perf_counter() - started) * 1000)
@@ -115,6 +120,10 @@ with explorer_tab:
                 with st.spinner('Planejando, consultando os dados e preparando o resultado. Aguarde…', show_time=True):
                     st.session_state.query_result = get_explorer().ask(question.strip())
                 st.session_state.result_question = question.strip()
+                st.session_state['session_query_history'] = append_session_history(
+                    st.session_state.get('session_query_history', []),
+                    st.session_state.query_result,
+                )
             except Exception:
                 st.session_state.query_error = 'Não foi possível concluir a consulta. Confira a configuração e tente novamente.'
 
@@ -151,33 +160,14 @@ with explorer_tab:
             render_result(payload, st.session_state.get('result_question', ''), execute_yoy_comparison)
 
 with history_tab:
-    st.subheader('Consultas registradas')
-    st.caption('Metadados de consultas; os resultados e as perguntas não são armazenados aqui.')
-    if os.getenv('POSTGRES_HISTORY_ENABLED') != '1':
-        st.info('Histórico PostgreSQL desativado neste ambiente.')
-    elif st.button('Carregar histórico', key='load_history'):
-        try:
-            with st.spinner('Consultando histórico…'):
-                st.session_state['recent_queries'] = recent_queries()
-            st.session_state.pop('history_error', None)
-        except Exception:
-            st.session_state.pop('recent_queries', None)
-            st.session_state['history_error'] = 'Histórico indisponível. Confira a conexão e as migrations PostgreSQL.'
-    if os.getenv('POSTGRES_HISTORY_ENABLED') == '1':
-        if st.session_state.get('history_error'):
-            st.error(st.session_state['history_error'])
-        elif 'recent_queries' in st.session_state:
-            rows = st.session_state['recent_queries']
-            if rows:
-                frame = pd.DataFrame([{
-                    'Data e hora': row['executed_at'], 'Consulta': str(row['id']),
-                    'Operação': row['operation'], 'Executor': row['executor'].upper(),
-                    'Status': row['status'], 'Duração (ms)': row['duration_ms'],
-                    'Período': row['provenance'].get('period', '—'),
-                } for row in rows])
-                st.dataframe(frame, hide_index=True, width='stretch')
-            else:
-                st.info('Ainda não há consultas registradas.')
+    st.subheader('Consultas desta sessão')
+    st.caption('Apenas metadados das consultas executadas nesta sessão. '
+               'O histórico PostgreSQL compartilhado não é exposto nesta interface.')
+    rows = st.session_state.get('session_query_history', [])
+    if rows:
+        st.dataframe(pd.DataFrame(rows), hide_index=True, width='stretch')
+    else:
+        st.info('Ainda não há consultas concluídas nesta sessão.')
 
 with sources_tab:
     st.subheader('Origem da consulta atual')
