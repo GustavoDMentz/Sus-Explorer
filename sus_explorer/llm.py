@@ -222,14 +222,15 @@ class PlannerResponseError(ValueError):
 
 
 class GeminiAnalyst:
-    def __init__(self):
-        if not settings.gemini_api_key:
+    def __init__(self, *, api_key: str | None = None, model: str | None = None):
+        key = settings.gemini_api_key if api_key is None else api_key
+        if not key:
             raise RuntimeError("GEMINI_API_KEY não configurada")
 
         self.client = genai.Client(
-            api_key=settings.gemini_api_key
+            api_key=key
         )
-        self.model = settings.gemini_model
+        self.model = model or settings.gemini_model
 
     def plan(self, q: str) -> QueryPlan:
         # A single JSON-mode retry escapes a failing constrained decoder/SDK
