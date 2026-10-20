@@ -108,25 +108,29 @@ def require_ready_plan(plan: QueryPlan) -> QueryPlan:
 
 @dataclass
 class PNIRemote:
+    config: object = None
+
     def __post_init__(self):
+        if self.config is None:
+            self.config = settings
         if not all([
-            settings.r2_endpoint,
-            settings.r2_access_key,
-            settings.r2_secret_key,
+            self.config.r2_endpoint,
+            self.config.r2_access_key,
+            self.config.r2_secret_key,
         ]):
             raise RuntimeError("Configuração R2 ausente no .env")
 
         self.s3 = fs.S3FileSystem(
-            endpoint_override=settings.r2_endpoint,
-            access_key=settings.r2_access_key,
-            secret_key=settings.r2_secret_key,
-            region=settings.r2_region,
+            endpoint_override=self.config.r2_endpoint,
+            access_key=self.config.r2_access_key,
+            secret_key=self.config.r2_secret_key,
+            region=self.config.r2_region,
         )  
    
     def path(self, year: int, month: int, uf: str) -> str:
         return (
-            f"{settings.r2_bucket}/"
-            f"{settings.r2_prefix}/"
+            f"{self.config.r2_bucket}/"
+            f"{self.config.r2_prefix}/"
             f"ano={year}/"
             f"mes={month:02d}/"
             f"uf={uf.upper()}/"
@@ -531,7 +535,7 @@ class PNIRemote:
             )[
                 :min(
                     plan.top_n,
-                    settings.max_group_rows,
+                    self.config.max_group_rows,
                 )
             ]
 
@@ -639,7 +643,7 @@ class PNIRemote:
                 )[
                     :min(
                         plan.top_n,
-                        settings.max_group_rows,
+                        self.config.max_group_rows,
                     )
                 ]
             ]
