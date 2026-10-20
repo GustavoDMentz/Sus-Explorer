@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from typing import Any
 
@@ -221,6 +222,31 @@ class PlannerResponseError(ValueError):
         super().__init__("Não foi possível gerar um plano válido. Tente reformular a pergunta.")
 
 
+# Limited verified capital/UF pairs, not a general geocoder.
+_KNOWN_CAPITAL_UF = {"porto alegre": "RS", "belo horizonte": "MG",
+                     "curitiba": "PR", "florianopolis": "SC",
+                     "recife": "PE", "salvador": "BA"}
+
+
+def guard_explicit_geography(question: str, plan: QueryPlan) -> QueryPlan:
+    """Request clarification for an explicit city/UF contradiction."""
+    import unicodedata
+
+    def normalize(value):
+        return "".join(c for c in unicodedata.normalize("NFKD", value.casefold())
+                       if not unicodedata.combining(c)).strip()
+
+    city = normalize(plan.municipality_name or "")
+    known_uf = _KNOWN_CAPITAL_UF.get(city)
+    if not (known_uf and plan.uf and plan.uf != known_uf and city in normalize(question)):
+        return plan
+    payload = plan.model_dump()
+    payload.update(status="needs_clarification",
+                   clarification_question="Município e UF incompatíveis. Qual local deseja consultar?",
+                   missing=list(dict.fromkeys([*payload.get("missing", []), "uf"])))
+    return QueryPlan.model_validate(payload)
+
+
 class GeminiAnalyst:
     def __init__(self):
         if not settings.gemini_api_key:
@@ -232,12 +258,21 @@ class GeminiAnalyst:
         self.model = settings.gemini_model
 
     def plan(self, q: str) -> QueryPlan:
+        # Experimental opt-in only; leave existing production behavior unchanged.
+        if os.getenv("SUS_DETERMINISTIC_PLANNER") == "1":
+            from .deterministic_planner import deterministic_plan
+            deterministic = deterministic_plan(q)
+            if deterministic is not None:
+                return deterministic
         # A single JSON-mode retry escapes a failing constrained decoder/SDK
         # parse. It receives only the same question and public plan contract,
         # never generated garbage, query results or source data.
         for structured in (True, False):
             try:
-                return apply_whole_year_interval(q, self._plan_attempt(q, structured=structured))
+                plan = apply_whole_year_interval(q, self._plan_attempt(q, structured=structured))
+                if os.getenv("SUS_DETERMINISTIC_PLANNER") == "1":
+                    plan = guard_explicit_geography(q, plan)
+                return plan
             except PlannerResponseError:
                 if not structured:
                     raise
