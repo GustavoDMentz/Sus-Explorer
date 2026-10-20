@@ -18,6 +18,7 @@ from streamlit.testing.v1 import AppTest
 from sus_explorer.data.persistence.database import connect
 from sus_explorer.data.persistence.history import recent_queries
 from sus_explorer.data.persistence.migrate import migrate
+from sus_explorer.service import SUSExplorer
 
 
 load_dotenv()
@@ -57,6 +58,23 @@ def test_real_gemini_r2_streamlit_temporal_and_disposable_history(monkeypatch):
     monkeypatch.setenv("POSTGRES_COUNT_ENABLED", "0")
     monkeypatch.setenv("POSTGRES_HISTORY_ENABLED", "1")
     st.cache_resource.clear()
+    failure = {}
+    original_ask = SUSExplorer.ask
+    def diagnostic_ask(self, question):
+        try:
+            return original_ask(self, question)
+        except Exception as exc:
+            tb = exc.__traceback__
+            while tb and tb.tb_next:
+                tb = tb.tb_next
+            failure.clear()
+            failure['type'] = type(exc).__name__
+            failure['location'] = (
+                f'{Path(tb.tb_frame.f_code.co_filename).name}:{tb.tb_frame.f_code.co_name}'
+                if tb else 'unknown'
+            )
+            raise
+    monkeypatch.setattr(SUSExplorer, 'ask', diagnostic_ask)
     try:
         months = ("janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho",
                   "agosto", "setembro", "outubro", "novembro", "dezembro")
@@ -71,9 +89,8 @@ def test_real_gemini_r2_streamlit_temporal_and_disposable_history(monkeypatch):
         app.text_area(key="query_question").set_value(question)
         app.button(key="FormSubmitter:query_form-Explorar").click().run()
         assert not app.exception
-        assert app.session_state.get("query_result") is not None, (
-            "Query did not produce a result: " + str(app.session_state.get("query_error"))
-        )
+        if app.session_state.get("query_result") is None:
+            pytest.fail(f"Count query failed: {failure or 'no backend exception captured'}", pytrace=False)
         payload = app.session_state["query_result"]
         assert not payload["needs_clarification"]
         assert payload["plan"]["operation"] == "count"
@@ -90,9 +107,8 @@ def test_real_gemini_r2_streamlit_temporal_and_disposable_history(monkeypatch):
         app.text_area(key="query_question").set_value(temporal_question)
         app.button(key="FormSubmitter:query_form-Explorar").click().run()
         assert not app.exception
-        assert app.session_state.get("query_result") is not None, (
-            "Temporal query did not produce a result: " + str(app.session_state.get("query_error"))
-        )
+        if app.session_state.get("query_result") is None:
+            pytest.fail(f"Temporal query failed: {failure or 'no backend exception captured'}", pytrace=False)
         temporal = app.session_state["query_result"]
         assert not temporal["needs_clarification"]
         assert temporal["plan"]["operation"] == "temporal"
