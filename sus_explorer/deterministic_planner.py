@@ -52,8 +52,8 @@ def deterministic_plan(question: str) -> QueryPlan | None:
             "uf": match["uf"].upper(),
             "year": int(match["year"]),
         }
-        if match["month"]:
-            payload["month"] = MONTHS[match["month"]]
+        if match["month"] or match["month_num"]:
+            payload["month"] = (MONTHS[match["month"]] if match["month"] else int(match["month_num"]))
     else:
         match = _TEMPORAL.fullmatch(q)
         if not match:
