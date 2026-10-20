@@ -71,3 +71,26 @@ def test_accepts_only_explicit_supported_scope():
     plan = deterministic_plan("Qual o total de doses em RS março de 2026?")
     assert plan is not None
     assert (plan.operation, plan.uf, plan.year, plan.month) == ("count", "RS", 2026, 3)
+
+
+def test_numeric_month_year_count():
+    for period in ("05/2026", "5/2026", "05-2026", "05.2026"):
+        plan = deterministic_plan(f"Quantas doses foram aplicadas no RS em {period}?")
+        assert plan is not None, period
+        assert (plan.operation, plan.uf, plan.year, plan.month) == ("count", "RS", 2026, 5)
+
+
+def test_numeric_date_does_not_swallow_extra_filters():
+    assert deterministic_plan("Quantas doses foram aplicadas no RS em 05/2026 para mulheres?") is None
+    assert deterministic_plan("Quantas doses foram aplicadas no RS em 15/05/2026?") is None
+    assert deterministic_plan("Quantas doses foram aplicadas no RS em 13/2026?") is None
+
+
+def test_gemini_analyst_records_regex_planner_source_without_api_call():
+    from sus_explorer.llm import GeminiAnalyst
+    analyst = object.__new__(GeminiAnalyst)
+    analyst.deterministic_enabled = True
+    analyst.last_planner_source = None
+    plan = analyst.plan("Quantas doses foram aplicadas no RS em 05/2026?")
+    assert (plan.year, plan.month) == (2026, 5)
+    assert analyst.last_planner_source == "regex"

@@ -56,8 +56,7 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     monkeypatch.setenv("POSTGRES_COUNT_ENABLED", "0")
 
     from sus_explorer.deterministic_planner import deterministic_plan
-    import os
-    fast_path = os.getenv("SUS_DETERMINISTIC_PLANNER") == "1" and deterministic_plan(QUESTION) is not None
+    fast_path = deterministic_plan(QUESTION) is not None
     expected_calls = 1 if fast_path else 2
 
     service_result = SUSExplorer().ask(QUESTION)
