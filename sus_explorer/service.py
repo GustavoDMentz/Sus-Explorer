@@ -10,6 +10,7 @@ from .pni import PNIRemote
 from .hybrid import HybridQueryExecutor
 from .query_history import record_query, safe_provenance, event
 from .schemas import DAILY_QUERY_UNSUPPORTED
+from .data.persistence.result_versions import observe_result
 
 
 _DAILY_INTENT = re.compile(
@@ -53,6 +54,7 @@ class SUSExplorer:
         self.pni = PNIRemote(config=r2_config)
         self.executor = HybridQueryExecutor(self.pni)
         self.history_enabled = os.getenv("POSTGRES_HISTORY_ENABLED") == "1"
+        self.version_history_enabled = os.getenv("ANALYTICAL_HISTORY_ENABLED") == "1"
 
     def _record_history(self, query_id, plan, result, status, duration_ms):
         if not getattr(self, "history_enabled", False):
@@ -70,6 +72,16 @@ class SUSExplorer:
             event("query_history_unavailable", level="WARNING",
                   error_type=type(exc).__name__)
             return "unavailable"
+
+    def _observe_result(self, plan, result):
+        if not self.version_history_enabled:
+            return {"status": "disabled"}
+        try:
+            return {"status": "saved", **observe_result(plan=plan, result=result)}
+        except Exception as exc:
+            event("analytical_history_unavailable", level="WARNING",
+                  error_type=type(exc).__name__)
+            return {"status": "unavailable"}
 
     def ask(self, question: str) -> dict:
         if _DAILY_INTENT.search(question):
@@ -129,6 +141,7 @@ class SUSExplorer:
         result = None
         try:
             result = getattr(self, "executor", self.pni).execute(plan)
+            version_history = self._observe_result(plan, result)
             answer = self.llm.answer(question, plan, result)
         except Exception:
             self._record_history(query_id, plan, result, "FAILED",
@@ -149,6 +162,7 @@ class SUSExplorer:
             "answer": answer,
             "query_id": str(query_id),
             "history_status": history_status,
+            "version_history": version_history,
         }
 
     @staticmethod
