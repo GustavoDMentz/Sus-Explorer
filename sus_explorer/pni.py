@@ -718,6 +718,7 @@ class PNIRemote:
         fragments = 0
         partitions = 0
         missing_partitions = []
+        consulted_datasets = []
 
         for year, month in months(
             plan.start_year,
@@ -760,6 +761,7 @@ class PNIRemote:
                 "doses": int(count),
             })
 
+            consulted_datasets.append((year, month, ds))
             partitions += 1
             fragments += sum(
                 1 for _ in ds.get_fragments()
@@ -780,12 +782,15 @@ class PNIRemote:
                 + ", ".join(missing_partitions)
             )
 
+        fingerprint = self.source_fingerprint(consulted_datasets)
+
         return QueryResult(
             operation="timeseries",
             data={"rows": rows},
             provenance={
                 "source": "SI-PNI / healthbr-data / OpenDATASUS",
                 "uf_partition": plan.uf,
+                **({"source_metadata_sha256": fingerprint} if fingerprint else {}),
                 **({"vaccine_filter": self.vaccine_filter_provenance(plan)} if plan.vaccine_text else {}),
                 "partitions_consulted": partitions,
                 "missing_partitions": missing_partitions,
