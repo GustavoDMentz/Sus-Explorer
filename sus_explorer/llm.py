@@ -259,13 +259,15 @@ class GeminiAnalyst:
         self.model = model or settings.gemini_model
         # Enabled by default; safe full-match patterns fall back to Gemini.
         self.deterministic_enabled = os.getenv("SUS_DETERMINISTIC_PLANNER", "1") != "0"
+        self.last_planner_source = None
 
     def plan(self, q: str) -> QueryPlan:
-        # Experimental opt-in only; leave existing production behavior unchanged.
+        self.last_planner_source = None
         if self.deterministic_enabled:
             from .deterministic_planner import deterministic_plan
             deterministic = deterministic_plan(q)
             if deterministic is not None:
+                self.last_planner_source = "regex"
                 return deterministic
         # A single JSON-mode retry escapes a failing constrained decoder/SDK
         # parse. It receives only the same question and public plan contract,
@@ -275,6 +277,7 @@ class GeminiAnalyst:
                 plan = apply_whole_year_interval(q, self._plan_attempt(q, structured=structured))
                 if os.getenv("SUS_DETERMINISTIC_PLANNER") == "1":
                     plan = guard_explicit_geography(q, plan)
+                self.last_planner_source = "gemini"
                 return plan
             except PlannerResponseError:
                 if not structured:
