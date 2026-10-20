@@ -263,7 +263,7 @@ class GeminiAnalyst:
 
     def plan(self, q: str) -> QueryPlan:
         self.last_planner_source = None
-        if getattr(self, "deterministic_enabled", os.getenv("SUS_DETERMINISTIC_PLANNER", "1") != "0"):
+        if getattr(self, "deterministic_enabled", False):
             from .deterministic_planner import deterministic_plan
             deterministic = deterministic_plan(q)
             if deterministic is not None:
