@@ -535,7 +535,7 @@ class PNIRemote:
             )[
                 :min(
                     plan.top_n,
-                    self.config.max_group_rows,
+                    (self.config or settings).max_group_rows,
                 )
             ]
 
