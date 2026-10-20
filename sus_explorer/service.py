@@ -83,6 +83,11 @@ class SUSExplorer:
             return {"status": "unavailable"}
 
     def ask(self, question: str) -> dict:
+        # Validate before REGEX, Gemini, R2 or PostgreSQL access.
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError("Question must be a non-empty string")
+        if len(question.encode("utf-8")) > 4096:
+            raise ValueError("Question exceeds the 4096-byte limit")
         if _DAILY_INTENT.search(question):
             return {
                 "needs_clarification": True,

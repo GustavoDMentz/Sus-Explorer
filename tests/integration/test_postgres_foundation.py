@@ -94,6 +94,7 @@ def test_atomic_raw_normalization_history_and_completion(database):
         "003_partition_lookup_indexes.sql",
         "004_query_history.sql",
         "005_analytical_result_versions.sql",
+        "006_immutable_source_fingerprint.sql",
     ]
     assert migrate(connection, schema=schema) == []
 
@@ -227,7 +228,8 @@ def test_concurrent_migrations_are_serialized(database):
     assert sorted(results, key=len) == [
         [],
         ["001_foundation.sql", "002_security_hardening.sql", "003_partition_lookup_indexes.sql",
-         "004_query_history.sql", "005_analytical_result_versions.sql"],
+         "004_query_history.sql", "005_analytical_result_versions.sql",
+         "006_immutable_source_fingerprint.sql"],
     ]
 
 
@@ -312,6 +314,30 @@ def test_runtime_and_reader_least_privilege(secured_database):
         "CREATE TABLE reader_table (id integer)",
     ):
         rejected(reader, statement)
+
+
+
+def test_runtime_cannot_rewrite_historical_fingerprint(secured_database):
+    """Exercise actual runtime-role SQL permissions after migration 006."""
+    _, runtime, _, _ = secured_database
+    assert runtime.execute(
+        "SELECT has_column_privilege(current_user, "
+        "'analytical_result_versions', 'source_fingerprint', 'UPDATE') AS allowed"
+    ).fetchone()["allowed"] is False
+    rejected(
+        runtime,
+        "UPDATE analytical_result_versions "
+        "SET source_fingerprint = source_fingerprint WHERE false",
+    )
+    assert runtime.execute(
+        "SELECT has_column_privilege(current_user, "
+        "'analytical_result_versions', 'observations', 'UPDATE') AS allowed"
+    ).fetchone()["allowed"] is True
+    runtime.execute(
+        "UPDATE analytical_result_versions "
+        "SET observations = observations WHERE false"
+    )
+
 
 
 def test_runtime_authorized_flow_and_finished_run_guards(secured_database):
