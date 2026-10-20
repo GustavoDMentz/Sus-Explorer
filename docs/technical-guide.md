@@ -50,7 +50,7 @@ O repositório de origem declara licença **CC BY 4.0**. Consulte [a licença e 
 - **Implementado na `master`:** Streamlit com instância `SUSExplorer` por sessão; formulário BYOK **somente para Gemini**, com R2 compartilhado configurado pelo projeto; planejador determinístico experimental via `SUS_DETERMINISTIC_PLANNER=1`; histórico operacional PostgreSQL opt-in (migration 004); histórico de resultados agregados versionados e criptografados opt-in (migration 005, `ANALYTICAL_HISTORY_ENABLED=1`, `ANALYTICAL_HISTORY_KEY`).
 - **Não integrado:** [#17](https://github.com/GustavoDMentz/Sus-Explorer/pull/17) (campanhas), [#26](https://github.com/GustavoDMentz/Sus-Explorer/pull/26) (PyArrow 26), [#33](https://github.com/GustavoDMentz/Sus-Explorer/pull/33) (limite de pergunta) e [#34](https://github.com/GustavoDMentz/Sus-Explorer/pull/34) (histórico visual por sessão). Os PRs #33/#34 são drafts, com testes adicionados mas não validados nesta revisão.
 - **Segurança e limites:** o histórico operacional atual na UI não tem filtro de usuário; a criptografia do histórico analítico não é controle de autorização por usuário. O runtime PostgreSQL e a segregação de microdados exigem testes de privilégio em banco descartável. O compromisso é assumir comprometimento e limitar danos, não alegar isolamento absoluto entre sessões do mesmo processo.
-- **Rastreabilidade:** [registro dos PRs](docs/pr_register.md), [diário de desenvolvimento](docs/development_journal.md), [contrato do histórico versionado](docs/query-result-version-history.md), [persistência](docs/persistence.md), [Streamlit](docs/streamlit.md). Evidências e números de testes datados não significam que a suíte foi refeita nesta revisão documental.
+- **Rastreabilidade:** [registro dos PRs](pr_register.md), [diário de desenvolvimento](development_journal.md), [contrato do histórico versionado](query-result-version-history.md), [persistência](persistence.md), [Streamlit](streamlit.md). Evidências e números de testes datados não significam que a suíte foi refeita nesta revisão documental.
 
 ## Objetivos e escopo
 
@@ -263,7 +263,7 @@ Digite uma pergunta com UF e período e clique **Explorar**. Exemplo: “Qual fo
 .\scripts\test_postgres.ps1
 ```
 
-Esse script cria um contêiner temporário, senha aleatória, aplica migrations e executa a suíte, removendo somente o contêiner criado por ele. O workflow `test-postgres.yml` usa serviço PostgreSQL descartável no CI. `verify-r2.yml` é manual e verifica acesso/listagem de cache, não o fluxo Gemini → resposta. O diagnóstico por grupo e as lacunas estão em [Auditoria de testes](docs/test_audit.md).
+Esse script cria um contêiner temporário, senha aleatória, aplica migrations e executa a suíte, removendo somente o contêiner criado por ele. O workflow `test-postgres.yml` usa serviço PostgreSQL descartável no CI. `verify-r2.yml` é manual e verifica acesso/listagem de cache, não o fluxo Gemini → resposta. O diagnóstico por grupo e as lacunas estão em [Auditoria de testes](test_audit.md).
 
 Nesta revisão, o script concluiu health check, migrations 001–004 e **402 testes aprovados, 0 pulados, 1 externo deselecionado**. O contêiner temporário foi removido. A cobertura de branches combinada no mesmo tipo de banco foi 71% no pacote completo e 85% nos módulos críticos selecionados; detalhes no relatório.
 
@@ -311,4 +311,4 @@ A suíte local confirmou PostgreSQL em contêiner descartável, mas não confirm
 
 Abra uma issue com pergunta, plano esperado, período/UF e evidência sanitizada. Para mudanças de cálculo, adicione um caso com valores esperados calculados independentemente, inclusive zero/ausência/erro. Rode a suíte A/B e, quando afetar persistência, o banco descartável; relate skips e testes externos separadamente. Não adicione segredos, dados individuais ou totais de produção sem fonte auditável. Preserve migrations aplicadas e documente novas versões. Não execute ingestões ou chamadas pagas como efeito colateral de testes padrão.
 
-`docs/development_journal.md` preserva a cronologia; `docs/temporal_analytics.md`, `docs/temporal_queryplan.md`, `docs/architecture.md`, `docs/persistence.md` e `docs/streamlit.md` registram decisões e contratos detalhados de entregas anteriores. Em caso de divergência operacional, confira o código atual e atualize este README.
+`development_journal.md` preserva a cronologia; `temporal_analytics.md`, `temporal_queryplan.md`, `architecture.md`, `persistence.md` e `streamlit.md` registram decisões e contratos detalhados de entregas anteriores. Em caso de divergência operacional, confira o código atual e atualize o README principal e este guia técnico conforme necessário.
