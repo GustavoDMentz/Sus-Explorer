@@ -94,6 +94,7 @@ def test_atomic_raw_normalization_history_and_completion(database):
         "003_partition_lookup_indexes.sql",
         "004_query_history.sql",
         "005_analytical_result_versions.sql",
+            "006_immutable_source_fingerprint.sql",
     ]
     assert migrate(connection, schema=schema) == []
 
