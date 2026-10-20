@@ -1,6 +1,8 @@
 
 
 from dataclasses import dataclass, asdict
+import hashlib
+import json
 import time
 import unicodedata
 
@@ -331,6 +333,27 @@ class PNIRemote:
 
         return datasets, missing_partitions
 
+    def source_fingerprint(self, datasets):
+        """Best-effort remote metadata fingerprint; not a content hash."""
+        try:
+            paths = sorted({
+                fragment.path
+                for _, _, ds in datasets
+                for fragment in ds.get_fragments()
+            })
+            if not paths:
+                return None
+            infos = self.s3.get_file_info(paths)
+            manifest = []
+            for path, info in zip(paths, infos):
+                if info.type != fs.FileType.File or info.size < 0:
+                    return None
+                manifest.append([path, info.size, info.mtime_ns])
+            raw = json.dumps(manifest, separators=(",", ":"), ensure_ascii=False)
+            return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        except (OSError, RuntimeError, ValueError, AttributeError):
+            return None
+
     def multi_provenance(
         self,
         plan: QueryPlan,
@@ -368,6 +391,9 @@ class PNIRemote:
             "microdata_sent_to_llm": False,
         }
 
+        fingerprint = self.source_fingerprint(datasets)
+        if fingerprint:
+            provenance["source_metadata_sha256"] = fingerprint
         if missing_partitions:
             provenance["missing_partitions"] = missing_partitions
 
@@ -692,6 +718,7 @@ class PNIRemote:
         fragments = 0
         partitions = 0
         missing_partitions = []
+        consulted_datasets = []
 
         for year, month in months(
             plan.start_year,
@@ -734,6 +761,7 @@ class PNIRemote:
                 "doses": int(count),
             })
 
+            consulted_datasets.append((year, month, ds))
             partitions += 1
             fragments += sum(
                 1 for _ in ds.get_fragments()
@@ -754,12 +782,15 @@ class PNIRemote:
                 + ", ".join(missing_partitions)
             )
 
+        fingerprint = self.source_fingerprint(consulted_datasets)
+
         return QueryResult(
             operation="timeseries",
             data={"rows": rows},
             provenance={
                 "source": "SI-PNI / healthbr-data / OpenDATASUS",
                 "uf_partition": plan.uf,
+                **({"source_metadata_sha256": fingerprint} if fingerprint else {}),
                 **({"vaccine_filter": self.vaccine_filter_provenance(plan)} if plan.vaccine_text else {}),
                 "partitions_consulted": partitions,
                 "missing_partitions": missing_partitions,

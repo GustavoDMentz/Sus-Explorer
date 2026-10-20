@@ -83,6 +83,11 @@ def safe_source_provenance(origin: dict) -> dict:
         for key in ("ms_version", "ses_go_version"):
             if value.get(key) is None or isinstance(value.get(key), str) and re.fullmatch(r"[A-Za-z0-9._-]{1,64}", value[key]):
                 safe["vaccine_filter"][key] = value.get(key)
+    fingerprint = origin.get("source_metadata_sha256")
+    if fingerprint is not None:
+        if not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
+            raise ValueError("Invalid source metadata fingerprint")
+        safe["source_metadata_sha256"] = fingerprint
     if origin.get("microdata_sent_to_llm") is True:
         raise ValueError("Source violates aggregate-only contract")
     safe["microdata_sent_to_llm"] = False

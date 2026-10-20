@@ -45,7 +45,7 @@ def configure_byok():
                     st.error('Não foi possível inicializar as credenciais. Confira os dados.')
         if st.button('Limpar credenciais e resultados', key='byok_clear'):
             for key in ('byok_explorer', 'byok_gemini', 'query_result',
-                        'query_error', 'result_question', 'history_error', 'recent_queries'):
+                        'query_error', 'result_question', 'history_error', 'recent_queries', 'analytical_versions'):
                 st.session_state.pop(key, None)
             st.rerun()
 
@@ -68,6 +68,8 @@ def execute_yoy_comparison(payload):
                 query_id, plan, None, 'FAILED', int((time.perf_counter() - started) * 1000)
             )
         raise
+    version_info = get_explorer()._observe_result(plan, result)
+    updated['version_history'] = version_info if isinstance(version_info, dict) else {'status': 'disabled'}
     updated['result'] = result.model_dump()
     updated['plan'] = plan.model_dump()
     updated['answer'] = None  # do not reuse an explanation of a different comparison
@@ -108,6 +110,7 @@ with explorer_tab:
         else:
             st.session_state.pop('query_result', None)
             st.session_state.pop('query_error', None)
+            st.session_state.pop('analytical_versions', None)
             try:
                 with st.spinner('Planejando, consultando os dados e preparando o resultado. Aguarde…', show_time=True):
                     st.session_state.query_result = get_explorer().ask(question.strip())
@@ -126,6 +129,25 @@ with explorer_tab:
         else:
             if payload.get('history_status') == 'unavailable':
                 st.warning('A consulta foi concluída, mas o histórico PostgreSQL não pôde ser gravado.')
+            vh = payload.get('version_history') or {}
+            if vh.get('status') == 'saved':
+                st.caption('Histórico analítico: versão ' + str(vh['version']) +
+                           (' · resultado alterado' if vh.get('changed') else ' · sem alteração'))
+                if st.button('Ver versões desta consulta', key='load_analytical_versions'):
+                    try:
+                        from sus_explorer.data.persistence.result_versions import get_versions
+                        st.session_state['analytical_versions'] = get_versions(vh['query_key'])
+                    except Exception:
+                        st.error('Não foi possível verificar as versões históricas.')
+                if versions := st.session_state.get('analytical_versions'):
+                    if versions and versions[-1]['version'] == vh['version']:
+                        st.dataframe(pd.DataFrame([{
+                            'Versão': v['version'], 'Primeira observação': v['first_seen_at'],
+                            'Última observação': v['last_seen_at'],
+                            'Verificações': v['observations'],
+                        } for v in versions]), hide_index=True, width='stretch')
+            elif vh.get('status') == 'unavailable':
+                st.warning('Consulta concluída, mas o histórico analítico não pôde ser salvo.')
             render_result(payload, st.session_state.get('result_question', ''), execute_yoy_comparison)
 
 with history_tab:
