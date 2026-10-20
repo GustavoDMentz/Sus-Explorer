@@ -19,6 +19,7 @@ from sus_explorer.data.persistence.database import connect
 from sus_explorer.data.persistence.history import recent_queries
 from sus_explorer.data.persistence.migrate import migrate
 from sus_explorer.service import SUSExplorer
+from sus_explorer.llm import GeminiAnalyst
 
 
 load_dotenv()
@@ -75,6 +76,21 @@ def test_real_gemini_r2_streamlit_temporal_and_disposable_history(monkeypatch):
             )
             raise
     monkeypatch.setattr(SUSExplorer, 'ask', diagnostic_ask)
+    # Record only a safe stage and numeric HTTP status, never API error text.
+    for stage in ("plan", "answer"):
+        original = getattr(GeminiAnalyst, stage)
+        def traced(self, *args, _original=original, _stage=stage, **kwargs):
+            try:
+                return _original(self, *args, **kwargs)
+            except Exception as exc:
+                failure["stage"] = _stage
+                status = getattr(exc, "code", None)
+                if not isinstance(status, int):
+                    status = getattr(exc, "status_code", None)
+                if isinstance(status, int):
+                    failure["http_status"] = status
+                raise
+        monkeypatch.setattr(GeminiAnalyst, stage, traced)
     try:
         months = ("janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho",
                   "agosto", "setembro", "outubro", "novembro", "dezembro")
