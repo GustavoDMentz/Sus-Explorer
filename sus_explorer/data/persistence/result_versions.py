@@ -70,7 +70,7 @@ def _payload(result):
 
 def _fingerprint(result):
     source = safe_provenance(result)
-    fingerprint = source.get("source_sha256")
+    fingerprint = source.get("source_sha256") or source.get("source_metadata_sha256")
     if fingerprint and HEX64.fullmatch(fingerprint):
         return fingerprint
     return None
