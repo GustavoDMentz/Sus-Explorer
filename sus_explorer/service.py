@@ -94,6 +94,7 @@ class SUSExplorer:
                 "answer": None,
             }
         plan = self.llm.plan(question)
+        planner_source = getattr(self.llm, "last_planner_source", None)
 
         if plan.status == "needs_clarification":
             return {
@@ -105,6 +106,7 @@ class SUSExplorer:
                 "missing": humanize_fields(plan.missing),
                 "missing_internal": plan.missing,
                 "plan": plan.model_dump(),
+                "planner_source": planner_source,
                 "result": None,
                 "answer": None,
             }
@@ -131,6 +133,7 @@ class SUSExplorer:
                 "missing": readable,
                 "missing_internal": missing,
                 "plan": plan.model_dump(),
+                "planner_source": planner_source,
                 "result": None,
                 "answer": None,
             }
@@ -157,6 +160,7 @@ class SUSExplorer:
             "missing": [],
             "missing_internal": [],
             "plan": plan.model_dump(),
+            "planner_source": planner_source,
             "result": result.model_dump(),
             "answer": answer,
             "query_id": str(query_id),
