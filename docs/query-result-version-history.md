@@ -42,3 +42,39 @@ Persistir de modo compacto, seguro e auditável **mudanças de resultados** de c
 
 ## Fora do escopo
 Auditoria abrangente de cibersegurança reservada ao #33. Nenhum merge automático deste PR.
+
+
+## Plano de validação independente (obrigatório antes do merge)
+
+**Pré-condições:** executar em PostgreSQL descartável (`*_test`), com chave de 32 bytes exclusiva do teste. Nunca aplicar migrations de teste na base de produção. O recurso fica desligado por padrão.
+
+1. **Revisão estática:** verificar diff do PR, permissões SQL, ausência de segredos e de campos pessoais nos snapshots. Inspecionar a migration 005 antes de executá-la.
+2. **Testes automatizados:** `python -m pytest -q tests/test_analytical_result_versions.py`; depois `python -m pytest -q`. Rodar a suíte de integração PostgreSQL com Docker conforme README/CI.
+3. **Teste real controlado:** após migrations e configuração de `ANALYTICAL_HISTORY_ENABLED=1` e `ANALYTICAL_HISTORY_KEY`, consultar RS/05/2026 duas vezes; confirmar mesma versão e contador 2. Repetir com duas perguntas equivalentes e conferir o mesmo `query_key`.
+4. **Mudança simulada, sem alterar dados públicos:** executar fixture controlada A→B→A usando a mesma consulta e resultados sintéticos; conferir versões 1, 2 e 3 e que todas são legíveis e verificadas por AES-GCM/HMAC.
+5. **Teste adversarial:** adulterar uma cópia do ciphertext no banco de testes, verificar que a leitura falha sem revelar conteúdo; testar chave incorreta e indisponibilidade do PostgreSQL.
+6. **Concorrência:** disparar pelo menos 10 observações simultâneas do mesmo plano, com mesma contagem, e verificar apenas uma versão com 10 observações; repetir com dois resultados diferentes. O teste de concorrência precisa usar PostgreSQL real.
+7. **Fonte:** observar fingerprint dos fragmentos R2 em duas execuções e verificar estabilidade; lembrar que fingerprint de metadados (caminho/tamanho/mtime) não equivale a hash de conteúdo.
+8. **UI/BYOK:** testar duas sessões independentes, uma sem chave Gemini; conferir que a interface só mostra histórico da consulta corrente e que limpar credenciais apaga o estado exibido.
+9. **Revisão científica:** distinguir doses/registros de pessoas únicas; conferir intervalos, filtros, partições ausentes, percentuais e revisões retrospectivas. Não atribuir diferenças à atualização do MS sem evidência.
+
+**Comandos de preparação (ambiente de teste):**
+
+```bash
+python -m pip install -r requirements.txt -r requirements-dev.txt
+export ANALYTICAL_HISTORY_ENABLED=1
+export ANALYTICAL_HISTORY_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
+python -m sus_explorer.data.persistence.migrate
+python -m pytest -q tests/test_analytical_result_versions.py
+python -m pytest -q
+```
+
+O exemplo usa chave efêmera: **não a utilize para dados que precisem continuar legíveis após reinício**. Configurar a chave estável via gerenciador de segredos no ambiente real. Não copiar segredos ou dumps para issues.
+
+## Limitações conhecidas nesta etapa
+
+- `ANALYTICAL_HISTORY_ENABLED` é opt-in; PostgreSQL e chave são obrigatórios.
+- O snapshot agregado é cifrado com AES-256-GCM e autenticado com HMAC-SHA-256, mas rotação de chave, isolamento multiusuário no banco, política de retenção e auditoria de pequenas células exigem avaliação adicional antes de produção.
+- A impressão digital R2 atual é derivada de metadados de fragmentos; não prova igualdade byte a byte.
+- A observação do resultado é independente do texto Gemini. Se a persistência falhar, a consulta segue com aviso explícito.
+- Não existe reconstrução retrospectiva das observações anteriores à ativação.
