@@ -27,7 +27,7 @@ def _normalize(value: str) -> str:
 _COUNT = re.compile(
     rf"(?:quantas doses foram aplicadas|qual o total de doses|total de doses)"
     rf" (?:no|em) (?P<uf>{UF})"
-    rf" (?:em )?(?:(?P<month>{MONTH}) de |(?P<month_num>0?[1-9]|1[0-2])[/.-])?(?P<year>{YEAR})\\??",
+    rf" (?:em )?(?:(?P<month>{MONTH}) de |(?P<month_num>0?[1-9]|1[0-2])[/.-])?(?P<year>{YEAR})\??",
     re.IGNORECASE,
 )
 _TEMPORAL = re.compile(
