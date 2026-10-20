@@ -110,8 +110,8 @@ with st.sidebar:
         st.checkbox('Guardar histórico nesta sessão', value=True, key='session_history_enabled', help='Até 20 consultas, somente na memória desta sessão do Streamlit. Não requer PostgreSQL.')
         st.caption('Histórico persistente e executor híbrido exigem configuração administrativa e não são ativados por este controle.')
 
-explorer_tab, history_tab, sources_tab = st.tabs(
-    ['Explorador de dados', 'Histórico', 'Fontes e proveniência']
+explorer_tab, history_tab, catalog_tab, sources_tab = st.tabs(
+    ['Explorador de dados', 'Histórico', 'Disponibilidade dos dados', 'Fontes e proveniência']
 )
 
 with explorer_tab:
@@ -192,6 +192,39 @@ with history_tab:
                     st.session_state['result_question'] = entry['question']
                     st.session_state.pop('query_error', None)
                     st.info('Resultado restaurado. Abra a aba Explorador de dados para visualizá-lo.')
+
+with catalog_tab:
+    st.subheader('Disponibilidade dos dados')
+    st.caption('Verifique quais competências possuem arquivos Parquet no R2. A verificação consulta somente os nomes dos arquivos, sem ler registros de vacinação.')
+    catalog_uf = st.selectbox('UF', [
+        'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT',
+        'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS',
+        'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+    ], index=20, key='catalog_uf')
+    catalog_year = st.number_input('Ano', min_value=2000, max_value=2100,
+                                   value=2026, step=1, key='catalog_year')
+    if st.button('Verificar competências', key='catalog_check'):
+        try:
+            from sus_explorer.data_catalog import inspect_competencies
+            from sus_explorer.pni import PNIRemote
+            with st.spinner('Consultando a disponibilidade das partições no R2…'):
+                st.session_state['catalog_result'] = inspect_competencies(
+                    PNIRemote(), uf=catalog_uf, year=int(catalog_year)
+                )
+        except Exception:
+            st.session_state.pop('catalog_result', None)
+            st.error('Não foi possível consultar o catálogo agora. Tente novamente.')
+    catalog = st.session_state.get('catalog_result')
+    if catalog:
+        if (catalog['uf'], catalog['year']) != (catalog_uf, int(catalog_year)):
+            st.info('UF ou ano alterado. Clique em Verificar competências para atualizar.')
+        else:
+            st.caption('Verificado em UTC: ' + catalog['checked_at'])
+            st.dataframe(pd.DataFrame(catalog['rows']), hide_index=True, width='stretch')
+            if any(row['Situação'] == 'Não verificada' for row in catalog['rows']):
+                st.warning('Algumas competências não puderam ser verificadas. Isso não significa ausência de dados.')
+            st.caption('Disponível significa que há fragmentos Parquet no caminho esperado; não garante completude, qualidade ou atualização. Não encontrada não significa zero doses.')
+
 
 with sources_tab:
     st.subheader('Origem da consulta atual')
