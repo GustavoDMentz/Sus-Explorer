@@ -36,3 +36,34 @@ def test_gemini_planner_response_diagnostic():
     detail = classify_gemini_error(PlannerResponseError())
     assert detail["category"] == "planner_response"
     assert detail["http_status"] is None
+
+
+def test_known_city_uf_conflict_requests_clarification():
+    from sus_explorer.llm import guard_explicit_geography
+    from sus_explorer.schemas import QueryPlan
+
+    plan = QueryPlan.model_validate({
+        "status": "ready", "operation": "count", "uf": "MG",
+        "municipality_name": "Porto Alegre", "year": 2026, "month": 5,
+    })
+    guarded = guard_explicit_geography(
+        "Quantas doses no MG, em Porto Alegre, em maio de 2026?", plan)
+    assert guarded.status == "needs_clarification"
+    assert "uf" in guarded.missing
+    assert guard_explicit_geography(
+        "Quantas doses em Porto Alegre, RS, em maio de 2026?",
+        plan.model_copy(update={"uf": "RS"})).status == "ready"
+
+
+def test_geography_guard_does_not_infer_missing_uf():
+    from sus_explorer.llm import guard_explicit_geography
+    from sus_explorer.schemas import QueryPlan
+
+    plan = QueryPlan.model_validate({
+        "status": "needs_clarification", "operation": "count",
+        "municipality_name": "Porto Alegre", "year": 2026,
+        "missing": ["uf"], "clarification_question": "Qual UF?",
+    })
+    guarded = guard_explicit_geography("Doses em Porto Alegre em 2026?", plan)
+    assert guarded.uf is None
+    assert guarded.status == "needs_clarification"
