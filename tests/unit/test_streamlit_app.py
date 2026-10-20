@@ -26,7 +26,9 @@ def test_form_only_runs_on_submit_and_preserves_result_across_reruns(monkeypatch
     service = Mock()
     service.ask.return_value = response()
     monkeypatch.setattr(sus_explorer.service, 'SUSExplorer', lambda: service)
-    at = AppTest.from_file(APP).run()
+    at = AppTest.from_file(APP)
+    at.session_state['byok_explorer'] = service
+    at.run()
     assert not at.exception
     service.ask.assert_not_called()
     at.text_area[0].set_value('Variação mensal no RS de janeiro a março de 2026?').run()

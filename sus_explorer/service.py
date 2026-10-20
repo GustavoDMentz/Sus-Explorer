@@ -48,9 +48,9 @@ def humanize_fields(fields: list[str]) -> list[str]:
 
 
 class SUSExplorer:
-    def __init__(self):
-        self.llm = GeminiAnalyst()
-        self.pni = PNIRemote()
+    def __init__(self, *, gemini_api_key=None, gemini_model=None, r2_config=None):
+        self.llm = GeminiAnalyst(api_key=gemini_api_key, model=gemini_model)
+        self.pni = PNIRemote(config=r2_config)
         self.executor = HybridQueryExecutor(self.pni)
         self.history_enabled = os.getenv("POSTGRES_HISTORY_ENABLED") == "1"
 

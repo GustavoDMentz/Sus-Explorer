@@ -17,9 +17,39 @@ st.title('SUS Explorer')
 st.caption('Dados públicos de vacinação · consultas verificáveis em doses e registros')
 
 
-@st.cache_resource
 def get_explorer():
-    return SUSExplorer()
+    """Per-session explorer: never cache user credentials globally."""
+    explorer = st.session_state.get('byok_explorer')
+    if explorer is None:
+        raise RuntimeError('Configure suas credenciais na barra lateral antes de consultar.')
+    return explorer
+
+
+def configure_byok():
+    with st.sidebar.expander('Credenciais privadas (BYOK)', expanded=True):
+        st.caption('Informe somente sua chave Gemini. O acesso ao healthbr-data é compartilhado e configurado pelo projeto.')
+        with st.form('byok_credentials', clear_on_submit=False):
+            gemini = st.text_input('Chave Gemini', type='password', key='byok_gemini')
+            save = st.form_submit_button('Usar credenciais nesta sessão')
+        if save:
+            if not gemini.strip():
+                st.error('Informe sua chave Gemini.')
+            else:
+                try:
+                    st.session_state['byok_explorer'] = SUSExplorer(gemini_api_key=gemini.strip())
+                    st.session_state.pop('query_result', None)
+                    st.session_state.pop('query_error', None)
+                    st.success('Credenciais configuradas para esta sessão.')
+                except Exception:
+                    st.session_state.pop('byok_explorer', None)
+                    st.error('Não foi possível inicializar as credenciais. Confira os dados.')
+        if st.button('Limpar credenciais e resultados', key='byok_clear'):
+            for key in ('byok_explorer', 'byok_gemini', 'query_result',
+                        'query_error', 'result_question', 'history_error', 'recent_queries'):
+                st.session_state.pop(key, None)
+            st.rerun()
+
+
 
 
 def execute_yoy_comparison(payload):
@@ -49,6 +79,8 @@ def execute_yoy_comparison(payload):
     )
     return updated
 
+
+configure_byok()
 
 with st.sidebar:
     st.header('Como consultar')
