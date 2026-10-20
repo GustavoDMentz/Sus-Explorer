@@ -10,7 +10,7 @@ Em vez de montar uma consulta técnica, você descreve o que deseja investigar. 
 
 ## Como acessar
 
-**O SUS Explorer é disponibilizado como projeto de código aberto para execução no próprio computador.** Não há uma versão pública hospedada da aplicação. Para utilizá-lo, siga o [guia de instalação](docs/technical-guide.md#pré-requisitos).
+**O SUS Explorer é disponibilizado como projeto de código aberto para execução no próprio computador.** Não há uma versão pública hospedada da aplicação. Para utilizá-lo, siga o [guia de instalação](docs/technical-guide.md#instalação-para-iniciantes).
 
 Ao abrir o aplicativo:
 
@@ -74,7 +74,7 @@ Quando usar informações em relatórios, apresentações ou trabalhos científi
 
 A documentação técnica foi preservada e organizada separadamente:
 
-- [**Guia técnico e operacional**](docs/technical-guide.md) — instalação, configuração, arquitetura, segurança e testes.
+- [**Guia técnico e operacional**](docs/technical-guide.md) — instalação passo a passo para iniciantes, configuração avançada, arquitetura, segurança e testes.
 - [**Documentação do projeto**](docs/) — detalhes da interface, análise temporal e persistência.
 - [**Diário de desenvolvimento**](docs/development_journal.md) — histórico de decisões e entregas.
 - [**Registro de pull requests**](docs/pr_register.md) — alterações integradas e trabalhos pendentes.
