@@ -133,6 +133,7 @@ class SUSExplorer:
                 "missing": readable,
                 "missing_internal": missing,
                 "plan": plan.model_dump(),
+                "planner_source": planner_source,
                 "result": None,
                 "answer": None,
             }
