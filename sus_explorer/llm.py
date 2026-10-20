@@ -257,10 +257,12 @@ class GeminiAnalyst:
             api_key=key
         )
         self.model = model or settings.gemini_model
+        # Enabled by default; safe full-match patterns fall back to Gemini.
+        self.deterministic_enabled = os.getenv("SUS_DETERMINISTIC_PLANNER", "1") != "0"
 
     def plan(self, q: str) -> QueryPlan:
         # Experimental opt-in only; leave existing production behavior unchanged.
-        if os.getenv("SUS_DETERMINISTIC_PLANNER") == "1":
+        if self.deterministic_enabled:
             from .deterministic_planner import deterministic_plan
             deterministic = deterministic_plan(q)
             if deterministic is not None:
