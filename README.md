@@ -10,7 +10,7 @@ Em vez de montar uma consulta técnica, você descreve o que deseja investigar. 
 
 ## Como acessar
 
-**A plataforma ainda não possui um endereço público de acesso confirmado neste repositório.** Por enquanto, é possível executar o aplicativo no próprio computador seguindo o [guia de instalação](docs/technical-guide.md#pré-requisitos).
+**O SUS Explorer é disponibilizado como projeto de código aberto para execução no próprio computador.** Não há uma versão pública hospedada da aplicação. Para utilizá-lo, siga o [guia de instalação](docs/technical-guide.md#pré-requisitos).
 
 Ao abrir o aplicativo:
 
