@@ -16,13 +16,8 @@ Explorador experimental de registros públicos de vacinação do SI-PNI. Uma per
 - [Fluxo de uma consulta](#fluxo-de-uma-consulta)
 - [Tecnologias utilizadas](#tecnologias-utilizadas)
 - [Estrutura do repositório](#estrutura-do-repositório)
-- [Pré-requisitos](#pré-requisitos)
-- [Instalação no Windows](#instalação-no-windows)
-- [Instalação no Linux/macOS](#instalação-no-linuxmacos)
-- [Configuração do Gemini](#configuração-do-gemini)
-- [Configuração do Cloudflare R2](#configuração-do-cloudflare-r2)
-- [Configuração do PostgreSQL](#configuração-do-postgresql)
-- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Instalação para iniciantes](#instalação-para-iniciantes)
+- [Configurações avançadas](#configurações-avançadas-para-desenvolvedores)
 - [Docker Compose](#docker-compose)
 - [Migrations](#migrations)
 - [Ingestão controlada](#ingestão-controlada)
@@ -116,80 +111,186 @@ Python, Streamlit, Pydantic, Google GenAI SDK, PyArrow, Pandas, PostgreSQL 17/pg
 | `tests/unit`, `tests/integration`, `tests/e2e` | Níveis A, B e C de teste |
 | `docs/` | Registro histórico e especificações detalhadas; o README principal orienta o público; este guia preserva os detalhes técnicos |
 
-## Pré-requisitos
+## Instalação para iniciantes
 
-Use Python 3.12 ou superior compatível com as dependências; o CI usa 3.12. Acesso à internet e chave Gemini são necessários nas consultas remotas. O acesso ao bucket público de leitura do healthbr-data pode ser pré-configurado pelo projeto; instalações personalizadas podem sobrescrever R2_* no ambiente. PostgreSQL é opcional para a aplicação; Docker Desktop ou Docker Engine é necessário para o script de teste com banco descartável.
+Este passo a passo foi escrito para quem **não programa** e deseja abrir o SUS Explorer no próprio computador. Você não precisa entender PostgreSQL, Docker ou bancos de dados para começar.
 
-## Instalação no Windows
+**O que será necessário:**
+
+- Um computador com **Windows, Linux ou macOS** e conexão com a internet.
+- **Python 3.12**, programa usado para executar o SUS Explorer. [Baixe no site oficial](https://www.python.org/downloads/).
+- **Git**, ferramenta para baixar os arquivos do projeto. [Baixe no site oficial](https://git-scm.com/downloads).
+- Uma **chave da API Gemini** para fazer perguntas em português. Você pode criá-la no [Google AI Studio](https://aistudio.google.com/apikey). O serviço pode ter limites de uso e cobranças: consulte as condições do Google.
+
+> **Importante:** o SUS Explorer é instalado e executado **no seu computador**. Não há um site público hospedado para utilizá-lo. A primeira instalação pode demorar alguns minutos, porque o Python precisa baixar os componentes do programa.
+
+### 1. Instale o Python e o Git
+
+Abra os links acima, instale os dois programas e feche/reabra o terminal depois da instalação.
+
+No **Windows**, durante a instalação do Python, selecione **Add Python to PATH**, se a opção aparecer. Isso ajuda o Windows a encontrar o programa.
+
+Para abrir o terminal:
+
+- **Windows:** abra o menu Iniciar, procure **PowerShell** e abra o aplicativo.
+- **Linux:** abra **Terminal**.
+- **macOS:** abra **Terminal** em Aplicativos → Utilitários.
+
+Você pode conferir a instalação digitando o comando correspondente ao seu sistema:
+
+**Windows (PowerShell)**
 
 ```powershell
-git clone https://github.com/GustavoDMentz/sus-explorer.git
-Set-Location sus-explorer
+py -3.12 --version
+git --version
+```
+
+**Linux/macOS**
+
+```bash
+python3.12 --version
+git --version
+```
+
+Se algum comando informar que o programa não foi encontrado, verifique a instalação antes de continuar. Em algumas distribuições Linux, será necessário instalar o pacote de ambientes virtuais do Python 3.12 (`venv`).
+
+### 2. Baixe o SUS Explorer
+
+No mesmo terminal, **copie e execute uma linha por vez**:
+
+```bash
+git clone https://github.com/GustavoDMentz/Sus-Explorer.git
+cd Sus-Explorer
+```
+
+O primeiro comando baixa uma cópia do projeto. O segundo entra na pasta baixada. Esses dois comandos são iguais nos três sistemas.
+
+### 3. Instale os componentes necessários
+
+Escolha **apenas um** dos blocos abaixo, de acordo com o seu sistema operacional. Não é necessário conhecer o significado dos comandos: eles preparam uma área separada para o SUS Explorer e instalam seus componentes.
+
+**Windows (PowerShell)**
+
+```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -c constraints.txt -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pip install -c constraints.txt -r requirements.txt
+```
+
+**Linux/macOS**
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -c constraints.txt -r requirements.txt
+```
+
+Espere a instalação terminar. Mensagens mostrando arquivos sendo baixados são normais. Se aparecer um erro, confira a versão do Python e a conexão com a internet.
+
+### 4. Abra o aplicativo
+
+Execute o comando do seu sistema **na mesma pasta `Sus-Explorer`**.
+
+**Windows (PowerShell)**
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app.py
+```
+
+**Linux/macOS**
+
+```bash
+.venv/bin/python -m streamlit run app.py
+```
+
+O programa mostrará um endereço local, normalmente `http://localhost:8501`. Abra esse endereço no navegador caso a página não apareça automaticamente.
+
+**Deixe o terminal aberto enquanto utiliza o SUS Explorer.** Para encerrar, volte ao terminal e pressione **Ctrl + C**.
+
+### 5. Configure sua chave Gemini e faça a primeira pergunta
+
+Na barra lateral do SUS Explorer:
+
+1. Abra **Credenciais privadas (BYOK)**.
+2. Cole sua chave Gemini no campo **Chave Gemini**.
+3. Clique em **Usar credenciais nesta sessão**.
+4. Escreva uma pergunta, por exemplo: **“Quantas doses foram registradas no RS em maio de 2026?”**
+5. Clique em **Explorar** e aguarde o resultado.
+
+A chave é usada nesta sessão do aplicativo; você não precisa inseri-la nos arquivos do projeto para seguir este passo a passo. **Nunca publique essa chave no GitHub ou a envie a outras pessoas.**
+
+O acesso aos dados do **healthbr-data** já tem uma configuração pública de leitura incluída no código. Você não precisa criar uma conta no Cloudflare R2 para tentar a instalação padrão. Se a fonte remota estiver indisponível, uma consulta poderá falhar.
+
+### Para usar novamente em outro dia
+
+Abra o terminal, entre na pasta do projeto e execute novamente **apenas o comando da etapa 4**. Não é necessário repetir o download nem a instalação das dependências, a menos que o projeto seja atualizado ou o ambiente tenha sido removido.
+
+### Se algo não funcionar
+
+| O que aconteceu? | O que tentar |
+| --- | --- |
+| `git` não é reconhecido | Instale o Git, feche o terminal e abra novamente. |
+| `py -3.12` ou `python3.12` não é encontrado | Instale o Python 3.12 e confira se está disponível no terminal. |
+| O comando diz que `app.py` não existe | Entre na pasta do projeto com `cd Sus-Explorer`. |
+| O navegador não abre sozinho | Copie para o navegador o endereço local indicado no terminal, normalmente `http://localhost:8501`. |
+| A chave Gemini não é aceita | Verifique se foi criada no Google AI Studio e se está válida para o serviço. |
+| A consulta demora ou apresenta erro | Confira a internet e tente novamente. Os dados e o Gemini são serviços externos e podem estar indisponíveis. |
+
+Se precisar de ajuda, registre o problema nas [issues do repositório](https://github.com/GustavoDMentz/Sus-Explorer/issues), explicando o sistema operacional, a etapa e a mensagem de erro. **Não inclua chaves, senhas ou dados pessoais.**
+
+## Configurações avançadas (para desenvolvedores)
+
+**Você pode parar aqui se só quer usar o SUS Explorer.** O restante desta seção é para quem precisa modificar o ambiente, testar o sistema ou integrar bancos de dados.
+
+### Arquivo `.env`
+
+O `.env` é um arquivo local com configurações do programa. Ele **não é necessário para a instalação básica** descrita acima: a chave Gemini pode ser fornecida na interface e as configurações públicas de leitura do R2 têm valores padrão no código.
+
+Quem precisar modificar variáveis de ambiente pode criar esse arquivo copiando o exemplo:
+
+**Windows (PowerShell)**
+
+```powershell
 Copy-Item .env.example .env
 ```
 
-Instale Python 3.12 antes, se necessário. Edite `.env` antes de consultar serviços. Usar o executável da `.venv` evita o alias `python` da Microsoft Store.
-
-## Instalação no Linux/macOS
+**Linux/macOS**
 
 ```bash
-git clone https://github.com/GustavoDMentz/sus-explorer.git
-cd sus-explorer
-python3.12 -m venv .venv
-.venv/bin/python -m pip install -c constraints.txt -r requirements-dev.txt
 cp .env.example .env
 ```
 
-Os comandos Python são portáveis; o script `scripts/test_postgres.ps1` é específico de PowerShell. No Linux/macOS, configure manualmente um banco **descartável** para os testes PostgreSQL.
+Faça essa cópia **dentro da pasta do repositório**. Edite somente os campos necessários para a sua configuração. Reinicie o aplicativo após alterar o arquivo. Nunca envie um `.env` com chaves reais para o GitHub.
 
-## Configuração do Gemini
+### Gemini
 
-Obtenha uma chave válida para o projeto e configure `GEMINI_API_KEY`; `GEMINI_MODEL` seleciona o modelo de planejamento e explicação. Nenhuma chave de exemplo é fornecida. Uma chave ausente impede criar o serviço.
+`GEMINI_API_KEY` é uma opção de configuração para ferramentas e execuções fora da interface; `GEMINI_MODEL` escolhe o modelo utilizado para interpretar a pergunta e explicar os resultados. Na interface Streamlit atual, **é necessário fornecer a chave Gemini na barra lateral** para iniciar o serviço, mesmo que você tenha editado um `.env`.
 
-## Configuração do Cloudflare R2
+### Cloudflare R2 (dados de vacinação)
 
-Configure `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, bucket e prefixo da origem Parquet com permissão de leitura. O bucket independente de auditoria usa `SUS_DATA_R2_*`; não existe fallback automático de um para o outro.
+O SUS Explorer usa arquivos do [healthbr-data](https://github.com/SidneyBissoli/healthbr-data). A configuração padrão de leitura é disponibilizada pelo projeto. Para substituir essa origem por uma configuração própria, utilize `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_REGION`, `R2_BUCKET` e `R2_PREFIX`.
 
-## Configuração do PostgreSQL
+Há ainda um conjunto separado `SUS_DATA_R2_*`, usado por ferramentas de construção e auditoria do cubo de dados. **Não é necessário para a consulta normal e não substitui automaticamente o R2 principal.**
 
-O banco é opcional. Quando habilitado, configure host, porta, banco, usuário, senha e schema; mantenha `POSTGRES_COUNT_ENABLED=0` e `POSTGRES_HISTORY_ENABLED=0` até aplicar migrations e conferir permissões. Use credenciais distintas para migração, runtime e leitura fora do desenvolvimento local.
+### PostgreSQL e Docker (opcionais)
 
-## Variáveis de ambiente
+PostgreSQL é um banco de dados utilizado por funcionalidades operacionais e histórico, mas **não é requisito para experimentar a interface padrão**. Docker é usado em testes específicos com bancos descartáveis; pessoas que só desejam explorar dados não precisam instalá-lo.
 
-`sus_explorer/config.py` lê `.env` via `python-dotenv` na importação; a conexão PostgreSQL lê variáveis quando aberta. Altere `.env` antes de iniciar o Streamlit, pois o serviço é mantido em cache. Copie `.env.example`; deixe opcionais desativados até configurá-los. Exemplo sem segredos:
+As opções `POSTGRES_COUNT_ENABLED=0` e `POSTGRES_HISTORY_ENABLED=0` devem continuar desativadas enquanto o banco não estiver configurado e validado. Em um ambiente com PostgreSQL, separe credenciais de migração, execução e leitura; para conexões remotas, use TLS verificado (`verify-full`) e uma autoridade certificadora confiável.
 
-```dotenv
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-3.5-flash-lite
-R2_ENDPOINT=
-R2_ACCESS_KEY=
-R2_SECRET_KEY=
-R2_REGION=auto
-R2_BUCKET=healthbr-data
-R2_PREFIX=sipni/microdados
-POSTGRES_COUNT_ENABLED=0
-POSTGRES_HISTORY_ENABLED=0
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=sus_explorer
-POSTGRES_USER=sus_explorer
-POSTGRES_PASSWORD=
-POSTGRES_SCHEMA=sus_explorer
-POSTGRES_SSLMODE=prefer
-```
+### Referência de variáveis de ambiente
 
-| Grupo | Uso |
+O arquivo [`.env.example`](../.env.example) contém todas as opções documentadas. Abaixo estão os grupos mais importantes.
+
+| Configuração | Quando usar |
 | --- | --- |
-| `GEMINI_API_KEY`, `GEMINI_MODEL` | Planejamento e explicação. A chave vazia impede criar `GeminiAnalyst`. |
-| `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_REGION`, `R2_BUCKET`, `R2_PREFIX` | Leitura PyArrow dos Parquet da consulta ativa. Endpoint deve ser o do serviço S3 da conta. |
-| `SUS_DATA_R2_*` | Bucket e credenciais **independentes** de auditoria do cubo; não são fallback da consulta. |
-| `POSTGRES_COUNT_ENABLED`, `POSTGRES_HISTORY_ENABLED` | Flags independentes, valores `0`/`1`; ambas desativadas por padrão. |
-| `POSTGRES_HOST`, `PORT`, `DB`, `USER`, `PASSWORD`, `SCHEMA`, `SSLMODE` | Conexão operacional. Para banco remoto use TLS verificado (`verify-full`) e CA confiável. |
-| `POSTGRES_CONNECT_TIMEOUT`, `POSTGRES_STATEMENT_TIMEOUT_MS`, `POSTGRES_LOCK_TIMEOUT_MS`, `POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS`, `POSTGRES_APPLICATION_NAME` | Limites e identificação da conexão; defaults em `.env.example`. |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Seleção de chave e modelo do Gemini por configuração. |
+| `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_REGION`, `R2_BUCKET`, `R2_PREFIX` | Alteração da fonte remota de dados. |
+| `SUS_DATA_R2_*` | Auditoria e construção de cubos independentes. |
+| `POSTGRES_COUNT_ENABLED`, `POSTGRES_HISTORY_ENABLED` | Ativação de recursos opcionais que dependem do PostgreSQL. |
+| `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_SCHEMA`, `POSTGRES_SSLMODE` | Conexão com PostgreSQL. |
+| `POSTGRES_CONNECT_TIMEOUT`, `POSTGRES_STATEMENT_TIMEOUT_MS`, `POSTGRES_LOCK_TIMEOUT_MS`, `POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS`, `POSTGRES_APPLICATION_NAME` | Prazos de espera e identificação de conexões ao banco. |
+| `ANALYTICAL_HISTORY_ENABLED`, `ANALYTICAL_HISTORY_KEY` | Histórico analítico criptografado, opção avançada que depende de preparação específica do banco. |
 
-As credenciais de auditoria são `SUS_DATA_R2_ENDPOINT`, `SUS_DATA_R2_ACCESS_KEY_ID`, `SUS_DATA_R2_SECRET_ACCESS_KEY`, `SUS_DATA_R2_BUCKET` e `SUS_DATA_R2_CUBE_PREFIX`. `MAX_GROUP_ROWS` limita resultados de agrupamento; padrão 50.
+O parâmetro `MAX_GROUP_ROWS` limita o tamanho de resultados agrupados (padrão: 50). Os detalhes de migração e administração continuam nas seções seguintes.
 
 ## Docker Compose
 
