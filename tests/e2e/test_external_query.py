@@ -61,7 +61,7 @@ def test_real_gemini_r2_streamlit_temporal_and_disposable_history(monkeypatch):
         months = ("janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho",
                   "agosto", "setembro", "outubro", "novembro", "dezembro")
         question = f"Quantas doses foram aplicadas na UF {uf} em {months[month - 1]} de {year}?"
-        app = AppTest.from_file(APP).run()
+        app = AppTest.from_file(APP, default_timeout=240).run()
         assert not app.exception
         # BYOK credentials must be submitted explicitly in the Streamlit session.
         app.text_input(key="byok_gemini").set_value(os.environ["GEMINI_API_KEY"])
