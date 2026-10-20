@@ -120,3 +120,47 @@ em [`temporal_queryplan.md`](temporal_queryplan.md).
 7. **Fronteira PostgreSQL**: migrations, runtime writer e reader usam roles
    distintas. Comprometer o runtime não concede ownership, DDL, controle de
    triggers ou acesso à role de migration; o banco reforça essas negativas.
+
+---
+
+## Estado de integração do Streamlit (outubro de 2026)
+
+Este mapa descreve **o caminho efetivamente conectado à interface**, não
+todas as capacidades disponíveis no repositório.
+
+| Camada | Integração efetiva | Limite |
+| --- | --- | --- |
+| Interface `app.py` | Consultas, histórico de sessão, catálogo e proveniência | O histórico de sessão não é persistente |
+| Planejamento | `GeminiAnalyst.plan()` tenta REGEX conservador, depois Gemini | Consultas não reconhecidas ainda dependem de Gemini |
+| Orquestração | `SUSExplorer.ask()` valida plano, executa, observa resultado e explica | Uma chave Gemini é exigida para o explorador de consultas |
+| Execução | `HybridQueryExecutor` usa R2 por padrão | PostgreSQL só atende contagem mensal/UF sem filtros, com integridade comprovada e `POSTGRES_COUNT_ENABLED=1` |
+| Análise temporal | Python/PyArrow produz observações e diferenças determinísticas | Lacunas são mantidas; não são zeros |
+| Histórico operacional | `POSTGRES_HISTORY_ENABLED=1` ativa registro de metadados | Não armazena perguntas/respostas textuais |
+| Versões analíticas | `ANALYTICAL_HISTORY_ENABLED=1` ativa observação de agregados versionados | Exige PostgreSQL e chave `ANALYTICAL_HISTORY_KEY` válida |
+| Catálogo | Listagem R2 sob demanda por UF/ano; tamanho, fragmentos, última modificação | Não usa manifesto persistente; existência de arquivo não prova completude |
+| Comparação do catálogo | `catalog_changes.compare_snapshots()` na sessão | Não constitui histórico auditável nem prova revisão de microdados |
+| Logging e auditoria | Componentes operacionais presentes | Cobertura de ponta a ponta não é certificada por esta tabela |
+| pgvector / RAG | Fundação arquitetural | Não faz parte do fluxo de respostas do Streamlit |
+
+### Fronteiras intencionais
+
+- **Não habilitar PostgreSQL automaticamente:** o banco exige migrations, credenciais
+  e garantias de integridade próprias. O R2 continua como fonte analítica padrão.
+- **Não tratar metadados de arquivos como prova científica de revisão:** tamanho,
+  contagem de fragmentos e `mtime` são sinais de armazenamento, não hashes de conteúdo.
+- **Não confundir histórico de sessão e versões científicas:** têm retenção, garantias
+  e dependências diferentes.
+- **Não exigir Gemini para consultar o catálogo:** a aba de disponibilidade usa
+  apenas o acesso público configurado ao R2.
+
+### Verificação da integração
+
+- `tests/integration/test_local_query_pipeline.py`: planejamento, Parquet local,
+  análise, serviço e interface de consulta.
+- `tests/integration/test_streamlit_catalog_wiring.py`: catálogo e comparação
+  acionados pela interface sem chave Gemini nem PostgreSQL.
+- `tests/unit/test_data_catalog.py` e `tests/unit/test_catalog_changes.py`:
+  disponibilidade, falhas de listagem e semântica de mudanças.
+
+Esses testes validam os caminhos cobertos, **não** certificam disponibilidade
+do R2 real, comportamento de serviços externos ou toda a segurança operacional.
