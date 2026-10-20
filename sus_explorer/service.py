@@ -8,9 +8,8 @@ from uuid import uuid4
 from .llm import GeminiAnalyst
 from .pni import PNIRemote
 from .hybrid import HybridQueryExecutor
-from .query_history import record_query, safe_provenance, event
+from .query_history import record_query, safe_provenance, event, observe_result
 from .schemas import DAILY_QUERY_UNSUPPORTED
-from .data.persistence.result_versions import observe_result
 
 
 _DAILY_INTENT = re.compile(
@@ -74,7 +73,7 @@ class SUSExplorer:
             return "unavailable"
 
     def _observe_result(self, plan, result):
-        if not self.version_history_enabled:
+        if not getattr(self, 'version_history_enabled', False):
             return {"status": "disabled"}
         try:
             return {"status": "saved", **observe_result(plan=plan, result=result)}
