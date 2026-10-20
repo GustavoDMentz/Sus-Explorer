@@ -323,7 +323,9 @@ def analyst(response):
     ("O crescimento das doses no RS está perdendo força de janeiro a junho de 2026?", 2, "crescimento perdendo força"),
     ("Qual a mudança da aceleração no RS de janeiro a junho de 2026?", 3, "mudança da aceleração"),
 ])
-def test_planner_intent_contract_with_mocked_gemini(question, order, phrase):
+def test_planner_intent_contract_with_mocked_gemini(question, order, phrase, monkeypatch):
+    # This test verifies Gemini prompt/schema behavior, not deterministic routing.
+    monkeypatch.delenv('SUS_DETERMINISTIC_PLANNER', raising=False)
     expected = plan(order)
     llm = analyst(SimpleNamespace(parsed=expected.model_dump()))
     actual = llm.plan(question)
