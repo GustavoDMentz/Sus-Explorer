@@ -143,6 +143,9 @@ with explorer_tab:
         st.error(st.session_state.query_error)
 
     if payload := st.session_state.get('query_result'):
+        source = payload.get('planner_source')
+        if source in ('regex', 'gemini'):
+            st.caption('Planejamento: ' + ('REGEX (determinístico)' if source == 'regex' else 'Gemini (IA)'))
         if payload.get('needs_clarification'):
             st.warning(payload.get('clarification_question') or 'Informe os parâmetros ausentes.')
             with st.expander('Plano parcial'):
