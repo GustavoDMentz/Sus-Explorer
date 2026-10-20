@@ -351,7 +351,7 @@ class PNIRemote:
                 manifest.append([path, info.size, info.mtime_ns])
             raw = json.dumps(manifest, separators=(",", ":"), ensure_ascii=False)
             return hashlib.sha256(raw.encode("utf-8")).hexdigest()
-        except (OSError, RuntimeError, ValueError):
+        except (OSError, RuntimeError, ValueError, AttributeError):
             return None
 
     def multi_provenance(
