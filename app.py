@@ -68,7 +68,8 @@ def execute_yoy_comparison(payload):
                 query_id, plan, None, 'FAILED', int((time.perf_counter() - started) * 1000)
             )
         raise
-    updated['version_history'] = get_explorer()._observe_result(plan, result)
+    version_info = get_explorer()._observe_result(plan, result)
+    updated['version_history'] = version_info if isinstance(version_info, dict) else {'status': 'disabled'}
     updated['result'] = result.model_dump()
     updated['plan'] = plan.model_dump()
     updated['answer'] = None  # do not reuse an explanation of a different comparison
