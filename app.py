@@ -44,7 +44,7 @@ def configure_byok():
                     st.error('Não foi possível inicializar as credenciais. Confira os dados.')
         if st.button('Limpar credenciais e resultados', key='byok_clear'):
             for key in ('byok_explorer', 'byok_gemini', 'query_result',
-                        'query_error', 'result_question', 'history_error', 'recent_queries', 'analytical_versions', 'session_query_history'):
+                        'query_error', 'result_question', 'history_error', 'recent_queries', 'analytical_versions', 'session_query_history', 'catalog_snapshots', 'catalog_comparison', 'catalog_result'):
                 st.session_state.pop(key, None)
             st.rerun()
 
@@ -208,9 +208,18 @@ with catalog_tab:
             from sus_explorer.data_catalog import inspect_competencies
             from sus_explorer.pni import PNIRemote
             with st.spinner('Consultando a disponibilidade das partições no R2…'):
-                st.session_state['catalog_result'] = inspect_competencies(
+                new_catalog = inspect_competencies(
                     PNIRemote(), uf=catalog_uf, year=int(catalog_year)
                 )
+                catalog_key = (catalog_uf, int(catalog_year))
+                snapshots = st.session_state.setdefault('catalog_snapshots', {})
+                previous = snapshots.get(catalog_key)
+                st.session_state['catalog_comparison'] = None
+                if previous:
+                    from sus_explorer.catalog_changes import compare_snapshots
+                    st.session_state['catalog_comparison'] = compare_snapshots(previous, new_catalog)
+                snapshots[catalog_key] = new_catalog
+                st.session_state['catalog_result'] = new_catalog
         except Exception:
             st.session_state.pop('catalog_result', None)
             st.error('Não foi possível consultar o catálogo agora. Tente novamente.')
@@ -221,6 +230,12 @@ with catalog_tab:
         else:
             st.caption('Verificado em UTC: ' + catalog['checked_at'])
             st.dataframe(pd.DataFrame(catalog['rows']), hide_index=True, width='stretch')
+            if comparison := st.session_state.get('catalog_comparison'):
+                st.markdown('#### Alterações desde a verificação anterior')
+                st.dataframe(pd.DataFrame(comparison), hide_index=True, width='stretch')
+                st.caption('Comparação somente nesta sessão, para a mesma UF e ano. Mudanças em metadados não comprovam revisão dos registros de vacinação.')
+            else:
+                st.caption('Esta é a primeira verificação desta UF e ano na sessão. Verifique novamente para comparar.')
             if any(row['Situação'] == 'Não verificada' for row in catalog['rows']):
                 st.warning('Algumas competências não puderam ser verificadas. Isso não significa ausência de dados.')
             st.caption('Disponível significa que há fragmentos Parquet no caminho esperado; não garante completude, qualidade ou atualização. Não encontrada não significa zero doses.')
