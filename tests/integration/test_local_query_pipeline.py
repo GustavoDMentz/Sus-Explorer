@@ -43,9 +43,9 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
 
     def generate_content(**kwargs):
         calls.append(kwargs)
-        if len(calls) == 1:
-            return SimpleNamespace(parsed=planner_response, text=None, candidates=[])
-        return SimpleNamespace(text="Resumo dos agregados.")
+        if "Explique em português claro" in str(kwargs.get("contents", "")):
+            return SimpleNamespace(text="Resumo dos agregados.")
+        return SimpleNamespace(parsed=planner_response, text=None, candidates=[])
 
     analyst = GeminiAnalyst.__new__(GeminiAnalyst)
     analyst.model = "test-model"
@@ -54,6 +54,11 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     monkeypatch.setattr("sus_explorer.service.PNIRemote", lambda **kwargs: pni)
     monkeypatch.setenv("POSTGRES_HISTORY_ENABLED", "0")
     monkeypatch.setenv("POSTGRES_COUNT_ENABLED", "0")
+
+    from sus_explorer.deterministic_planner import deterministic_plan
+    import os
+    fast_path = os.getenv("SUS_DETERMINISTIC_PLANNER") == "1" and deterministic_plan(QUESTION) is not None
+    expected_calls = 1 if fast_path else 2
 
     service_result = SUSExplorer().ask(QUESTION)
     assert [row["value"] for row in service_result["result"]["data"]["rows"]] == [2, 0, None, 3]
@@ -74,13 +79,13 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
         app.text_area[0].set_value(QUESTION)
         app.button[0].click().run()
         assert not app.exception
-        assert len(calls) == 2
+        assert len(calls) == expected_calls
         assert app.session_state["query_result"]["result"]["data"] == service_result["result"]["data"]
         assert len(app.dataframe) == 1
         assert app.session_state["query_result"]["answer"] == "Resumo dos agregados."
         app.run()
         assert not app.exception
-        assert len(calls) == 2
+        assert len(calls) == expected_calls
     finally:
         st.cache_resource.clear()
 
