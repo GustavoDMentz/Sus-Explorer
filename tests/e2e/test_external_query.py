@@ -62,9 +62,18 @@ def test_real_gemini_r2_streamlit_temporal_and_disposable_history(monkeypatch):
                   "agosto", "setembro", "outubro", "novembro", "dezembro")
         question = f"Quantas doses foram aplicadas na UF {uf} em {months[month - 1]} de {year}?"
         app = AppTest.from_file(APP).run()
-        app.text_area[0].set_value(question)
-        app.button[0].click().run()
         assert not app.exception
+        # BYOK credentials must be submitted explicitly in the Streamlit session.
+        app.text_input(key="byok_gemini").set_value(os.environ["GEMINI_API_KEY"])
+        app.button(key="FormSubmitter:byok_credentials-Usar credenciais nesta sessão").click().run()
+        assert not app.exception
+        assert app.session_state.get("byok_explorer") is not None
+        app.text_area(key="query_question").set_value(question)
+        app.button(key="FormSubmitter:query_form-Explorar").click().run()
+        assert not app.exception
+        assert app.session_state.get("query_result") is not None, (
+            "Query did not produce a result: " + str(app.session_state.get("query_error"))
+        )
         payload = app.session_state["query_result"]
         assert not payload["needs_clarification"]
         assert payload["plan"]["operation"] == "count"
@@ -78,9 +87,12 @@ def test_real_gemini_r2_streamlit_temporal_and_disposable_history(monkeypatch):
             f"Qual foi a variação mensal das doses na UF {uf} "
             f"de {months[month - 2]} a {months[month - 1]} de {year}?"
         )
-        app.text_area[0].set_value(temporal_question)
-        app.button[0].click().run()
+        app.text_area(key="query_question").set_value(temporal_question)
+        app.button(key="FormSubmitter:query_form-Explorar").click().run()
         assert not app.exception
+        assert app.session_state.get("query_result") is not None, (
+            "Temporal query did not produce a result: " + str(app.session_state.get("query_error"))
+        )
         temporal = app.session_state["query_result"]
         assert not temporal["needs_clarification"]
         assert temporal["plan"]["operation"] == "temporal"
