@@ -61,8 +61,21 @@ def _payload(result):
             raise ValueError("Oversized aggregate label")
     validate(data)
     source = result.provenance.get("source_provenance", result.provenance)
+    # Store a bounded, structured warning contract; never persist arbitrary text.
+    missing = source.get("missing_partitions", [])
+    if not isinstance(missing, list) or len(missing) > 36 or any(
+        not isinstance(item, str) or not re.fullmatch(
+            r"ano=[0-9]{4}/mes=(0[1-9]|1[0-2])/uf=[A-Z]{2}", item
+        ) for item in missing
+    ):
+        raise ValueError("Invalid missing partitions")
+    warnings = []
+    if missing:
+        warnings.append("MISSING_PARTITIONS")
+    if getattr(result, "warnings", None) and not missing:
+        warnings.append("SOURCE_WARNINGS_OMITTED")
     payload = {"operation": result.operation, "data": data,
-               "missing_partitions": source.get("missing_partitions", [])}
+               "missing_partitions": missing, "warnings": warnings}
     if len(_canonical(payload)) > MAX_RESULT_BYTES:
         raise ValueError("Aggregate payload too large")
     return payload
@@ -107,10 +120,9 @@ def observe_result(*, plan, result, connection=None):
             if latest and latest["result_hash"] == digest:
                 connection.execute(
                     """UPDATE analytical_result_versions
-                       SET last_seen_at = clock_timestamp(), observations = observations + 1,
-                           source_fingerprint = COALESCE(%s, source_fingerprint)
+                       SET last_seen_at = clock_timestamp(), observations = observations + 1
                        WHERE query_key = %s AND version = %s""",
-                    (fingerprint, key, latest["version"]))
+                    (key, latest["version"]))
                 return {"query_key": key, "version": latest["version"], "changed": False}
             version = latest["version"] + 1 if latest else 1
             nonce = os.urandom(12)
