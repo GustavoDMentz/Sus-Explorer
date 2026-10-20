@@ -54,7 +54,7 @@ class FakeConnection:
             self.versions.setdefault(key, []).append(
                 {"version": version, "result_hash": digest, "observations": 1})
         if "UPDATE analytical_result_versions" in statement:
-            _, key, version = params
+            key, version = params
             self.versions[key][-1]["observations"] += 1
         return FakeCursor(None)
 
