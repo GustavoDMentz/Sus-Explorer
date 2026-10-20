@@ -17,9 +17,54 @@ st.title('SUS Explorer')
 st.caption('Dados públicos de vacinação · consultas verificáveis em doses e registros')
 
 
-@st.cache_resource
 def get_explorer():
-    return SUSExplorer()
+    """Per-session explorer: never cache user credentials globally."""
+    explorer = st.session_state.get('byok_explorer')
+    if explorer is None:
+        raise RuntimeError('Configure suas credenciais na barra lateral antes de consultar.')
+    return explorer
+
+
+def configure_byok():
+    from dataclasses import replace
+    from sus_explorer.config import settings
+    with st.sidebar.expander('Credenciais privadas (BYOK)', expanded=True):
+        st.caption('As chaves ficam apenas nesta sessão Streamlit. Não são salvas em arquivos.')
+        with st.form('byok_credentials', clear_on_submit=False):
+            gemini = st.text_input('Chave Gemini', type='password', key='byok_gemini')
+            endpoint = st.text_input('Endpoint R2 (S3)', key='byok_endpoint',
+                                     placeholder='https://<account>.r2.cloudflarestorage.com')
+            access = st.text_input('R2 Access Key ID', type='password', key='byok_access')
+            secret = st.text_input('R2 Secret Access Key', type='password', key='byok_secret')
+            bucket = st.text_input('Bucket R2', value='healthbr-data', key='byok_bucket')
+            prefix = st.text_input('Prefixo Parquet', value='sipni/microdados', key='byok_prefix')
+            save = st.form_submit_button('Usar credenciais nesta sessão')
+        if save:
+            if not all((gemini.strip(), endpoint.strip(), access.strip(), secret.strip(),
+                        bucket.strip(), prefix.strip())):
+                st.error('Preencha todos os campos de credenciais e localização dos dados.')
+            else:
+                try:
+                    # Construct the service only with explicit user credentials.
+                    config = replace(settings, r2_endpoint=endpoint.strip(),
+                                     r2_access_key=access.strip(), r2_secret_key=secret.strip(),
+                                     r2_bucket=bucket.strip(), r2_prefix=prefix.strip('/'))
+                    st.session_state['byok_explorer'] = SUSExplorer(
+                        gemini_api_key=gemini.strip(), r2_config=config)
+                    st.session_state.pop('query_result', None)
+                    st.session_state.pop('query_error', None)
+                    st.success('Credenciais configuradas para esta sessão.')
+                except Exception:
+                    st.session_state.pop('byok_explorer', None)
+                    st.error('Não foi possível inicializar as credenciais. Confira os dados.')
+        if st.button('Limpar credenciais e resultados', key='byok_clear'):
+            for key in ('byok_explorer', 'byok_gemini', 'byok_endpoint',
+                        'byok_access', 'byok_secret', 'byok_bucket',
+                        'byok_prefix', 'query_result', 'query_error', 'recent_queries'):
+                st.session_state.pop(key, None)
+            st.rerun()
+
+
 
 
 def execute_yoy_comparison(payload):
@@ -49,6 +94,8 @@ def execute_yoy_comparison(payload):
     )
     return updated
 
+
+configure_byok()
 
 with st.sidebar:
     st.header('Como consultar')
