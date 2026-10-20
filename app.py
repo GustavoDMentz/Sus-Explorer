@@ -106,6 +106,7 @@ with st.sidebar:
     st.write('Quantas doses foram aplicadas em Porto Alegre, RS, em maio de 2026?')
     st.caption('Consultas remotas podem levar alguns minutos. Alterar a visualização não refaz a consulta.')
     with st.expander('Recursos desta sessão'):
+        st.checkbox('Reconhecer datas e consultas simples automaticamente (REGEX)', value=True, key='regex_planner_enabled', help='Reconhece apenas padrões completos e seguros. Perguntas mais complexas continuam usando Gemini.')
         st.checkbox('Guardar histórico nesta sessão', value=True, key='session_history_enabled', help='Até 20 consultas, somente na memória desta sessão do Streamlit. Não requer PostgreSQL.')
         st.caption('Histórico persistente e executor híbrido exigem configuração administrativa e não são ativados por este controle.')
 
@@ -129,7 +130,9 @@ with explorer_tab:
             st.session_state.pop('analytical_versions', None)
             try:
                 with st.spinner('Planejando, consultando os dados e preparando o resultado. Aguarde…', show_time=True):
-                    st.session_state.query_result = get_explorer().ask(question.strip())
+                    explorer = get_explorer()
+                    explorer.llm.deterministic_enabled = st.session_state.get('regex_planner_enabled', True)
+                    st.session_state.query_result = explorer.ask(question.strip())
                 st.session_state.result_question = question.strip()
                 if st.session_state.get('session_history_enabled', True):
                     remember_query(question.strip(), st.session_state.query_result)
