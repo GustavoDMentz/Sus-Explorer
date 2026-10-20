@@ -68,7 +68,7 @@ def test_real_gemini_r2_streamlit_temporal_and_disposable_history(monkeypatch):
             tb = exc.__traceback__
             while tb and tb.tb_next:
                 tb = tb.tb_next
-            failure.clear()
+            # Preserve stage/status captured by Gemini wrappers.
             failure['type'] = type(exc).__name__
             failure['location'] = (
                 f'{Path(tb.tb_frame.f_code.co_filename).name}:{tb.tb_frame.f_code.co_name}'
