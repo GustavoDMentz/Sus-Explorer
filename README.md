@@ -37,6 +37,14 @@ Explorador experimental de registros públicos de vacinação do SI-PNI. Uma per
 - [Próximos passos tecnicamente justificados](#próximos-passos-tecnicamente-justificados)
 - [Guia de contribuição](#guia-de-contribuição)
 
+## Fonte dos dados, créditos e agradecimentos
+
+O SUS Explorer utiliza os arquivos Parquet disponibilizados pelo projeto **[healthbr-data](https://github.com/SidneyBissoli/healthbr-data)**, desenvolvido e mantido por **Sidney da Silva Bissoli**. A fonte primária dos registros é o **Ministério da Saúde / OpenDATASUS**; o healthbr-data realiza a redistribuição em formato analítico, com particionamento e acesso via Cloudflare R2.
+
+**Nosso agradecimento especial ao Sidney Bissoli** pelo trabalho de engenharia de dados, manutenção e disponibilização aberta dessa infraestrutura. A organização dos dados em Parquet e a publicação de acesso S3 de leitura pública tornam viáveis análises que, de outra forma, exigiriam esforços substanciais de transferência, transformação e operação. O SUS Explorer é um projeto independente e não deve ser confundido com o healthbr-data; reconhecemos expressamente essa contribuição fundamental.
+
+O repositório de origem declara licença **CC BY 4.0**. Consulte [a licença e as orientações de citação do projeto](https://github.com/SidneyBissoli/healthbr-data#license) e atribua também a fonte primária Ministério da Saúde / OpenDATASUS quando utilizar os dados em trabalhos ou publicações. O SUS Explorer não reivindica autoria dos dados ou do espelho Parquet.
+
 ## Objetivos e escopo
 
 O projeto explora **doses/registros**, não pessoas únicas. Cada linha consultada representa um registro de vacinação; não há deduplicação confiável por indivíduo nem denominador populacional adequado para calcular cobertura vacinal. A UF usada nas partições é a **UF do estabelecimento**, não necessariamente a residência do paciente. A análise é descritiva e não prova causalidade, efetividade ou significância epidemiológica.
@@ -103,7 +111,7 @@ Python, Streamlit, Pydantic, Google GenAI SDK, PyArrow, Pandas, PostgreSQL 17/pg
 
 ## Pré-requisitos
 
-Use Python 3.12 ou superior compatível com as dependências; o CI usa 3.12. Acesso à internet e credenciais próprias para Gemini/R2 são necessários nas consultas remotas. PostgreSQL é opcional para a aplicação; Docker Desktop ou Docker Engine é necessário para o script de teste com banco descartável.
+Use Python 3.12 ou superior compatível com as dependências; o CI usa 3.12. Acesso à internet e chave Gemini são necessários nas consultas remotas. O acesso ao bucket público de leitura do healthbr-data pode ser pré-configurado pelo projeto; instalações personalizadas podem sobrescrever R2_* no ambiente. PostgreSQL é opcional para a aplicação; Docker Desktop ou Docker Engine é necessário para o script de teste com banco descartável.
 
 ## Instalação no Windows
 

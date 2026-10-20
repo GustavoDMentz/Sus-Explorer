@@ -196,7 +196,7 @@ def test_ui_yoy_requires_explicit_click_for_history(monkeypatch):
     mom=execute_temporal(plan('mom'),lambda _:source([10,20,30]))
     response={'result':mom.model_dump(),'plan':plan('mom').model_dump(),'answer':None}
     service.pni.execute.return_value=run((10,20,30),(5,10,15))
-    at=AppTest.from_file(APP);at.session_state['query_result']=response;at.run()
+    at=AppTest.from_file(APP);at.session_state['query_result']=response;at.session_state['byok_explorer']=service;at.run()
     at.selectbox[0].set_value('Interanual (YoY)').run()
     assert not at.exception
     service.pni.execute.assert_not_called()

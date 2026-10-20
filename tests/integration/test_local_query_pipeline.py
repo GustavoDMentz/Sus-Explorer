@@ -50,8 +50,8 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     analyst = GeminiAnalyst.__new__(GeminiAnalyst)
     analyst.model = "test-model"
     analyst.client = SimpleNamespace(models=SimpleNamespace(generate_content=generate_content))
-    monkeypatch.setattr("sus_explorer.service.GeminiAnalyst", lambda: analyst)
-    monkeypatch.setattr("sus_explorer.service.PNIRemote", lambda: pni)
+    monkeypatch.setattr("sus_explorer.service.GeminiAnalyst", lambda **kwargs: analyst)
+    monkeypatch.setattr("sus_explorer.service.PNIRemote", lambda **kwargs: pni)
     monkeypatch.setenv("POSTGRES_HISTORY_ENABLED", "0")
     monkeypatch.setenv("POSTGRES_COUNT_ENABLED", "0")
 
@@ -72,7 +72,9 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     calls.clear()
     st.cache_resource.clear()
     try:
-        app = AppTest.from_file(APP).run()
+        app = AppTest.from_file(APP)
+        app.session_state["byok_explorer"] = SUSExplorer()
+        app.run()
         assert not app.exception
         app.text_area[0].set_value(QUESTION)
         app.button[0].click().run()
