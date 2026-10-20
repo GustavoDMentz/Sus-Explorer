@@ -1,5 +1,7 @@
 # Interface Streamlit
 
+> **Estado verificado em 2026-10-20 (`master`):** o Streamlit utiliza `SUSExplorer` por sessão, sem `st.cache_resource` global. O formulário BYOK solicita **apenas a chave Gemini**; as credenciais R2 são configuradas no servidor e compartilhadas. O PR #31 originalmente descreveu R2 BYOK na UI, mas isso não corresponde ao `app.py` integrado. O histórico operacional PostgreSQL da aba é global quando habilitado; o PR #34 propõe isolamento da apresentação por sessão, porém **não foi integrado**. O PR #33 (limite de 4.096 bytes na pergunta) também está em draft. As notas datadas abaixo descrevem entregas anteriores, não necessariamente o estado atual.
+
 ## Interface atual
 
 O app organiza o explorador, o histórico opcional e a proveniência em abas.
