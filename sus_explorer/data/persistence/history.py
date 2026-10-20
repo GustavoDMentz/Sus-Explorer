@@ -42,7 +42,7 @@ def safe_parameters(plan) -> dict:
 def safe_provenance(result) -> dict:
     source = result.provenance.get("source_provenance", result.provenance)
     output = {}
-    for name in ("period", "source_sha256"):
+    for name in ("period", "source_sha256", "source_metadata_sha256"):
         value = source.get(name)
         if isinstance(value, str) and len(value) <= 128:
             output[name] = value
