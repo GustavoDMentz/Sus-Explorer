@@ -45,6 +45,13 @@ O SUS Explorer utiliza os arquivos Parquet disponibilizados pelo projeto **[heal
 
 O repositório de origem declara licença **CC BY 4.0**. Consulte [a licença e as orientações de citação do projeto](https://github.com/SidneyBissoli/healthbr-data#license) e atribua também a fonte primária Ministério da Saúde / OpenDATASUS quando utilizar os dados em trabalhos ou publicações. O SUS Explorer não reivindica autoria dos dados ou do espelho Parquet.
 
+## Estado das integrações recentes (20/10/2026)
+
+- **Implementado na `master`:** Streamlit com instância `SUSExplorer` por sessão; formulário BYOK **somente para Gemini**, com R2 compartilhado configurado pelo projeto; planejador determinístico experimental via `SUS_DETERMINISTIC_PLANNER=1`; histórico operacional PostgreSQL opt-in (migration 004); histórico de resultados agregados versionados e criptografados opt-in (migration 005, `ANALYTICAL_HISTORY_ENABLED=1`, `ANALYTICAL_HISTORY_KEY`).
+- **Não integrado:** [#17](https://github.com/GustavoDMentz/Sus-Explorer/pull/17) (campanhas), [#26](https://github.com/GustavoDMentz/Sus-Explorer/pull/26) (PyArrow 26), [#33](https://github.com/GustavoDMentz/Sus-Explorer/pull/33) (limite de pergunta) e [#34](https://github.com/GustavoDMentz/Sus-Explorer/pull/34) (histórico visual por sessão). Os PRs #33/#34 são drafts, com testes adicionados mas não validados nesta revisão.
+- **Segurança e limites:** o histórico operacional atual na UI não tem filtro de usuário; a criptografia do histórico analítico não é controle de autorização por usuário. O runtime PostgreSQL e a segregação de microdados exigem testes de privilégio em banco descartável. O compromisso é assumir comprometimento e limitar danos, não alegar isolamento absoluto entre sessões do mesmo processo.
+- **Rastreabilidade:** [registro dos PRs](docs/pr_register.md), [diário de desenvolvimento](docs/development_journal.md), [contrato do histórico versionado](docs/query-result-version-history.md), [persistência](docs/persistence.md), [Streamlit](docs/streamlit.md). Evidências e números de testes datados não significam que a suíte foi refeita nesta revisão documental.
+
 ## Objetivos e escopo
 
 O projeto explora **doses/registros**, não pessoas únicas. Cada linha consultada representa um registro de vacinação; não há deduplicação confiável por indivíduo nem denominador populacional adequado para calcular cobertura vacinal. A UF usada nas partições é a **UF do estabelecimento**, não necessariamente a residência do paciente. A análise é descritiva e não prova causalidade, efetividade ou significância epidemiológica.
