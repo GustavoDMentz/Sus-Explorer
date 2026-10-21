@@ -1,5 +1,5 @@
 streamlit>=1.40
-google-genai>=2.29.0
+google-genai>=2.31.0
 pyarrow>=18.0
 pydantic>=2.14.1
 python-dotenv>=1.0
