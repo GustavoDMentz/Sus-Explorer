@@ -8,4 +8,4 @@ numpy>=2.5.4
 
 requests>=2.32
 psycopg[binary]>=3.2,<4
-cryptography>=44,<48
+cryptography>=50.0.2,<51
