@@ -5,7 +5,7 @@
 #   python -m pip freeze --exclude-editable
 # Then copy reviewed direct versions here and run the complete test suite.
 streamlit==1.65.0
-google-genai==2.29.0
+google-genai==2.31.0
 pyarrow==25.0.1
 pydantic==2.14.1
 python-dotenv==1.2.4
