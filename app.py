@@ -143,6 +143,9 @@ with explorer_tab:
         st.error(st.session_state.query_error)
 
     if payload := st.session_state.get('query_result'):
+        if os.getenv('SUS_EXPLORER_PROFILE') == '1' and payload.get('profiling'):
+            with st.expander('Diagnóstico local de desempenho (segundos)', expanded=True):
+                st.json(payload['profiling'])
         source = payload.get('planner_source')
         if source in ('regex', 'gemini'):
             st.caption('Planejamento: ' + ('REGEX (determinístico)' if source == 'regex' else 'Gemini (IA)'))
