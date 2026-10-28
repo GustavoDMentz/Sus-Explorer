@@ -714,6 +714,8 @@ class PNIRemote:
         plan = require_ready_plan(plan)
         start = time.perf_counter()
 
+        profile = __import__('os').getenv('SUS_EXPLORER_PROFILE') == '1'
+        profile_months = []
         rows = []
         fragments = 0
         partitions = 0
@@ -726,6 +728,7 @@ class PNIRemote:
             plan.end_year,
             plan.end_month,
         ):
+            month_start = time.perf_counter()
             try:
                 ds = self.dataset(
                     year,
@@ -738,6 +741,8 @@ class PNIRemote:
                 )
                 continue
 
+            dataset_seconds = time.perf_counter() - month_start
+            count_start = time.perf_counter()
             base_filter = self.base_filter(ds, plan)
             cols = self.post_cols(ds, plan)
 
@@ -756,6 +761,7 @@ class PNIRemote:
                     filter=base_filter
                 )
 
+            count_seconds = time.perf_counter() - count_start
             rows.append({
                 "period": f"{year}-{month:02d}",
                 "doses": int(count),
@@ -766,6 +772,13 @@ class PNIRemote:
             fragments += sum(
                 1 for _ in ds.get_fragments()
             )
+            if profile:
+                profile_months.append({
+                    'period': f'{year}-{month:02d}',
+                    'dataset_open_seconds': round(dataset_seconds, 3),
+                    'count_or_scan_seconds': round(count_seconds, 3),
+                    'other_seconds': round(time.perf_counter() - month_start - dataset_seconds - count_seconds, 3),
+                })
 
         if not rows:
             raise FileNotFoundError(
@@ -782,13 +795,22 @@ class PNIRemote:
                 + ", ".join(missing_partitions)
             )
 
+        fingerprint_start = time.perf_counter()
         fingerprint = self.source_fingerprint(consulted_datasets)
+        fingerprint_seconds = time.perf_counter() - fingerprint_start
+        if profile:
+            import logging
+            logging.getLogger(__name__).info('SUS Explorer timeseries timings (seconds): %s', {
+                'months': profile_months,
+                'fingerprint': round(fingerprint_seconds, 3),
+            })
 
         return QueryResult(
             operation="timeseries",
             data={"rows": rows},
             provenance={
                 "source": "SI-PNI / healthbr-data / OpenDATASUS",
+                **({"local_profile": {"months": profile_months, "fingerprint_seconds": round(fingerprint_seconds, 3)}} if profile else {}),
                 "uf_partition": plan.uf,
                 **({"source_metadata_sha256": fingerprint} if fingerprint else {}),
                 **({"vaccine_filter": self.vaccine_filter_provenance(plan)} if plan.vaccine_text else {}),
