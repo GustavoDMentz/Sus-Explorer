@@ -259,13 +259,14 @@ _PROVIDER_URLS = {
 
 
 def _compatible_completion(*, provider: str, model: str, prompt: str,
-                           temperature: float, json_mode: bool) -> str:
+                           temperature: float, json_mode: bool,
+                           api_key: str | None = None) -> str:
     base = os.getenv("LLM_BASE_URL") or _PROVIDER_URLS[provider]
     from urllib.parse import urlsplit
     parsed = urlsplit(base)
     if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
         raise ValueError("LLM_BASE_URL deve ser um endpoint HTTPS válido")
-    key = os.getenv(f"{provider.upper()}_API_KEY") or os.getenv("LLM_API_KEY")
+    key = api_key or os.getenv(f"{provider.upper()}_API_KEY") or os.getenv("LLM_API_KEY")
     if not key:
         raise RuntimeError(f"{provider.upper()}_API_KEY não configurada")
     payload = {
@@ -298,6 +299,7 @@ class GeminiAnalyst:
         if self.provider not in ("gemini", *_PROVIDER_URLS):
             raise ValueError("LLM_PROVIDER não suportado")
         self.model = model or os.getenv("LLM_MODEL") or settings.gemini_model
+        self.api_key = api_key
         if self.provider == "gemini":
             key = settings.gemini_api_key if api_key is None else api_key
             if not key:
@@ -342,7 +344,8 @@ class GeminiAnalyst:
         try:
             if self.provider != "gemini":
                 output = _compatible_completion(provider=self.provider, model=self.model,
-                                                prompt=prompt, temperature=0, json_mode=True)
+                                                prompt=prompt, temperature=0, json_mode=True,
+                                                api_key=self.api_key)
                 if not isinstance(output, str) or len(output.encode("utf-8")) > PLANNER_MAX_RESPONSE_BYTES:
                     raise PlannerResponseError()
                 return QueryPlan.model_validate_json(output)
@@ -401,7 +404,7 @@ class GeminiAnalyst:
         if self.provider != "gemini":
             return _compatible_completion(provider=self.provider, model=self.model,
                                           prompt=f"{ANSWER}\n\n{json.dumps(payload, ensure_ascii=False)}",
-                                          temperature=0.1, json_mode=False)
+                                          temperature=0.1, json_mode=False, api_key=self.api_key)
 
         r = self.client.models.generate_content(
             model=self.model,
