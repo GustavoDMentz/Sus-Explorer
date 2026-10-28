@@ -3,6 +3,7 @@
 from dataclasses import dataclass, asdict
 import hashlib
 import json
+import os
 import time
 import unicodedata
 
@@ -714,7 +715,7 @@ class PNIRemote:
         plan = require_ready_plan(plan)
         start = time.perf_counter()
 
-        profile = __import__('os').getenv('SUS_EXPLORER_PROFILE') == '1'
+        profile = os.getenv('SUS_EXPLORER_PROFILE') == '1'
         profile_months = []
         rows = []
         fragments = 0
@@ -800,7 +801,7 @@ class PNIRemote:
         fingerprint_seconds = time.perf_counter() - fingerprint_start
         if profile:
             import logging
-            logging.getLogger(__name__).info('SUS Explorer timeseries timings (seconds): %s', {
+            logging.getLogger(__name__).warning('SUS Explorer timeseries timings (seconds): %s', {
                 'months': profile_months,
                 'fingerprint': round(fingerprint_seconds, 3),
             })
@@ -810,7 +811,6 @@ class PNIRemote:
             data={"rows": rows},
             provenance={
                 "source": "SI-PNI / healthbr-data / OpenDATASUS",
-                **({"local_profile": {"months": profile_months, "fingerprint_seconds": round(fingerprint_seconds, 3)}} if profile else {}),
                 "uf_partition": plan.uf,
                 **({"source_metadata_sha256": fingerprint} if fingerprint else {}),
                 **({"vaccine_filter": self.vaccine_filter_provenance(plan)} if plan.vaccine_text else {}),
