@@ -741,9 +741,6 @@ class PNIRemote:
                     plan.uf,
                 )
             except FileNotFoundError:
-                missing_partitions.append(
-                    f"ano={year}/mes={month:02d}/uf={plan.uf}"
-                )
                 return None, f"ano={year}/mes={month:02d}/uf={plan.uf}", None, None
 
             dataset_seconds = time.perf_counter() - month_start
