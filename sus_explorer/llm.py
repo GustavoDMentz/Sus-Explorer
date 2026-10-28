@@ -261,8 +261,10 @@ _PROVIDER_URLS = {
 def _compatible_completion(*, provider: str, model: str, prompt: str,
                            temperature: float, json_mode: bool) -> str:
     base = os.getenv("LLM_BASE_URL") or _PROVIDER_URLS[provider]
-    if not base.startswith("https://"):
-        raise ValueError("LLM_BASE_URL deve usar HTTPS")
+    from urllib.parse import urlsplit
+    parsed = urlsplit(base)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError("LLM_BASE_URL deve ser um endpoint HTTPS válido")
     key = os.getenv(f"{provider.upper()}_API_KEY") or os.getenv("LLM_API_KEY")
     if not key:
         raise RuntimeError(f"{provider.upper()}_API_KEY não configurada")
@@ -372,7 +374,7 @@ class GeminiAnalyst:
             if not isinstance(text, str) or not text.strip():
                 raise PlannerResponseError()
             return QueryPlan.model_validate_json(text)
-        except ValueError:
+        except (ValueError, KeyError, TypeError):
             # Includes SDK json.loads integer-limit failures before r is returned,
             # plus local Pydantic validation. Keep Python's integer guard enabled.
             raise PlannerResponseError() from None
