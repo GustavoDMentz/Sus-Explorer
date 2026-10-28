@@ -25,29 +25,47 @@ def get_explorer():
 
 
 def configure_byok():
-    with st.sidebar.expander('Credenciais privadas (BYOK)', expanded=True):
-        st.caption('Informe somente sua chave Gemini. O acesso ao healthbr-data é compartilhado e configurado pelo projeto.')
-        with st.form('byok_credentials', clear_on_submit=False):
-            gemini = st.text_input('Chave Gemini', type='password', key='byok_gemini')
-            save = st.form_submit_button('Usar credenciais nesta sessão')
-        if save:
-            if not gemini.strip():
-                st.error('Informe sua chave Gemini.')
-            else:
+    provider = os.getenv('LLM_PROVIDER', 'gemini').lower()
+    provider_labels = {
+        'gemini': 'Gemini', 'groq': 'Groq', 'openrouter': 'OpenRouter',
+        'mistral': 'Mistral', 'openai': 'OpenAI',
+    }
+    label = provider_labels.get(provider, provider)
+    env_key = os.getenv(f'{provider.upper()}_API_KEY') or os.getenv('LLM_API_KEY')
+    if provider == 'gemini':
+        env_key = env_key or os.getenv('GEMINI_API_KEY')
+    with st.sidebar.expander('Credenciais privadas (BYOK)', expanded=not bool(env_key)):
+        st.caption(f'Provedor ativo: {label}. O acesso ao R2 é configurado separadamente.')
+        if env_key:
+            st.caption('Chave encontrada no ambiente local; não é necessário informá-la aqui.')
+            if st.session_state.get('byok_explorer') is None:
                 try:
-                    st.session_state['byok_explorer'] = SUSExplorer(gemini_api_key=gemini.strip())
-                    st.session_state.pop('query_result', None)
-                    st.session_state.pop('query_error', None)
-                    st.success('Credenciais configuradas para esta sessão.')
+                    st.session_state['byok_explorer'] = SUSExplorer()
                 except Exception:
-                    st.session_state.pop('byok_explorer', None)
-                    st.error('Não foi possível inicializar as credenciais. Confira os dados.')
+                    st.error('Não foi possível inicializar o provedor configurado.')
+        else:
+            with st.form('byok_credentials', clear_on_submit=False):
+                key = st.text_input(f'Chave {label}', type='password', key='byok_provider_key')
+                save = st.form_submit_button('Usar credenciais nesta sessão')
+            if save:
+                if not key.strip():
+                    st.error(f'Informe sua chave {label}.')
+                else:
+                    try:
+                        st.session_state['byok_explorer'] = SUSExplorer(gemini_api_key=key.strip())
+                        st.session_state.pop('query_result', None)
+                        st.session_state.pop('query_error', None)
+                        st.success('Credenciais configuradas para esta sessão.')
+                    except Exception:
+                        st.session_state.pop('byok_explorer', None)
+                        st.error('Não foi possível inicializar as credenciais. Confira os dados.')
         if st.button('Limpar credenciais e resultados', key='byok_clear'):
-            for key in ('byok_explorer', 'byok_gemini', 'query_result',
-                        'query_error', 'result_question', 'history_error', 'recent_queries', 'analytical_versions', 'session_query_history', 'catalog_snapshots', 'catalog_comparison', 'catalog_result'):
+            for key in ('byok_explorer', 'byok_gemini', 'byok_provider_key', 'query_result',
+                        'query_error', 'result_question', 'history_error', 'recent_queries',
+                        'analytical_versions', 'session_query_history', 'catalog_snapshots',
+                        'catalog_comparison', 'catalog_result'):
                 st.session_state.pop(key, None)
             st.rerun()
-
 
 
 
@@ -106,7 +124,7 @@ with st.sidebar:
     st.write('Quantas doses foram aplicadas em Porto Alegre, RS, em maio de 2026?')
     st.caption('Consultas remotas podem levar alguns minutos. Alterar a visualização não refaz a consulta.')
     with st.expander('Recursos desta sessão'):
-        st.checkbox('Reconhecer datas e consultas simples automaticamente (REGEX)', value=True, key='regex_planner_enabled', help='Reconhece apenas padrões completos e seguros. Perguntas mais complexas continuam usando Gemini.')
+        st.checkbox('Reconhecer datas e consultas simples automaticamente (REGEX)', value=True, key='regex_planner_enabled', help='Reconhece apenas padrões completos e seguros. Perguntas mais complexas usam o provedor de IA configurado.')
         st.checkbox('Guardar histórico nesta sessão', value=True, key='session_history_enabled', help='Até 20 consultas, somente na memória desta sessão do Streamlit. Não requer PostgreSQL.')
         st.caption('Histórico persistente e executor híbrido exigem configuração administrativa e não são ativados por este controle.')
 
@@ -147,8 +165,8 @@ with explorer_tab:
             with st.expander('Diagnóstico local de desempenho (segundos)', expanded=True):
                 st.json(payload['profiling'])
         source = payload.get('planner_source')
-        if source in ('regex', 'gemini'):
-            st.caption('Planejamento: ' + ('REGEX (determinístico)' if source == 'regex' else 'Gemini (IA)'))
+        if source in ('regex', 'gemini', 'groq', 'openrouter', 'mistral', 'openai'):
+            st.caption('Planejamento: ' + ('REGEX (determinístico)' if source == 'regex' else source.capitalize() + ' (IA)'))
         if payload.get('needs_clarification'):
             st.warning(payload.get('clarification_question') or 'Informe os parâmetros ausentes.')
             with st.expander('Plano parcial'):
