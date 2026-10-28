@@ -3,6 +3,8 @@
 from dataclasses import dataclass, asdict
 import hashlib
 import json
+import os
+from concurrent.futures import ThreadPoolExecutor
 import time
 import unicodedata
 
@@ -343,7 +345,14 @@ class PNIRemote:
             })
             if not paths:
                 return None
-            infos = self.s3.get_file_info(paths)
+            # Bound concurrent remote metadata lookups; preserve manifest order.
+            chunks = [paths[i:i + 32] for i in range(0, len(paths), 32)]
+            if len(chunks) > 1:
+                with ThreadPoolExecutor(max_workers=min(4, len(chunks))) as pool:
+                    groups = list(pool.map(self.s3.get_file_info, chunks))
+                infos = [info for group in groups for info in group]
+            else:
+                infos = self.s3.get_file_info(paths)
             manifest = []
             for path, info in zip(paths, infos):
                 if info.type != fs.FileType.File or info.size < 0:
@@ -714,18 +723,17 @@ class PNIRemote:
         plan = require_ready_plan(plan)
         start = time.perf_counter()
 
+        profile = os.getenv('SUS_EXPLORER_PROFILE') == '1'
+        profile_months = []
         rows = []
         fragments = 0
         partitions = 0
         missing_partitions = []
         consulted_datasets = []
 
-        for year, month in months(
-            plan.start_year,
-            plan.start_month,
-            plan.end_year,
-            plan.end_month,
-        ):
+        def process_month(period):
+            year, month = period
+            month_start = time.perf_counter()
             try:
                 ds = self.dataset(
                     year,
@@ -733,11 +741,10 @@ class PNIRemote:
                     plan.uf,
                 )
             except FileNotFoundError:
-                missing_partitions.append(
-                    f"ano={year}/mes={month:02d}/uf={plan.uf}"
-                )
-                continue
+                return None, f"ano={year}/mes={month:02d}/uf={plan.uf}", None, None
 
+            dataset_seconds = time.perf_counter() - month_start
+            count_start = time.perf_counter()
             base_filter = self.base_filter(ds, plan)
             cols = self.post_cols(ds, plan)
 
@@ -756,16 +763,40 @@ class PNIRemote:
                     filter=base_filter
                 )
 
-            rows.append({
+            count_seconds = time.perf_counter() - count_start
+            row = {
                 "period": f"{year}-{month:02d}",
                 "doses": int(count),
-            })
+            }
 
+            fragment_count = sum(1 for _ in ds.get_fragments())
+            if profile:
+                month_profile = {
+                    'period': f'{year}-{month:02d}',
+                    'dataset_open_seconds': round(dataset_seconds, 3),
+                    'count_or_scan_seconds': round(count_seconds, 3),
+                    'other_seconds': round(time.perf_counter() - month_start - dataset_seconds - count_seconds, 3),
+                }
+            else:
+                month_profile = None
+            return row, None, (year, month, ds, fragment_count), month_profile
+
+
+        periods = list(months(plan.start_year, plan.start_month, plan.end_year, plan.end_month))
+        # Parallelize independent monthly partitions, retaining chronological output.
+        with ThreadPoolExecutor(max_workers=min(4, len(periods))) as pool:
+            month_results = list(pool.map(process_month, periods))
+        for row, missing, dataset_info, month_profile in month_results:
+            if missing:
+                missing_partitions.append(missing)
+                continue
+            rows.append(row)
+            year, month, ds, fragment_count = dataset_info
             consulted_datasets.append((year, month, ds))
             partitions += 1
-            fragments += sum(
-                1 for _ in ds.get_fragments()
-            )
+            fragments += fragment_count
+            if profile:
+                profile_months.append(month_profile)
 
         if not rows:
             raise FileNotFoundError(
@@ -782,7 +813,15 @@ class PNIRemote:
                 + ", ".join(missing_partitions)
             )
 
+        fingerprint_start = time.perf_counter()
         fingerprint = self.source_fingerprint(consulted_datasets)
+        fingerprint_seconds = time.perf_counter() - fingerprint_start
+        if profile:
+            import logging
+            logging.getLogger(__name__).warning('SUS Explorer timeseries timings (seconds): %s', {
+                'months': profile_months,
+                'fingerprint': round(fingerprint_seconds, 3),
+            })
 
         return QueryResult(
             operation="timeseries",
