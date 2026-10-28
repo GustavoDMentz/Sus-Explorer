@@ -327,7 +327,7 @@ class GeminiAnalyst:
                 plan = apply_whole_year_interval(q, self._plan_attempt(q, structured=structured))
                 if os.getenv("SUS_DETERMINISTIC_PLANNER") == "1":
                     plan = guard_explicit_geography(q, plan)
-                self.last_planner_source = self.provider
+                self.last_planner_source = getattr(self, "provider", "gemini")
                 return plan
             except PlannerResponseError:
                 if not structured:
@@ -342,7 +342,7 @@ class GeminiAnalyst:
                        "Omita campos não utilizados; nunca repita dígitos ou faça cálculos.\n"
                        + json.dumps(schema, ensure_ascii=False))
         try:
-            if self.provider != "gemini":
+            if getattr(self, "provider", "gemini") != "gemini":
                 output = _compatible_completion(provider=self.provider, model=self.model,
                                                 prompt=prompt, temperature=0, json_mode=True,
                                                 api_key=self.api_key)
