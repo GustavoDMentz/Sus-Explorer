@@ -4,6 +4,7 @@ from dataclasses import dataclass, asdict
 import hashlib
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 import time
 import unicodedata
 
@@ -344,7 +345,14 @@ class PNIRemote:
             })
             if not paths:
                 return None
-            infos = self.s3.get_file_info(paths)
+            # Bound concurrent remote metadata lookups; preserve manifest order.
+            chunks = [paths[i:i + 32] for i in range(0, len(paths), 32)]
+            if len(chunks) > 1:
+                with ThreadPoolExecutor(max_workers=min(4, len(chunks))) as pool:
+                    groups = list(pool.map(self.s3.get_file_info, chunks))
+                infos = [info for group in groups for info in group]
+            else:
+                infos = self.s3.get_file_info(paths)
             manifest = []
             for path, info in zip(paths, infos):
                 if info.type != fs.FileType.File or info.size < 0:
@@ -723,12 +731,8 @@ class PNIRemote:
         missing_partitions = []
         consulted_datasets = []
 
-        for year, month in months(
-            plan.start_year,
-            plan.start_month,
-            plan.end_year,
-            plan.end_month,
-        ):
+        def process_month(period):
+            year, month = period
             month_start = time.perf_counter()
             try:
                 ds = self.dataset(
@@ -740,7 +744,7 @@ class PNIRemote:
                 missing_partitions.append(
                     f"ano={year}/mes={month:02d}/uf={plan.uf}"
                 )
-                continue
+                return None, f"ano={year}/mes={month:02d}/uf={plan.uf}", None, None
 
             dataset_seconds = time.perf_counter() - month_start
             count_start = time.perf_counter()
@@ -763,23 +767,39 @@ class PNIRemote:
                 )
 
             count_seconds = time.perf_counter() - count_start
-            rows.append({
+            row = {
                 "period": f"{year}-{month:02d}",
                 "doses": int(count),
-            })
+            }
 
-            consulted_datasets.append((year, month, ds))
-            partitions += 1
-            fragments += sum(
-                1 for _ in ds.get_fragments()
-            )
+            fragment_count = sum(1 for _ in ds.get_fragments())
             if profile:
-                profile_months.append({
+                month_profile = {
                     'period': f'{year}-{month:02d}',
                     'dataset_open_seconds': round(dataset_seconds, 3),
                     'count_or_scan_seconds': round(count_seconds, 3),
                     'other_seconds': round(time.perf_counter() - month_start - dataset_seconds - count_seconds, 3),
-                })
+                }
+            else:
+                month_profile = None
+            return row, None, (year, month, ds, fragment_count), month_profile
+
+
+        periods = list(months(plan.start_year, plan.start_month, plan.end_year, plan.end_month))
+        # Parallelize independent monthly partitions, retaining chronological output.
+        with ThreadPoolExecutor(max_workers=min(4, len(periods))) as pool:
+            month_results = list(pool.map(process_month, periods))
+        for row, missing, dataset_info, month_profile in month_results:
+            if missing:
+                missing_partitions.append(missing)
+                continue
+            rows.append(row)
+            year, month, ds, fragment_count = dataset_info
+            consulted_datasets.append((year, month, ds))
+            partitions += 1
+            fragments += fragment_count
+            if profile:
+                profile_months.append(month_profile)
 
         if not rows:
             raise FileNotFoundError(
