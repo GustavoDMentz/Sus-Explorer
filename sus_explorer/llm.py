@@ -401,7 +401,7 @@ class GeminiAnalyst:
                 "result": res.model_dump(),
             }
 
-        if self.provider != "gemini":
+        if getattr(self, "provider", "gemini") != "gemini":
             return _compatible_completion(provider=self.provider, model=self.model,
                                           prompt=f"{ANSWER}\n\n{json.dumps(payload, ensure_ascii=False)}",
                                           temperature=0.1, json_mode=False, api_key=self.api_key)
