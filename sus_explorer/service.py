@@ -98,7 +98,11 @@ class SUSExplorer:
                 "result": None,
                 "answer": None,
             }
+        profiling = os.getenv('SUS_EXPLORER_PROFILE') == '1'
+        profile_start = time.perf_counter()
+        timings = {}
         plan = self.llm.plan(question)
+        timings['planning'] = round(time.perf_counter() - profile_start, 3)
         planner_source = getattr(self.llm, "last_planner_source", None)
 
         if plan.status == "needs_clarification":
@@ -147,9 +151,15 @@ class SUSExplorer:
         started = time.perf_counter()
         result = None
         try:
+            stage_start = time.perf_counter()
             result = getattr(self, "executor", self.pni).execute(plan)
+            timings['analytics'] = round(time.perf_counter() - stage_start, 3)
+            stage_start = time.perf_counter()
             version_history = self._observe_result(plan, result)
+            timings['version_history'] = round(time.perf_counter() - stage_start, 3)
+            stage_start = time.perf_counter()
             answer = self.llm.answer(question, plan, result)
+            timings['explanation'] = round(time.perf_counter() - stage_start, 3)
         except Exception:
             self._record_history(query_id, plan, result, "FAILED",
                                  int((time.perf_counter() - started) * 1000))
@@ -159,7 +169,13 @@ class SUSExplorer:
             int((time.perf_counter() - started) * 1000),
         )
 
+        timings['total'] = round(time.perf_counter() - profile_start, 3)
+        if profiling:
+            import logging
+            logging.getLogger(__name__).info('SUS Explorer timings (seconds): %s', timings)
+
         return {
+            **({'profiling': timings} if profiling else {}),
             "needs_clarification": False,
             "clarification_question": None,
             "missing": [],
