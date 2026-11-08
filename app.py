@@ -28,16 +28,19 @@ def configure_byok():
     provider = os.getenv('LLM_PROVIDER', 'gemini').lower()
     provider_labels = {
         'gemini': 'Gemini', 'groq': 'Groq', 'openrouter': 'OpenRouter',
-        'mistral': 'Mistral', 'openai': 'OpenAI',
+        'mistral': 'Mistral', 'openai': 'OpenAI', 'ollama': 'Ollama (local)',
     }
     label = provider_labels.get(provider, provider)
     env_key = os.getenv(f'{provider.upper()}_API_KEY') or os.getenv('LLM_API_KEY')
     if provider == 'gemini':
         env_key = env_key or os.getenv('GEMINI_API_KEY')
+    if provider == 'ollama':
+        env_key = True  # Ollama local does not require an API key.
     with st.sidebar.expander('Credenciais privadas (BYOK)', expanded=not bool(env_key)):
         st.caption(f'Provedor ativo: {label}. O acesso ao R2 é configurado separadamente.')
         if env_key:
-            st.caption('Chave encontrada no ambiente local; não é necessário informá-la aqui.')
+            st.caption('Ollama local: nenhuma chave necessária.' if provider == 'ollama' else
+                       'Chave encontrada no ambiente local; não é necessário informá-la aqui.')
             if st.session_state.get('byok_explorer') is None:
                 try:
                     st.session_state['byok_explorer'] = SUSExplorer()
@@ -165,7 +168,7 @@ with explorer_tab:
             with st.expander('Diagnóstico local de desempenho (segundos)', expanded=True):
                 st.json(payload['profiling'])
         source = payload.get('planner_source')
-        if source in ('regex', 'gemini', 'groq', 'openrouter', 'mistral', 'openai'):
+        if source in ('regex', 'gemini', 'groq', 'openrouter', 'mistral', 'openai', 'ollama'):
             st.caption('Planejamento: ' + ('REGEX (determinístico)' if source == 'regex' else source.capitalize() + ' (IA)'))
         if payload.get('needs_clarification'):
             st.warning(payload.get('clarification_question') or 'Informe os parâmetros ausentes.')
