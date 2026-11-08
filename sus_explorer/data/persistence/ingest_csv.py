@@ -114,12 +114,12 @@ def ingest_csv(path: Path, *, year: int, month: int, uf: str, resource_id: str,
             ORDER BY id DESC LIMIT 1""", (source, resource)).fetchone()
         if latest and latest["status"] == "SUCCESS" and latest["metadata"] == metadata:
             return latest
+        runs = IngestionRunRepository(db)
         if latest and latest["status"] == "RUNNING":
             if latest["metadata"] != metadata:
                 raise RuntimeError("Há uma execução interrompida para outro snapshot; verifique-a antes de iniciar nova origem")
             run = latest  # replay from row one; record and observation keys make it idempotent
         else:
-            runs = IngestionRunRepository(db)
             run = runs.start(source=source, resource_type="immunization", source_resource_id=resource, metadata=metadata)
         run_id = run["id"]
         db.commit()
