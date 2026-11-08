@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
@@ -25,8 +24,6 @@ from sus_explorer.data.persistence.repositories import (
     RawRecordRepository,
 )
 from sus_explorer.pni import QueryResult
-from sus_explorer.postgres_executor import PostgresQueryExecutor
-from sus_explorer.data.persistence.ingest_csv import ingest_csv
 from sus_explorer.schemas import QueryPlan
 from sus_explorer.data.persistence.history import safe_provenance
 
@@ -61,140 +58,6 @@ def rejected(connection, statement, values=()):
     with pytest.raises(psycopg.Error):
         with connection.transaction():
             connection.execute(statement, values)
-
-
-def test_postgres_executor_uses_completed_partition_without_r2(database, monkeypatch):
-    connection, schema = database
-    migrate(connection, schema=schema)
-    connection.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))
-    connection.commit()
-    runs = IngestionRunRepository(connection)
-    run = runs.start(source="official-test", resource_type="immunization",
-                     source_resource_id="2026/05/RS", metadata={"partition": "ano=2026/mes=05/uf=RS", "source_rows": 3})
-    connection.commit()
-    persistence = OperationalPersistence(connection)
-    for index, sex in enumerate(("F", "F", "M")):
-        persistence.save_immunization(
-            source="official-test", resource_type="immunization", source_resource_id="2026/05/RS",
-            record_key=f"record-{index}", payload={"tp_sexo_paciente": sex,
-                "dt_entrada_rnds": "2026-05-03", "no_municipio_estabelecimento": "PORTO ALEGRE",
-                "nu_idade_paciente": "30", "sg_imunobiologico": "INFLUENZA"},
-            fetched_at=datetime.now(timezone.utc), ingestion_run_id=run["id"],
-            projection=ImmunizationProjection(vaccine_code="9", application_date=date(2026, 5, 1),
-                establishment_municipality_code="4314902", establishment_uf="RS"))
-    runs.finish(run["id"], status="SUCCESS", records_received=3, records_inserted=3, records_updated=0)
-    connection.commit()
-    monkeypatch.setenv("POSTGRES_SCHEMA", schema)
-    executor = PostgresQueryExecutor()
-    base = {"year": 2026, "month": 5, "uf": "RS"}
-    assert executor.execute(QueryPlan(operation="count", **base)).data == {"doses": 3}
-    assert executor.execute(QueryPlan(operation="count", sex="F", **base)).data == {"doses": 2}
-    assert executor.execute(QueryPlan(operation="group", group_by="sex", **base)).data["total_after_filters"] == 3
-    assert executor.execute(QueryPlan(operation="latency", **base)).data["n_valid"] == 3
-    assert executor.execute(QueryPlan(operation="timeseries", uf="RS", start_year=2026,
-        start_month=5, end_year=2026, end_month=5)).data["rows"] == [{"period": "2026-05", "doses": 3}]
-    with pytest.raises(FileNotFoundError):
-        executor.execute(QueryPlan(operation="count", year=2026, month=6, uf="RS"))
-
-
-def test_streaming_csv_import_is_idempotent(database, tmp_path, monkeypatch):
-    connection, schema = database
-    migrate(connection, schema=schema)
-    connection.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))
-    connection.commit()
-    source = tmp_path / "official_shape.csv"
-    source.write_text("co_documento,co_vacina,dt_vacina,co_municipio_estabelecimento,sg_uf_estabelecimento,tp_sexo_paciente\n"
-                      "doc-a,9,2026-05-01,4314902,RS,F\n"
-                      "doc-b,9,2026-05-02,4314902,RS,M\n", encoding="utf-8")
-    first = ingest_csv(source, year=2026, month=5, uf="RS", resource_id="official-test-resource",
-                       connection=connection, batch_size=1)
-    second = ingest_csv(source, year=2026, month=5, uf="RS", resource_id="official-test-resource",
-                        connection=connection, batch_size=1)
-    assert first["status"] == "SUCCESS" and first["records_received"] == 2
-    assert second["id"] == first["id"]
-    monkeypatch.setenv("POSTGRES_SCHEMA", schema)
-    result = PostgresQueryExecutor().execute(QueryPlan(operation="count", year=2026, month=5, uf="RS"))
-    assert result.data == {"doses": 2}
-
-
-def test_official_zip_import_filters_selected_uf_without_extraction(database, tmp_path):
-    connection, schema = database
-    migrate(connection, schema=schema)
-    connection.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))
-    connection.commit()
-    archive_path = tmp_path / "national.csv.zip"
-    content = ("co_documento;co_vacina;dt_vacina;co_municipio_estabelecimento;sg_uf_estabelecimento\n"
-               "ac-1;9;2026-01-05;1200401;AC\n"
-               "rs-1;9;2026-01-05;4314902;RS\n")
-    with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("vacinacao_jan_2026.csv", content.encode("latin-1"))
-    run = ingest_csv(archive_path, year=2026, month=1, uf="AC",
-                     resource_id="official-zip-test", encoding="latin-1", delimiter=";",
-                     connection=connection)
-    assert run["status"] == "SUCCESS" and run["records_received"] == 1
-    assert connection.execute("SELECT count(*) AS n FROM datasus_raw_records").fetchone()["n"] == 1
-    assert connection.execute("SELECT payload->>'co_documento' AS id FROM datasus_raw_records").fetchone()["id"] == "ac-1"
-
-
-def test_streaming_csv_import_resumes_interrupted_snapshot(database, tmp_path, monkeypatch):
-    connection, schema = database
-    migrate(connection, schema=schema)
-    connection.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))
-    connection.commit()
-    source = tmp_path / "resume.csv"
-    source.write_text("co_documento,co_vacina,dt_vacina,co_municipio_estabelecimento,sg_uf_estabelecimento\n"
-                      "doc-a,9,2026-05-01,4314902,RS\n"
-                      "doc-b,9,2026-05-02,4314902,RS\n", encoding="utf-8")
-    from sus_explorer.data.persistence import ingest_csv as csv_module
-    original = csv_module.OperationalPersistence.save_immunization
-    calls = 0
-
-    def interrupt_second(self, **kwargs):
-        nonlocal calls
-        calls += 1
-        if calls == 2:
-            raise KeyboardInterrupt()
-        return original(self, **kwargs)
-
-    monkeypatch.setattr(csv_module.OperationalPersistence, "save_immunization", interrupt_second)
-    with pytest.raises(KeyboardInterrupt):
-        ingest_csv(source, year=2026, month=5, uf="RS", resource_id="resume-resource",
-                   connection=connection, batch_size=1)
-    pending = connection.execute("SELECT id,status FROM datasus_ingestion_runs").fetchone()
-    assert pending["status"] == "RUNNING"
-    monkeypatch.setattr(csv_module.OperationalPersistence, "save_immunization", original)
-    resumed = ingest_csv(source, year=2026, month=5, uf="RS", resource_id="resume-resource",
-                         connection=connection, batch_size=1)
-    assert resumed["id"] == pending["id"] and resumed["status"] == "SUCCESS"
-    assert connection.execute("SELECT count(*) AS n FROM datasus_raw_records").fetchone()["n"] == 2
-
-
-def test_knowledge_vector_cosine_and_foreign_key(database):
-    connection, schema = database
-    migrate(connection, schema=schema)
-    extension = connection.execute("""SELECT n.nspname AS name FROM pg_extension e
-        JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='vector'""").fetchone()["name"]
-    connection.execute(sql.SQL("SET search_path TO {}, {}, public").format(
-        sql.Identifier(schema), sql.Identifier(extension)))
-    connection.commit()
-    with connection.transaction():
-        doc = connection.execute("""INSERT INTO knowledge_documents
-            (title, source, source_type, original_reference, content_hash, embedding_model)
-            VALUES ('Guia', 'project_docs', 'markdown', 'guide.md', %s, 'model-a')
-            RETURNING id""", ("a" * 64,)).fetchone()["id"]
-        first = "[1," + ",".join(["0"] * 1023) + "]"
-        second = "[0,1," + ",".join(["0"] * 1022) + "]"
-        for index, vector in enumerate((first, second)):
-            connection.execute("""INSERT INTO knowledge_chunks
-                (document_id,chunk_index,content,embedding,token_count,embedding_model)
-                VALUES (%s,%s,%s,%s::vector,2,'model-a')""",
-                (doc, index, f"trecho {index}", vector))
-    rows = connection.execute("""SELECT chunk_index, 1-(embedding <=> %s::vector) AS score
-        FROM knowledge_chunks WHERE embedding_model='model-a'
-        ORDER BY embedding <=> %s::vector""", (first, first)).fetchall()
-    assert [row["chunk_index"] for row in rows] == [0, 1]
-    assert rows[0]["score"] == pytest.approx(1)
-    rejected(connection, "INSERT INTO knowledge_chunks (document_id,chunk_index,content,embedding,token_count,embedding_model) VALUES (999999,0,'x',%s::vector,1,'model-a')", (first,))
 
 
 def test_health_and_query_history_survive_new_connection(database):
@@ -232,8 +95,6 @@ def test_atomic_raw_normalization_history_and_completion(database):
         "004_query_history.sql",
         "005_analytical_result_versions.sql",
         "006_immutable_source_fingerprint.sql",
-        "007_knowledge_rag.sql",
-        "008_postgres_analytical_lookup.sql",
     ]
     assert migrate(connection, schema=schema) == []
 
@@ -368,7 +229,7 @@ def test_concurrent_migrations_are_serialized(database):
         [],
         ["001_foundation.sql", "002_security_hardening.sql", "003_partition_lookup_indexes.sql",
          "004_query_history.sql", "005_analytical_result_versions.sql",
-         "006_immutable_source_fingerprint.sql", "007_knowledge_rag.sql", "008_postgres_analytical_lookup.sql"],
+         "006_immutable_source_fingerprint.sql"],
     ]
 
 

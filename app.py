@@ -17,21 +17,56 @@ st.caption('Dados públicos de vacinação · consultas verificáveis em doses e
 
 
 def get_explorer():
-    """Per-session explorer backed by server configured Ollama and PostgreSQL."""
-    explorer = st.session_state.get('local_explorer')
+    """Per-session explorer: never cache user credentials globally."""
+    explorer = st.session_state.get('byok_explorer')
     if explorer is None:
-        raise RuntimeError('Ollama ou PostgreSQL não está disponível para consulta.')
+        raise RuntimeError('Configure suas credenciais na barra lateral antes de consultar.')
     return explorer
 
 
-def configure_local_ai():
-    """Ollama and RAG are server configured; no per-user API key is needed."""
-    if st.session_state.get('local_explorer') is None:
-        try:
-            st.session_state['local_explorer'] = SUSExplorer()
-        except Exception:
-            st.sidebar.error('Não foi possível iniciar Ollama/RAG. Verifique a configuração local.')
-    st.sidebar.caption('IA local: Ollama · documentos: PostgreSQL/pgvector')
+def configure_byok():
+    provider = os.getenv('LLM_PROVIDER', 'gemini').lower()
+    provider_labels = {
+        'gemini': 'Gemini', 'groq': 'Groq', 'openrouter': 'OpenRouter',
+        'mistral': 'Mistral', 'openai': 'OpenAI',
+    }
+    label = provider_labels.get(provider, provider)
+    env_key = os.getenv(f'{provider.upper()}_API_KEY') or os.getenv('LLM_API_KEY')
+    if provider == 'gemini':
+        env_key = env_key or os.getenv('GEMINI_API_KEY')
+    with st.sidebar.expander('Credenciais privadas (BYOK)', expanded=not bool(env_key)):
+        st.caption(f'Provedor ativo: {label}. O acesso ao R2 é configurado separadamente.')
+        if env_key:
+            st.caption('Chave encontrada no ambiente local; não é necessário informá-la aqui.')
+            if st.session_state.get('byok_explorer') is None:
+                try:
+                    st.session_state['byok_explorer'] = SUSExplorer()
+                except Exception:
+                    st.error('Não foi possível inicializar o provedor configurado.')
+        else:
+            with st.form('byok_credentials', clear_on_submit=False):
+                key = st.text_input(f'Chave {label}', type='password', key='byok_provider_key')
+                save = st.form_submit_button('Usar credenciais nesta sessão')
+            if save:
+                if not key.strip():
+                    st.error(f'Informe sua chave {label}.')
+                else:
+                    try:
+                        st.session_state['byok_explorer'] = SUSExplorer(gemini_api_key=key.strip())
+                        st.session_state.pop('query_result', None)
+                        st.session_state.pop('query_error', None)
+                        st.success('Credenciais configuradas para esta sessão.')
+                    except Exception:
+                        st.session_state.pop('byok_explorer', None)
+                        st.error('Não foi possível inicializar as credenciais. Confira os dados.')
+        if st.button('Limpar credenciais e resultados', key='byok_clear'):
+            for key in ('byok_explorer', 'byok_gemini', 'byok_provider_key', 'query_result',
+                        'query_error', 'result_question', 'history_error', 'recent_queries',
+                        'analytical_versions', 'session_query_history', 'catalog_snapshots',
+                        'catalog_comparison', 'catalog_result'):
+                st.session_state.pop(key, None)
+            st.rerun()
+
 
 
 def remember_query(question, payload):
@@ -78,7 +113,7 @@ def execute_yoy_comparison(payload):
     return updated
 
 
-configure_local_ai()
+configure_byok()
 
 with st.sidebar:
     st.header('Como consultar')
@@ -87,11 +122,11 @@ with st.sidebar:
     st.write('Qual foi a variação mensal das doses no RS de janeiro a junho de 2026?')
     st.write('A vacinação contra influenza no RS está acelerando de janeiro a junho de 2026?')
     st.write('Quantas doses foram aplicadas em Porto Alegre, RS, em maio de 2026?')
-    st.caption('A consulta usa dados já importados no PostgreSQL. Alterar a visualização não refaz a consulta.')
+    st.caption('Consultas remotas podem levar alguns minutos. Alterar a visualização não refaz a consulta.')
     with st.expander('Recursos desta sessão'):
         st.checkbox('Reconhecer datas e consultas simples automaticamente (REGEX)', value=True, key='regex_planner_enabled', help='Reconhece apenas padrões completos e seguros. Perguntas mais complexas usam o provedor de IA configurado.')
         st.checkbox('Guardar histórico nesta sessão', value=True, key='session_history_enabled', help='Até 20 consultas, somente na memória desta sessão do Streamlit. Não requer PostgreSQL.')
-        st.caption('O histórico persistente exige configuração administrativa e não é ativado por este controle.')
+        st.caption('Histórico persistente e executor híbrido exigem configuração administrativa e não são ativados por este controle.')
 
 explorer_tab, history_tab, catalog_tab, sources_tab = st.tabs(
     ['Explorador de dados', 'Histórico', 'Disponibilidade dos dados', 'Fontes e proveniência']
@@ -130,7 +165,7 @@ with explorer_tab:
             with st.expander('Diagnóstico local de desempenho (segundos)', expanded=True):
                 st.json(payload['profiling'])
         source = payload.get('planner_source')
-        if source in ('regex', 'ollama'):
+        if source in ('regex', 'gemini', 'groq', 'openrouter', 'mistral', 'openai'):
             st.caption('Planejamento: ' + ('REGEX (determinístico)' if source == 'regex' else source.capitalize() + ' (IA)'))
         if payload.get('needs_clarification'):
             st.warning(payload.get('clarification_question') or 'Informe os parâmetros ausentes.')
@@ -181,7 +216,7 @@ with history_tab:
 
 with catalog_tab:
     st.subheader('Disponibilidade dos dados')
-    st.caption('Verifique quais competências possuem ingestão completa no PostgreSQL, sem ler microdados na interface.')
+    st.caption('Verifique quais competências possuem arquivos Parquet no R2. A verificação consulta somente os nomes dos arquivos, sem ler registros de vacinação.')
     catalog_uf = st.selectbox('UF', [
         'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT',
         'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS',
@@ -192,9 +227,10 @@ with catalog_tab:
     if st.button('Verificar competências', key='catalog_check'):
         try:
             from sus_explorer.data_catalog import inspect_competencies
-            with st.spinner('Consultando a disponibilidade das partições no PostgreSQL…'):
+            from sus_explorer.pni import PNIRemote
+            with st.spinner('Consultando a disponibilidade das partições no R2…'):
                 new_catalog = inspect_competencies(
-                    uf=catalog_uf, year=int(catalog_year)
+                    PNIRemote(), uf=catalog_uf, year=int(catalog_year)
                 )
                 catalog_key = (catalog_uf, int(catalog_year))
                 snapshots = st.session_state.setdefault('catalog_snapshots', {})
@@ -223,7 +259,7 @@ with catalog_tab:
                 st.caption('Esta é a primeira verificação desta UF e ano na sessão. Verifique novamente para comparar.')
             if any(row['Situação'] == 'Não verificada' for row in catalog['rows']):
                 st.warning('Algumas competências não puderam ser verificadas. Isso não significa ausência de dados.')
-            st.caption('Disponível indica uma ingestão concluída e validada. Não encontrada ou incompleta não significa zero doses.')
+            st.caption('Disponível significa que há fragmentos Parquet no caminho esperado; não garante completude, qualidade ou atualização. Não encontrada não significa zero doses.')
 
 
 with sources_tab:
@@ -235,14 +271,14 @@ with sources_tab:
     else:
         provenance = result.get('provenance') or {}
         origin = provenance.get('source_provenance', provenance)
-        executor = origin.get('executor', 'postgres')
+        executor = origin.get('executor', 'r2')
         columns = st.columns(3)
         columns[0].write('**Executor analítico**')
-        columns[0].write('PostgreSQL' if executor == 'postgres' else 'Origem não verificada')
+        columns[0].write('PostgreSQL' if executor == 'postgres' else 'R2 / Parquet')
         columns[1].write('**Período**')
         columns[1].write(str(origin.get('period') or '—'))
-        columns[2].write('**Partições consultadas**')
-        columns[2].write(str(origin.get('partitions_consulted', '—')))
+        columns[2].write('**Fragmentos Parquet**')
+        columns[2].write(str(origin.get('parquet_fragments', '—')))
         st.caption('Doses/registros representam eventos de vacinação, não indivíduos únicos ou cobertura vacinal.')
         if origin.get('partitions'):
             st.write('Partições analisadas: ' + ', '.join(origin['partitions']))

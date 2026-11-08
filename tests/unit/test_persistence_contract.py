@@ -96,10 +96,7 @@ def test_connection_applies_defensive_session_settings(monkeypatch):
 
     def fake_connect(**kwargs):
         captured.update(kwargs)
-        from unittest.mock import MagicMock
-        connection = MagicMock()
-        connection.cursor.return_value.__enter__.return_value.fetchone.return_value = None
-        return connection
+        return object()
 
     monkeypatch.setattr(database.psycopg, "connect", fake_connect)
     database.connect()

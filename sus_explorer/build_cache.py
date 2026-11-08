@@ -12,7 +12,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from .legacy_r2_config import settings
+from .config import settings
 from .data.cache.manifest import (
     cache_file,
     load_manifest,

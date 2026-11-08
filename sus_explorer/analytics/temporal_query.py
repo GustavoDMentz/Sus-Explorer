@@ -19,7 +19,7 @@ FILTER_FIELDS = (
     "uf", "municipality_code", "municipality_name", "vaccine_code", "vaccine_text",
     "age_min", "age_max", "sex",
 )
-SOURCE_LABEL = "SI-PNI / PostgreSQL"
+SOURCE_LABEL = "SI-PNI / healthbr-data / OpenDATASUS"
 
 
 class TemporalQueryError(RuntimeError):
@@ -46,7 +46,7 @@ def safe_source_provenance(origin: dict) -> dict:
         raise ValueError("Invalid source provenance")
     safe = {}
     if "source" in origin:
-        safe["source"] = origin["source"] if origin["source"] in (SOURCE_LABEL, "SI-PNI / healthbr-data / OpenDATASUS") else "UNVERIFIED_SOURCE_LABEL"
+        safe["source"] = SOURCE_LABEL if origin["source"] == SOURCE_LABEL else "UNVERIFIED_SOURCE_LABEL"
     uf = origin.get("uf_partition")
     if isinstance(uf, str) and re.fullmatch(r"[A-Z]{2}", uf):
         safe["uf_partition"] = uf
