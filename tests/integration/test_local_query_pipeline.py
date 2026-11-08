@@ -56,7 +56,9 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     monkeypatch.setenv("POSTGRES_HISTORY_ENABLED", "0")
     monkeypatch.setenv("POSTGRES_COUNT_ENABLED", "0")
 
-    # Temporal questions use deterministic document retrieval, not an LLM\n    # generated explanation. The planner may still use the regex fast path.\n
+    # Temporal questions use deterministic document retrieval, not an LLM
+    # generated explanation. The planner may still use the regex fast path.
+
     service_result = SUSExplorer().ask(QUESTION)
     assert [row["value"] for row in service_result["result"]["data"]["rows"]] == [2, 0, None, 3]
     assert [row["metrics"]["delta_1"]["value"] for row in
@@ -64,7 +66,10 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     assert service_result["result"]["provenance"]["source_provenance"]["missing_partitions"] == [
         "ano=2026/mes=03/uf=RS"
     ]
-    assert service_result["history_status"] == "disabled"\n    from sus_explorer.rag import INSUFFICIENT_CONTEXT\n    assert service_result["answer"] == INSUFFICIENT_CONTEXT\n
+    assert service_result["history_status"] == "disabled"
+    from sus_explorer.rag import INSUFFICIENT_CONTEXT
+    assert service_result["answer"] == INSUFFICIENT_CONTEXT
+
     calls.clear()
     st.cache_resource.clear()
     try:
