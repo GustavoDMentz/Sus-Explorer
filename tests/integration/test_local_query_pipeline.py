@@ -86,7 +86,7 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
         assert app.session_state["query_result"]["answer"] == INSUFFICIENT_CONTEXT
         app.run()
         assert not app.exception
-        assert len(calls) == expected_calls
+        assert len(calls) == 0
     finally:
         st.cache_resource.clear()
 
