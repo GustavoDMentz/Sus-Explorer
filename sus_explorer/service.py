@@ -148,7 +148,7 @@ class SUSExplorer:
         started = time.perf_counter()
         result = None
         try:
-            result = getattr(self, "executor", self.pni).execute(plan)
+            result = (self.executor if hasattr(self, "executor") else self.pni).execute(plan)
             version_history = self._observe_result(plan, result)
             rag_started = time.perf_counter()
             knowledge = getattr(self, "knowledge", None)
