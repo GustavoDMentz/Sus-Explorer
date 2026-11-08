@@ -56,10 +56,7 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     monkeypatch.setenv("POSTGRES_HISTORY_ENABLED", "0")
     monkeypatch.setenv("POSTGRES_COUNT_ENABLED", "0")
 
-    from sus_explorer.deterministic_planner import deterministic_plan
-    fast_path = deterministic_plan(QUESTION) is not None
-    expected_calls = 1 if fast_path else 2
-
+    # Temporal questions use deterministic document retrieval, not an LLM\n    # generated explanation. The planner may still use the regex fast path.\n
     service_result = SUSExplorer().ask(QUESTION)
     assert [row["value"] for row in service_result["result"]["data"]["rows"]] == [2, 0, None, 3]
     assert [row["metrics"]["delta_1"]["value"] for row in
@@ -67,8 +64,7 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     assert service_result["result"]["provenance"]["source_provenance"]["missing_partitions"] == [
         "ano=2026/mes=03/uf=RS"
     ]
-    assert service_result["history_status"] == "disabled"
-
+    assert service_result["history_status"] == "disabled"\n    from sus_explorer.rag import INSUFFICIENT_CONTEXT\n    assert service_result["answer"] == INSUFFICIENT_CONTEXT\n
     calls.clear()
     st.cache_resource.clear()
     try:
@@ -79,10 +75,10 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
         app.text_area[0].set_value(QUESTION)
         app.button[0].click().run()
         assert not app.exception
-        assert len(calls) == expected_calls
+        assert len(calls) == 0
         assert app.session_state["query_result"]["result"]["data"] == service_result["result"]["data"]
         assert len(app.dataframe) == 1
-        assert app.session_state["query_result"]["answer"] == "Resumo dos agregados."
+        assert app.session_state["query_result"]["answer"] == INSUFFICIENT_CONTEXT
         app.run()
         assert not app.exception
         assert len(calls) == expected_calls
