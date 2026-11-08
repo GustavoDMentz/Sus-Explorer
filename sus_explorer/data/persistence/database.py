@@ -6,6 +6,7 @@ import os
 import re
 
 import psycopg
+from psycopg import sql
 from dotenv import load_dotenv
 from psycopg.rows import dict_row
 
@@ -103,4 +104,15 @@ def connect() -> psycopg.Connection:
         ) from None
 
     event("postgres_connected")
+    # pgvector may have been installed in a shared schema by an earlier
+    # migration. Include only the extension's actual namespace, never an
+    # untrusted schema name from application input.
+    with connection.cursor() as cursor:
+        cursor.execute("""SELECT n.nspname AS extension_schema FROM pg_extension e
+            JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='vector'""")
+        extension = cursor.fetchone()
+        if extension and extension["extension_schema"] != schema:
+            cursor.execute(sql.SQL("SET search_path TO {}, {}, pg_catalog").format(
+                sql.Identifier(schema), sql.Identifier(extension["extension_schema"])))
+    connection.commit()
     return connection
