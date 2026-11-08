@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import urllib.request
+import urllib.error
 from typing import Any
 
 from google import genai
@@ -247,16 +249,71 @@ def guard_explicit_geography(question: str, plan: QueryPlan) -> QueryPlan:
     return QueryPlan.model_validate(payload)
 
 
+# OpenAI-compatible HTTP transport, without an additional runtime dependency.
+_PROVIDER_URLS = {
+    "groq": "https://api.groq.com/openai/v1",
+    "openrouter": "https://openrouter.ai/api/v1",
+    "mistral": "https://api.mistral.ai/v1",
+    "openai": "https://api.openai.com/v1",
+    "ollama": "http://127.0.0.1:11434/v1",
+}
+
+
+def _compatible_completion(*, provider: str, model: str, prompt: str,
+                           temperature: float, json_mode: bool,
+                           api_key: str | None = None) -> str:
+    base = os.getenv("LLM_BASE_URL") or _PROVIDER_URLS[provider]
+    from urllib.parse import urlsplit
+    parsed = urlsplit(base)
+    local_ollama = (provider == "ollama" and parsed.scheme == "http"
+                    and parsed.hostname in ("localhost", "127.0.0.1", "::1"))
+    if (not (parsed.scheme == "https" or local_ollama) or not parsed.hostname
+            or parsed.username or parsed.password or parsed.query or parsed.fragment):
+        raise ValueError("LLM_BASE_URL deve ser HTTPS (HTTP apenas para Ollama local)")
+    key = api_key or os.getenv(f"{provider.upper()}_API_KEY") or os.getenv("LLM_API_KEY")
+    if not key and provider != "ollama":
+        raise RuntimeError(f"{provider.upper()}_API_KEY não configurada")
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": temperature,
+    }
+    if json_mode:
+        payload["response_format"] = {"type": "json_object"}
+    request = urllib.request.Request(
+        base.rstrip("/") + "/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers=({"Content-Type": "application/json"} |
+                 ({"Authorization": f"Bearer {key}"} if key else {})),
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=90) as response:
+            body = response.read(1024 * 1024 + 1)
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"Falha HTTP {exc.code} no provedor {provider}") from None
+    if len(body) > 1024 * 1024:
+        raise RuntimeError("Resposta do provedor excedeu o limite permitido")
+    result = json.loads(body)
+    return result["choices"][0]["message"]["content"]
+
+
 class GeminiAnalyst:
     def __init__(self, *, api_key: str | None = None, model: str | None = None):
-        key = settings.gemini_api_key if api_key is None else api_key
-        if not key:
-            raise RuntimeError("GEMINI_API_KEY não configurada")
-
-        self.client = genai.Client(
-            api_key=key
-        )
-        self.model = model or settings.gemini_model
+        self.provider = os.getenv("LLM_PROVIDER", "gemini").lower()
+        if self.provider not in ("gemini", *_PROVIDER_URLS):
+            raise ValueError("LLM_PROVIDER não suportado")
+        self.model = model or os.getenv("LLM_MODEL") or ("" if self.provider == "ollama" else settings.gemini_model)
+        if not self.model:
+            raise ValueError("Defina LLM_MODEL para selecionar o modelo local do Ollama")
+        self.api_key = api_key
+        if self.provider == "gemini":
+            key = settings.gemini_api_key if api_key is None else api_key
+            if not key:
+                raise RuntimeError("GEMINI_API_KEY não configurada")
+            self.client = genai.Client(api_key=key)
+        else:
+            self.client = None
         # Enabled by default; safe full-match patterns fall back to Gemini.
         self.deterministic_enabled = os.getenv("SUS_DETERMINISTIC_PLANNER", "1") != "0"
         self.last_planner_source = None
@@ -277,7 +334,7 @@ class GeminiAnalyst:
                 plan = apply_whole_year_interval(q, self._plan_attempt(q, structured=structured))
                 if os.getenv("SUS_DETERMINISTIC_PLANNER") == "1":
                     plan = guard_explicit_geography(q, plan)
-                self.last_planner_source = "gemini"
+                self.last_planner_source = self.provider
                 return plan
             except PlannerResponseError:
                 if not structured:
@@ -292,6 +349,13 @@ class GeminiAnalyst:
                        "Omita campos não utilizados; nunca repita dígitos ou faça cálculos.\n"
                        + json.dumps(schema, ensure_ascii=False))
         try:
+            if self.provider != "gemini":
+                output = _compatible_completion(provider=self.provider, model=self.model,
+                                                prompt=prompt, temperature=0, json_mode=True,
+                                                api_key=self.api_key)
+                if not isinstance(output, str) or len(output.encode("utf-8")) > PLANNER_MAX_RESPONSE_BYTES:
+                    raise PlannerResponseError()
+                return QueryPlan.model_validate_json(output)
             r = self.client.models.generate_content(
                 model=self.model,
                 contents=prompt,
@@ -320,7 +384,7 @@ class GeminiAnalyst:
             if not isinstance(text, str) or not text.strip():
                 raise PlannerResponseError()
             return QueryPlan.model_validate_json(text)
-        except ValueError:
+        except (ValueError, KeyError, TypeError):
             # Includes SDK json.loads integer-limit failures before r is returned,
             # plus local Pydantic validation. Keep Python's integer guard enabled.
             raise PlannerResponseError() from None
@@ -343,6 +407,11 @@ class GeminiAnalyst:
                 "plan": p.model_dump(),
                 "result": res.model_dump(),
             }
+
+        if self.provider != "gemini":
+            return _compatible_completion(provider=self.provider, model=self.model,
+                                          prompt=f"{ANSWER}\n\n{json.dumps(payload, ensure_ascii=False)}",
+                                          temperature=0.1, json_mode=False, api_key=self.api_key)
 
         r = self.client.models.generate_content(
             model=self.model,
