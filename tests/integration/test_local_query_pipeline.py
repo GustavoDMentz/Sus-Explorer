@@ -56,8 +56,8 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     monkeypatch.setenv("POSTGRES_HISTORY_ENABLED", "0")
     monkeypatch.setenv("POSTGRES_COUNT_ENABLED", "0")
 
-    # Temporal questions use deterministic document retrieval, not an LLM
-    # generated explanation. The planner may still use the regex fast path.
+    from sus_explorer.rag import INSUFFICIENT_CONTEXT
+    # Temporal requests use retrieval-only explanations when no docs are indexed.
 
     service_result = SUSExplorer().ask(QUESTION)
     assert [row["value"] for row in service_result["result"]["data"]["rows"]] == [2, 0, None, 3]
@@ -67,7 +67,6 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
         "ano=2026/mes=03/uf=RS"
     ]
     assert service_result["history_status"] == "disabled"
-    from sus_explorer.rag import INSUFFICIENT_CONTEXT
     assert service_result["answer"] == INSUFFICIENT_CONTEXT
 
     calls.clear()
