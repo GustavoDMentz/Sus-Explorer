@@ -12,7 +12,7 @@ from sus_explorer.pni import QueryResult
 from sus_explorer.analytics.temporal_query import execute_temporal, temporal_answer_payload, TemporalQueryError, SOURCE_LABEL
 from sus_explorer.analytics.yoy import add_yoy
 from sus_explorer.streamlit_views import monthly_chart
-from sus_explorer.llm import OllamaAnalyst, PLANNER
+from sus_explorer.llm import GeminiAnalyst, PLANNER
 
 APP=str(Path(__file__).resolve().parents[2]/'app.py')
 
@@ -143,8 +143,8 @@ def test_planner_schema_mocks_recognize_yoy_and_legacy_default():
     old=plan().model_dump();del old['temporal_analysis']['comparison']
     assert QueryPlan.model_validate(old).temporal_analysis.comparison=='mom'
     assert 'mesmo mês do ano anterior' in PLANNER
-    analyst=OllamaAnalyst.__new__(OllamaAnalyst);analyst.model='mock';analyst.client=Mock()
-    analyst.client.chat.return_value=plan().model_dump_json()
+    analyst=GeminiAnalyst.__new__(GeminiAnalyst);analyst.model='mock';analyst.client=Mock()
+    analyst.client.models.generate_content.return_value=SimpleNamespace(parsed=plan().model_dump())
     assert analyst.plan('Compare janeiro a março de 2026 no RS com o mesmo mês do ano anterior').temporal_analysis.comparison=='yoy'
     with pytest.raises(ValueError): plan('arbitrary')
 
@@ -196,7 +196,7 @@ def test_ui_yoy_requires_explicit_click_for_history(monkeypatch):
     mom=execute_temporal(plan('mom'),lambda _:source([10,20,30]))
     response={'result':mom.model_dump(),'plan':plan('mom').model_dump(),'answer':None}
     service.pni.execute.return_value=run((10,20,30),(5,10,15))
-    at=AppTest.from_file(APP);at.session_state['query_result']=response;at.session_state['local_explorer']=service;at.run()
+    at=AppTest.from_file(APP);at.session_state['query_result']=response;at.session_state['byok_explorer']=service;at.run()
     at.selectbox[0].set_value('Interanual (YoY)').run()
     assert not at.exception
     service.pni.execute.assert_not_called()

@@ -35,14 +35,11 @@ def migrate(
                     sql.Identifier(target_schema)
                 )
             )
-            cursor.execute("""SELECT n.nspname AS extension_schema FROM pg_extension e
-                JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='vector'""")
-            extension = cursor.fetchone()
-            namespaces = [sql.Identifier(target_schema)]
-            if extension and extension["extension_schema"] != target_schema:
-                namespaces.append(sql.Identifier(extension["extension_schema"]))
-            namespaces.append(sql.Identifier("pg_catalog"))
-            cursor.execute(sql.SQL("SET LOCAL search_path TO {}").format(sql.SQL(", ").join(namespaces)))
+            cursor.execute(
+                sql.SQL("SET LOCAL search_path TO {}, pg_catalog").format(
+                    sql.Identifier(target_schema)
+                )
+            )
             cursor.execute("SELECT pg_advisory_xact_lock(91627134)")
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS schema_migrations (

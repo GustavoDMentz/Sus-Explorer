@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from sus_explorer.analytics.temporal_query import (
     SOURCE_LABEL, TemporalQueryError, execute_temporal, temporal_answer_payload,
 )
-from sus_explorer.llm import ANSWER, PLANNER, OllamaAnalyst, planner_output_schema
+from sus_explorer.llm import ANSWER, PLANNER, GeminiAnalyst, planner_output_schema
 from sus_explorer.pni import PNIRemote, QueryResult
 from sus_explorer.schemas import QueryPlan, TemporalRequest
 from sus_explorer.service import SUSExplorer
@@ -300,22 +300,20 @@ def test_sanitization_drops_microdata_private_metadata_and_preserves_origin(monk
     assert origin.model_dump() == before
 
 
-class FakeClient:
+class Models:
     def __init__(self, response):
         self.response = response
         self.calls = []
 
-    def chat(self, messages, **kwargs):
-        self.calls.append({"messages": messages, **kwargs})
-        if getattr(self.response, "parsed", None) is not None:
-            return json.dumps(self.response.parsed)
-        return self.response.text
+    def generate_content(self, **kwargs):
+        self.calls.append(kwargs)
+        return self.response
 
 
 def analyst(response):
-    llm = OllamaAnalyst.__new__(OllamaAnalyst)
+    llm = GeminiAnalyst.__new__(GeminiAnalyst)
     llm.model = "mock"
-    llm.client = FakeClient(response)
+    llm.client = SimpleNamespace(models=Models(response))
     return llm
 
 
@@ -332,11 +330,11 @@ def test_planner_intent_contract_with_mocked_gemini(question, order, phrase, mon
     llm = analyst(SimpleNamespace(parsed=expected.model_dump()))
     actual = llm.plan(question)
     assert actual == expected
-    call = llm.client.calls[0]
-    assert question in str(call["messages"]) and phrase in PLANNER
-    assert call["format"] == planner_output_schema()
-    assert call["format"] == planner_output_schema()
-    assert call["temperature"] == 0
+    call = llm.client.models.calls[0]
+    assert question in call["contents"] and phrase in PLANNER
+    assert call["config"].response_schema is None
+    assert call["config"].response_json_schema == planner_output_schema()
+    assert call["config"].automatic_function_calling.disable is True
 
 
 def test_planner_text_fallback_and_clarification():
@@ -353,7 +351,7 @@ def test_answer_receives_only_sanitized_aggregates_and_no_free_user_text():
     result = execute_temporal(p, lambda _: source([10, 15, 18, 20]))
     response = llm.answer("CPF 123.456.789-00 patient@example.com", p, result)
     assert "volume ainda cresceu" in response
-    contents = str(llm.client.calls[0]["messages"])
+    contents = llm.client.models.calls[0]["contents"]
     assert "patient@example.com" not in contents and "123.456.789-00" not in contents
     assert '"classification": "DERIVED"' in contents
     assert '"observation_classification": "DIRECT"' in contents

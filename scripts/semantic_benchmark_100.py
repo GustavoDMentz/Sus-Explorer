@@ -1,7 +1,7 @@
-"""100-case semantic benchmark: deterministic routing, optionally Ollama baseline.
+"""100-case semantic benchmark: deterministic routing, optionally Gemini baseline.
 
 Default: offline, no credentials, no API calls.
-Opt-in: --ollama invokes the existing OllamaAnalyst with deterministic mode disabled.
+Opt-in: --gemini invokes the existing GeminiAnalyst with deterministic mode disabled.
 This is a planner benchmark: no R2 queries or answer-generation calls.
 """
 from __future__ import annotations
@@ -85,7 +85,7 @@ def get_field(plan, dotted):
     return value
 
 
-def classify_ollama_error(exc):
+def classify_gemini_error(exc):
     """Stable, secret-free diagnostics; never serialize exception messages."""
     error_type = type(exc).__name__
     status = getattr(exc, "code", None)
@@ -108,13 +108,13 @@ def classify_ollama_error(exc):
     return {"type": error_type, "category": category, "http_status": status}
 
 
-def run(*, ollama=False):
+def run(*, gemini=False):
     analyst = None
-    if ollama:
+    if gemini:
         # The baseline must bypass the experimental regex path.
         os.environ.pop("SUS_DETERMINISTIC_PLANNER", None)
-        from sus_explorer.llm import OllamaAnalyst
-        analyst = OllamaAnalyst()
+        from sus_explorer.llm import GeminiAnalyst
+        analyst = GeminiAnalyst()
 
     rows = []
     for case in cases():
@@ -137,43 +137,43 @@ def run(*, ollama=False):
             started = time.perf_counter()
             try:
                 baseline = analyst.plan(case["question"])
-                row["ollama_plan"] = baseline.model_dump(mode="json")
-                row["ollama_error"] = None
-                row["ollama_error_detail"] = None
-                row["ollama_expected_field_errors"] = (
+                row["gemini_plan"] = baseline.model_dump(mode="json")
+                row["gemini_error"] = None
+                row["gemini_error_detail"] = None
+                row["gemini_expected_field_errors"] = (
                     {field: {"expected": value, "actual": get_field(baseline, field)}
                      for field, value in expected.items()
                      if get_field(baseline, field) != value}
                     if expected else None)
-                row["ollama_matches_regex"] = (
+                row["gemini_matches_regex"] = (
                     baseline.model_dump(exclude_none=True) ==
                     regex_plan.model_dump(exclude_none=True)
                     if regex_plan else None)
             except Exception as exc:
-                row["ollama_plan"] = None
-                row["ollama_error"] = type(exc).__name__
-                row["ollama_error_detail"] = classify_ollama_error(exc)
-            row["ollama_ms"] = round((time.perf_counter() - started) * 1000, 2)
+                row["gemini_plan"] = None
+                row["gemini_error"] = type(exc).__name__
+                row["gemini_error_detail"] = classify_gemini_error(exc)
+            row["gemini_ms"] = round((time.perf_counter() - started) * 1000, 2)
         rows.append(row)
     return rows
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--ollama", action="store_true",
-                        help="Opt in to up to 100 real Ollama planning requests (plus retries).")
+    parser.add_argument("--gemini", action="store_true",
+                        help="Opt in to up to 100 real Gemini planning requests (plus retries).")
     parser.add_argument("--output", default="semantic_benchmark_100.json")
     args = parser.parse_args()
-    rows = run(ollama=args.ollama)
+    rows = run(gemini=args.gemini)
     summary = {"total": len(rows),
                "regex_pass": sum(row["regex_pass"] for row in rows),
                "regex_coverage": sum(row["actual_route"] == "regex" for row in rows),
                "false_positive_routes": sum(row["expected_route"] == "llm"
                                             and row["actual_route"] == "regex" for row in rows),
-               "ollama_enabled": args.ollama,
-               "ollama_errors": sum(bool(row.get("ollama_error")) for row in rows),
-               "ollama_fallback_errors": sum(row["expected_route"] == "llm" and bool(row.get("ollama_error")) for row in rows),
-               "ollama_regex_comparison_errors": sum(row["expected_route"] == "regex" and bool(row.get("ollama_error")) for row in rows)}
+               "gemini_enabled": args.gemini,
+               "gemini_errors": sum(bool(row.get("gemini_error")) for row in rows),
+               "gemini_fallback_errors": sum(row["expected_route"] == "llm" and bool(row.get("gemini_error")) for row in rows),
+               "gemini_regex_comparison_errors": sum(row["expected_route"] == "regex" and bool(row.get("gemini_error")) for row in rows)}
     path = Path(args.output)
     path.write_text(json.dumps({"summary": summary, "cases": rows},
                                ensure_ascii=False, indent=2), encoding="utf-8")

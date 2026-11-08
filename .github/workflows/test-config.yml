@@ -1,0 +1,26 @@
+name: Test configuration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test GitHub contexts
+        env:
+          TEST_ACCESS: ${{ secrets.R2_ACCESS_KEY_ID }}
+          TEST_SECRET: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          TEST_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          TEST_BUCKET: ${{ vars.R2_BUCKET }}
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
+
+          [ -n "$TEST_ACCESS" ] && echo "ACCESS=SET" || echo "ACCESS=EMPTY"
+          [ -n "$TEST_SECRET" ] && echo "SECRET=SET" || echo "SECRET=EMPTY"
+
+          echo "ENDPOINT=${TEST_ENDPOINT:-EMPTY}"
+          echo "BUCKET=${TEST_BUCKET:-EMPTY}"

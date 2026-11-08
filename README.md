@@ -10,16 +10,16 @@ Em vez de montar uma consulta técnica, você descreve o que deseja investigar. 
 
 ## Como acessar
 
-**O SUS Explorer é disponibilizado como projeto de código aberto para execução no próprio computador.** Não há uma versão pública hospedada da aplicação. Para utilizá-lo, siga o [guia de IA local](docs/local-ai-rag.md) e as orientações gerais do [guia técnico](docs/technical-guide.md).
+**O SUS Explorer é disponibilizado como projeto de código aberto para execução no próprio computador.** Não há uma versão pública hospedada da aplicação. Para utilizá-lo, siga o [guia de instalação](docs/technical-guide.md#instalação-para-iniciantes).
 
 Ao abrir o aplicativo:
 
-1. Configure Ollama e PostgreSQL conforme o [guia de IA local](docs/local-ai-rag.md). O acesso aos dados de vacinação é configurado pelo projeto.
+1. Informe sua **chave da API Gemini** na barra lateral. Ela é necessária para interpretar perguntas em linguagem natural. O acesso aos dados de vacinação é configurado pelo projeto.
 2. Escreva uma pergunta indicando **local e período**.
 3. Clique em **Explorar** e aguarde o processamento. Algumas consultas podem levar minutos.
 4. Examine os números, gráficos, avisos e a aba **Fontes e proveniência**.
 
-O processamento de IA usa modelos locais no Ollama; as consultas analíticas leem as partições completas já importadas no PostgreSQL.
+A chave Gemini é fornecida pelo próprio usuário. Seu uso pode estar sujeito a limites ou cobranças do provedor. **Não compartilhe sua chave em mensagens, issues ou capturas de tela.**
 
 ## O que posso perguntar?
 
@@ -58,15 +58,15 @@ Use os resultados como apoio à **exploração e formulação de hipóteses**, n
 
 ## De onde vêm os dados?
 
-A fonte primária é o **Ministério da Saúde / OpenDATASUS**, por meio dos registros do SI-PNI. O serviço consulta competências importadas no PostgreSQL; o [guia técnico](docs/technical-guide.md) descreve a ingestão dos ZIPs oficiais mensais.
+A fonte primária é o **Ministério da Saúde / OpenDATASUS**, por meio dos registros do SI-PNI.
 
-O serviço consulta dados já importados no **PostgreSQL**. O espelho [**healthbr-data**](https://github.com/SidneyBissoli/healthbr-data), desenvolvido e mantido por **Sidney da Silva Bissoli**, foi usado como fonte histórica antes da migração; os leitores desse espelho agora ficam isolados da aplicação. Os ZIPs mensais oficiais OpenDataSUS verificados são importados diretamente no PostgreSQL com identidade e hash da fonte.
+O projeto utiliza arquivos disponibilizados pelo [**healthbr-data**](https://github.com/SidneyBissoli/healthbr-data), desenvolvido e mantido por **Sidney da Silva Bissoli**, que organiza e distribui os dados em formato adequado para análise.
 
 Agradecemos especialmente ao Sidney pelo trabalho de disponibilização e manutenção dessa infraestrutura aberta. O SUS Explorer é independente do healthbr-data e não reivindica autoria dos registros originais. Consulte as orientações de licença e atribuição do [projeto de origem](https://github.com/SidneyBissoli/healthbr-data#license).
 
 ## Limitações atuais
 
-O SUS Explorer é um **protótipo de pesquisa em evolução**. Algumas perguntas podem não ser compreendidas corretamente e nem todas as competências estão importadas no PostgreSQL. Competências ausentes ou parciais não significam zero doses. A migração integral do espelho histórico ainda exige capacidade de armazenamento, tempo e validação das contagens.
+O SUS Explorer é um **protótipo de pesquisa em evolução**. Algumas perguntas podem não ser compreendidas corretamente, alguns filtros podem não estar disponíveis e consultas remotas podem demorar ou falhar. Nem todos os períodos e locais têm necessariamente dados publicados.
 
 Quando usar informações em relatórios, apresentações ou trabalhos científicos, confira o período, os filtros, a fonte e a consistência dos resultados com as bases oficiais.
 
@@ -74,7 +74,7 @@ Quando usar informações em relatórios, apresentações ou trabalhos científi
 
 A documentação técnica foi preservada e organizada separadamente:
 
-- [**Guia técnico e operacional**](docs/technical-guide.md) — instalação, importação, arquitetura e testes.
+- [**Guia técnico e operacional**](docs/technical-guide.md) — instalação passo a passo para iniciantes, configuração avançada, arquitetura, segurança e testes.
 - [**Documentação do projeto**](docs/) — detalhes da interface, análise temporal e persistência.
 - [**Diário de desenvolvimento**](docs/development_journal.md) — histórico de decisões e entregas.
 - [**Registro de pull requests**](docs/pr_register.md) — alterações integradas e trabalhos pendentes.

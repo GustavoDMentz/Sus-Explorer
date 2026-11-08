@@ -5,9 +5,9 @@ import re
 import time
 from uuid import uuid4
 
-from .llm import OllamaAnalyst
-from .rag import KnowledgeStore, answer_with_context, select_context_hits, needs_document_context
-from .postgres_executor import PostgresQueryExecutor
+from .llm import GeminiAnalyst
+from .pni import PNIRemote
+from .hybrid import HybridQueryExecutor
 from .query_history import record_query, safe_provenance, event, observe_result
 from .schemas import DAILY_QUERY_UNSUPPORTED
 
@@ -48,11 +48,10 @@ def humanize_fields(fields: list[str]) -> list[str]:
 
 
 class SUSExplorer:
-    def __init__(self, *, ollama_model=None):
-        self.llm = OllamaAnalyst(model=ollama_model)
-        self.knowledge = KnowledgeStore(self.llm.client)
-        self.executor = PostgresQueryExecutor()
-        self.pni = self.executor  # existing internal call sites use this attribute
+    def __init__(self, *, gemini_api_key=None, gemini_model=None, r2_config=None):
+        self.llm = GeminiAnalyst(api_key=gemini_api_key, model=gemini_model)
+        self.pni = PNIRemote(config=r2_config)
+        self.executor = HybridQueryExecutor(self.pni)
         self.history_enabled = os.getenv("POSTGRES_HISTORY_ENABLED") == "1"
         self.version_history_enabled = os.getenv("ANALYTICAL_HISTORY_ENABLED") == "1"
 
@@ -63,7 +62,7 @@ class SUSExplorer:
             provenance = safe_provenance(result) if result is not None else {}
             source = (result.provenance.get("source_provenance", result.provenance)
                       if result is not None else {})
-            executor = source.get("executor", "unknown") if result is not None else "unknown"
+            executor = source.get("executor", "r2") if result is not None else "unknown"
             record_query(query_id=query_id, plan=plan, executor=executor,
                          status=status, duration_ms=duration_ms,
                          provenance=provenance)
@@ -84,7 +83,7 @@ class SUSExplorer:
             return {"status": "unavailable"}
 
     def ask(self, question: str) -> dict:
-        # Validate before REGEX, Ollama or PostgreSQL access.
+        # Validate before REGEX, Gemini, R2 or PostgreSQL access.
         if not isinstance(question, str) or not question.strip():
             raise ValueError("Question must be a non-empty string")
         if len(question.encode("utf-8")) > 4096:
@@ -150,21 +149,7 @@ class SUSExplorer:
         try:
             result = getattr(self, "executor", self.pni).execute(plan)
             version_history = self._observe_result(plan, result)
-            rag_started = time.perf_counter()
-            knowledge = getattr(self, "knowledge", None)
-            document_context_requested = needs_document_context(question, plan.operation)
-            hits = knowledge.search(question) if knowledge is not None and document_context_requested else []
-            retrieval_ms = int((time.perf_counter() - rag_started) * 1000)
-            context_hits = select_context_hits(hits)
-            if document_context_requested:
-                from .analytics.temporal_query import temporal_answer_payload
-                payload = temporal_answer_payload(plan, result) if plan.operation == "temporal" else result.model_dump()
-                answer = answer_with_context(self.llm.client, question, payload, context_hits)
-            else:
-                answer = self.llm.answer(question, plan, result)
-            event("rag_answer_completed", retrieval_ms=retrieval_ms,
-                  generation_ms=int((time.perf_counter() - rag_started) * 1000) - retrieval_ms,
-                  retrieved_chunks=len(hits), included_chunks=len(context_hits))
+            answer = self.llm.answer(question, plan, result)
         except Exception:
             self._record_history(query_id, plan, result, "FAILED",
                                  int((time.perf_counter() - started) * 1000))
@@ -183,9 +168,6 @@ class SUSExplorer:
             "planner_source": planner_source,
             "result": result.model_dump(),
             "answer": answer,
-            "sources": [{"documentId": h["document_id"], "citationId": f"{h['original_reference']}#chunk-{h['chunk_index']}", "title": h["title"],
-                         "reference": h["original_reference"], "chunkIndex": h["chunk_index"],
-                         "score": h["score"]} for h in context_hits],
             "query_id": str(query_id),
             "history_status": history_status,
             "version_history": version_history,
