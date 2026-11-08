@@ -255,6 +255,7 @@ _PROVIDER_URLS = {
     "openrouter": "https://openrouter.ai/api/v1",
     "mistral": "https://api.mistral.ai/v1",
     "openai": "https://api.openai.com/v1",
+    "ollama": "http://127.0.0.1:11434/v1",
 }
 
 
@@ -264,10 +265,13 @@ def _compatible_completion(*, provider: str, model: str, prompt: str,
     base = os.getenv("LLM_BASE_URL") or _PROVIDER_URLS[provider]
     from urllib.parse import urlsplit
     parsed = urlsplit(base)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
-        raise ValueError("LLM_BASE_URL deve ser um endpoint HTTPS válido")
+    local_ollama = (provider == "ollama" and parsed.scheme == "http"
+                    and parsed.hostname in ("localhost", "127.0.0.1", "::1"))
+    if (not (parsed.scheme == "https" or local_ollama) or not parsed.hostname
+            or parsed.username or parsed.password or parsed.query or parsed.fragment):
+        raise ValueError("LLM_BASE_URL deve ser HTTPS (HTTP apenas para Ollama local)")
     key = api_key or os.getenv(f"{provider.upper()}_API_KEY") or os.getenv("LLM_API_KEY")
-    if not key:
+    if not key and provider != "ollama":
         raise RuntimeError(f"{provider.upper()}_API_KEY não configurada")
     payload = {
         "model": model,
@@ -279,7 +283,8 @@ def _compatible_completion(*, provider: str, model: str, prompt: str,
     request = urllib.request.Request(
         base.rstrip("/") + "/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        headers=({"Content-Type": "application/json"} |
+                 ({"Authorization": f"Bearer {key}"} if key else {})),
         method="POST",
     )
     try:
@@ -298,7 +303,9 @@ class GeminiAnalyst:
         self.provider = os.getenv("LLM_PROVIDER", "gemini").lower()
         if self.provider not in ("gemini", *_PROVIDER_URLS):
             raise ValueError("LLM_PROVIDER não suportado")
-        self.model = model or os.getenv("LLM_MODEL") or settings.gemini_model
+        self.model = model or os.getenv("LLM_MODEL") or ("" if self.provider == "ollama" else settings.gemini_model)
+        if not self.model:
+            raise ValueError("Defina LLM_MODEL para selecionar o modelo local do Ollama")
         self.api_key = api_key
         if self.provider == "gemini":
             key = settings.gemini_api_key if api_key is None else api_key
