@@ -368,12 +368,17 @@ def test_natural_language_service_with_mocked_boundaries():
     backend.timeseries = lambda _: source([10, 15, 18, 20])
     explorer.pni = backend
     calls = []
-    explorer.llm = SimpleNamespace(plan=lambda _: p, answer=lambda q, p, result: calls.append(result) or "Variação mensal diminuindo.")
+    explorer.llm = SimpleNamespace(plan=lambda _: p, client=SimpleNamespace(),
+                                   answer=lambda q, p, result: calls.append(result) or "Variação mensal diminuindo.")
+    explorer.knowledge = SimpleNamespace(search=lambda _: [])
     response = explorer.ask("A vacinação contra influenza no RS está acelerando de janeiro a abril de 2026?")
     assert not response["needs_clarification"]
     assert response["result"]["operation"] == "temporal"
     assert response["result"]["provenance"]["classification"] == "DERIVED"
-    assert values(calls[0], 2) == [None, None, -2, -1]
+    from sus_explorer.rag import INSUFFICIENT_CONTEXT
+    assert response["answer"] == INSUFFICIENT_CONTEXT
+    assert not calls  # documental questions must not fall back to free generation
+    assert [row["metrics"]["delta_2"]["value"] for row in response["result"]["data"]["rows"]] == [None, None, -2, -1]
 
 
 def test_service_clarification_avoids_query_and_answer():
