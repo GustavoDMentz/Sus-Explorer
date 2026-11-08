@@ -10,7 +10,7 @@ from __future__ import annotations
 import pyarrow.dataset as pds
 import pyarrow.fs as fs
 
-from ...config import settings
+from ...legacy_r2_config import settings
 
 
 def make_filesystem() -> fs.S3FileSystem:

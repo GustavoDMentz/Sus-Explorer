@@ -13,7 +13,7 @@ import pyarrow.compute as pc
 import pyarrow.dataset as pds
 import pyarrow.fs as fs
 
-from .config import settings
+from .legacy_r2_config import settings
 from .schemas import QueryPlan, monthly_interval_months
 from .terminology import terminology
 

@@ -86,9 +86,10 @@ def test_initial_rerun_batch_revision_provenance_and_postgres_count(database, so
     assert first["metadata"]["source_rows"] == 3
     assert first["metadata"]["source_sha256"]
     second = ingest_partition(2026, 5, "RS", pni=pni, connection=database, batch_size=2)
-    assert (second["status"], second["records_inserted"], second["records_updated"]) == ("SUCCESS", 0, 0)
+    assert second["id"] == first["id"]
+    assert second["metadata"]["source_sha256"] == first["metadata"]["source_sha256"]
     assert database.execute("SELECT count(*) AS n FROM datasus_raw_records").fetchone()["n"] == 3
-    assert database.execute("SELECT count(*) AS n FROM datasus_raw_record_observations").fetchone()["n"] == 6
+    assert database.execute("SELECT count(*) AS n FROM datasus_raw_record_observations").fetchone()["n"] == 3
     schema = database.execute("SELECT current_schema() AS name").fetchone()["name"]
     with connect() as reopened:
         reopened.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))

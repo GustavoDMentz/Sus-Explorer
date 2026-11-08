@@ -1,166 +1,21 @@
 # Arquitetura do SUS Explorer
 
-## Visão Geral
+O fluxo ativo é Streamlit (`app.py`) → `SUSExplorer.ask()` → planejador determinístico ou Ollama → `QueryPlan` validado → `PostgresQueryExecutor` → tabelas relacionais PostgreSQL → agregados Python/SQL → recuperação documental opcional em pgvector → Ollama → resultado com proveniência analítica e fontes documentais separadas.
 
-O **SUS Explorer** é uma plataforma de exploração analítica do SI-PNI (Sistema de Informação do Programa Nacional de Imunizações). O sistema opera sobre um cache colunar de alta performance particionado em Parquet (`cache/pni_cube/`), construído a partir dos microdados brutos do Ministério da Saúde no Cloudflare R2 / S3.
+## Dados analíticos
 
----
+`datasus_ingestion_runs` registra origem, hash, competência, contagens e estado. `datasus_raw_records` preserva o conteúdo original e seu histórico; `immunization_records` mantém a projeção estruturada de identidade, vacina, dose, data e local. O executor seleciona somente a última ingestão `SUCCESS` de cada competência cuja contagem corresponde à origem declarada. Ausência ou ingestão parcial não vira zero. Contagens, agrupamentos, séries e latência são SQL parametrizado; diferenças temporais e percentuais continuam no módulo Python existente. O modelo de linguagem não produz SQL nem calcula doses.
 
-## Estrutura de Pacotes
+O catálogo do Streamlit consulta o PostgreSQL. A operação normal não importa `pyarrow`, não abre Parquet e não usa credenciais R2. Os módulos `pni.py`, `hybrid.py`, `data/remote/r2.py` e `data/persistence/ingest_r2.py` permanecem como ferramentas legadas isoladas para migração e comparação enquanto o inventário ainda não estiver integralmente migrado.
 
-```
-sus_explorer/
-├── __init__.py
-├── paths.py                    # Constantes de caminhos centralizados do projeto
-├── config.py                   # Configurações do sistema (dataclass Settings)
-├── schemas.py                  # Schemas de dados da API / LLM (QueryPlan, etc.)
-├── build_cache.py              # CLI/Script de construção do cubo de cache
-├── pni.py                      # Mecanismo de consulta e execução remota/local
-├── service.py                  # Fachada principal da aplicação
-├── hybrid.py                   # Roteamento determinístico R2/PostgreSQL
-├── query_history.py            # Fronteira opcional do histórico operacional
-├── llm.py                      # Integração com o Google Gemini (LLM)
-├── terminology.py              # Dicionários e padronização de imunobiológicos
-├── analytics/
-│   ├── temporal.py             # Diferenças finitas mensais exatas, sem I/O
-│   └── temporal_query.py       # Adaptador timeseries → DERIVED + apresentação segura
-├── data/
-│   ├── cache/
-│   │   └── manifest.py         # Leitura, escrita e validação do manifest.json
-│   ├── persistence/             # PostgreSQL operacional opt-in
-│   │   ├── database.py          # Conexão explícita, sem efeito em imports
-│   │   ├── migrate.py           # Migrations transacionais com checksum
-│   │   ├── ingest_r2.py         # Ingestão explícita de uma partição mensal/UF
-│   │   ├── history.py           # Metadados de consultas, sem perguntas ou resultados
-│   │   ├── healthcheck.py       # SELECT 1 real
-│   │   ├── migrations/          # Esquema versionado e append-only
-│   │   └── repositories.py      # Fronteiras transacionais de persistência
-│   └── remote/
-│       └── r2.py               # Conexão PyArrow S3FileSystem e caminhos no R2
-├── domain/
-│   └── provenance.py           # Modelos de proveniência e resultados de auditoria
-└── transform/
-    └── pni.py                  # Aliases canônicos, faixas etárias, normalização de strings
-```
+## Conhecimento documental
 
----
+A migration 007 cria `knowledge_documents`, `knowledge_chunks` (`vector(1024)`) e `knowledge_indexing_attempts`. Arquivos públicos escolhidos pelo operador são divididos em trechos, transformados em embeddings pelo Ollama e gravados em uma transação por documento. A busca por cosseno filtra fonte e identidade do modelo por nome mais digest. Perguntas analíticas simples dispensam busca vetorial; perguntas interpretativas e temporais podem recuperar documentação. Para essas perguntas, o backend apresenta somente excertos literais com identificador `arquivo#chunk-N`; não pede ao gerador para parafrasear documentos. Sem excertos verificáveis, a resposta documental declara contexto insuficiente. Documentos recuperados são tratados como dados não confiáveis.
 
-## Fluxo de Dados e Responsabilidades
+## Fontes e migração
 
-```mermaid
-graph TD
-    subgraph Data Access Layer
-        R2["data/remote/r2.py"] --> PyArrowS3["PyArrow S3FileSystem"]
-        Manifest["data/cache/manifest.py"] --> ManifestJSON["cache/pni_cube/manifest.json"]
-        Paths["paths.py"] --> LocalCache["cache/pni_cube/"]
-    end
+A fonte histórica ativa antes desta mudança era o espelho `healthbr-data/sipni/microdados/` no Cloudflare R2, organizado por ano/mês/UF. O inventário de 08/11/2026 encontrou 2.187 partições. Uma checagem HTTP sem credenciais encontrou 81 arquivos mensais oficiais OpenDataSUS, de 2020-01 a 2026-09, com 215,2 GB comprimidos no total. Isso comprova disponibilidade dos ZIPs, não a contagem por UF nem a carga integral no PostgreSQL. `ingest_csv.py` lê o CSV dentro do ZIP, filtra a UF e carrega em lotes. O leitor R2 permanece isolado apenas para validação pontual; credenciais históricas potencialmente comprometidas não são usadas. Nenhum bucket é modificado ou apagado. Consulte [persistência](persistence.md) e [IA local](local-ai-rag.md).
 
-    subgraph Transformation Layer
-        Transform["transform/pni.py"] --> AgeBand["age_band_series()"]
-        Transform --> Normalize["normalize_string()"]
-        Transform --> Aliases["CUBE_ALIASES"]
-    end
+## Limites
 
-    subgraph Execution & Service Layer
-        Builder["build_cache.py"] --> R2
-        Builder --> Transform
-        Builder --> Manifest
-        Service["service.py"] --> Router["hybrid.py"]
-        Router --> PNIRemote["pni.py / R2"]
-        Router --> PostgresCount["PostgreSQL: count elegível"]
-        Service --> QueryHistory["query_history.py"]
-        Service --> Terminology["terminology.py"]
-        Service --> Gemini["llm.py"]
-    end
-
-    subgraph User Interface
-        Streamlit["app.py"] --> Service
-    end
-
-    subgraph Operational Persistence
-        Postgres["PostgreSQL + JSONB"] --> Ingestion["Estado e proveniência"]
-        Postgres --> History["Histórico de metadados"]
-        Postgres --> Normalized["Projeções normalizadas"]
-        Postgres -. futuro .-> Pgvector["pgvector / RAG"]
-    end
-```
-
----
-
-## Consultas temporais derivadas
-
-`QueryPlan.operation="temporal"` exige um `TemporalRequest` tipado (ordem 1–3,
-`doses`, `monthly`) e intervalo/UF explícitos. `PNIRemote.execute()` delega ao
-adaptador, que executa um plano `timeseries` pelo mesmo backend e entrega apenas
-a série agregada a `TemporalAnalytics.calculate()`. O LLM identifica intenção
-e explica o resultado; não calcula nem altera os números. Observações são
-`DIRECT` e diferenças `DERIVED`; não há novo enriquecimento `ENRICHED`.
-
-O resultado contém filtros, proveniência pública de origem e uma referência
-SHA-256 da consulta/série. Metadados de origem são projetados por allowlist,
-com redação de secrets, antes da apresentação. Detalhes, testes e limites estão
-em [`temporal_queryplan.md`](temporal_queryplan.md).
-
-## Diretrizes de Conservadorismo Arquitetural
-
-1. **Invariância de Dados**: Nenhum arquivo do cache `cache/pni_cube` é reescrito durante refatorações.
-2. **Backward Compatibility**: Imports históricos de `sus_explorer.build_cache` continuam funcionando através de re-exportações delegadas.
-3. **Independência da Auditoria**: `sus_explorer/audit_ms_2023_10.py` e `recover_pni_2023_10.py` mantêm sua capacidade de auditoria determinística independente da produção.
-4. **Backends Complementares**: Parquet/R2 permanece o executor padrão para a
-   análise dos microdados e cubos. PostgreSQL armazena metadados, revisões e
-   projeções selecionadas. Por opt-in, apenas `count` mensal/UF sem filtros pode
-   usar PostgreSQL quando a ingestão mais recente, a contagem e o hash da origem
-   comprovam cobertura completa; os demais planos permanecem no R2.
-5. **Autoridade Determinística**: o LLM planeja consultas validadas e explica
-   agregados; números vêm dos backends determinísticos e nenhum microdado
-   individual é enviado ao modelo.
-6. **RAG Futuro**: pgvector é apenas capacidade de fundação. Qualquer indexação,
-   política de documentos ou uso em respostas exige mudança posterior,
-   testes e documentação próprios.
-7. **Fronteira PostgreSQL**: migrations, runtime writer e reader usam roles
-   distintas. Comprometer o runtime não concede ownership, DDL, controle de
-   triggers ou acesso à role de migration; o banco reforça essas negativas.
-
----
-
-## Estado de integração do Streamlit (outubro de 2026)
-
-Este mapa descreve **o caminho efetivamente conectado à interface**, não
-todas as capacidades disponíveis no repositório.
-
-| Camada | Integração efetiva | Limite |
-| --- | --- | --- |
-| Interface `app.py` | Consultas, histórico de sessão, catálogo e proveniência | O histórico de sessão não é persistente |
-| Planejamento | `GeminiAnalyst.plan()` tenta REGEX conservador, depois Gemini | Consultas não reconhecidas ainda dependem de Gemini |
-| Orquestração | `SUSExplorer.ask()` valida plano, executa, observa resultado e explica | Uma chave Gemini é exigida para o explorador de consultas |
-| Execução | `HybridQueryExecutor` usa R2 por padrão | PostgreSQL só atende contagem mensal/UF sem filtros, com integridade comprovada e `POSTGRES_COUNT_ENABLED=1` |
-| Análise temporal | Python/PyArrow produz observações e diferenças determinísticas | Lacunas são mantidas; não são zeros |
-| Histórico operacional | `POSTGRES_HISTORY_ENABLED=1` ativa registro de metadados | Não armazena perguntas/respostas textuais |
-| Versões analíticas | `ANALYTICAL_HISTORY_ENABLED=1` ativa observação de agregados versionados | Exige PostgreSQL e chave `ANALYTICAL_HISTORY_KEY` válida |
-| Catálogo | Listagem R2 sob demanda por UF/ano; tamanho, fragmentos, última modificação | Não usa manifesto persistente; existência de arquivo não prova completude |
-| Comparação do catálogo | `catalog_changes.compare_snapshots()` na sessão | Não constitui histórico auditável nem prova revisão de microdados |
-| Logging e auditoria | Componentes operacionais presentes | Cobertura de ponta a ponta não é certificada por esta tabela |
-| pgvector / RAG | Fundação arquitetural | Não faz parte do fluxo de respostas do Streamlit |
-
-### Fronteiras intencionais
-
-- **Não habilitar PostgreSQL automaticamente:** o banco exige migrations, credenciais
-  e garantias de integridade próprias. O R2 continua como fonte analítica padrão.
-- **Não tratar metadados de arquivos como prova científica de revisão:** tamanho,
-  contagem de fragmentos e `mtime` são sinais de armazenamento, não hashes de conteúdo.
-- **Não confundir histórico de sessão e versões científicas:** têm retenção, garantias
-  e dependências diferentes.
-- **Não exigir Gemini para consultar o catálogo:** a aba de disponibilidade usa
-  apenas o acesso público configurado ao R2.
-
-### Verificação da integração
-
-- `tests/integration/test_local_query_pipeline.py`: planejamento, Parquet local,
-  análise, serviço e interface de consulta.
-- `tests/integration/test_streamlit_catalog_wiring.py`: catálogo e comparação
-  acionados pela interface sem chave Gemini nem PostgreSQL.
-- `tests/unit/test_data_catalog.py` e `tests/unit/test_catalog_changes.py`:
-  disponibilidade, falhas de listagem e semântica de mudanças.
-
-Esses testes validam os caminhos cobertos, **não** certificam disponibilidade
-do R2 real, comportamento de serviços externos ou toda a segurança operacional.
+O repositório não possui API REST separada: o frontend é Streamlit. O índice documental tem somente o escopo de documentação pública do projeto, sem upload ou permissões por organização. O volume integral de microdados exige dimensionamento de disco, RAM, índices e tempo de importação; a validação de uma partição não comprova migração completa nem equivalência de todas as consultas.

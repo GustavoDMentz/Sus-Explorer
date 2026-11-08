@@ -18,20 +18,20 @@ def compare_snapshots(previous: dict, current: dict) -> list[dict]:
             status = "Comparação indisponível"
         elif before["Situação"] != row["Situação"]:
             status = "Disponibilidade alterada"
-        elif before["Fragmentos"] != row["Fragmentos"]:
-            status = "Quantidade de fragmentos alterada"
-        elif before["Tamanho (MiB)"] != row["Tamanho (MiB)"]:
-            status = "Tamanho alterado"
-        elif before["Última modificação (UTC)"] != row["Última modificação (UTC)"]:
-            status = "Data de modificação alterada"
+        elif before["Registros"] != row["Registros"]:
+            status = "Quantidade de registros alterada"
+        elif before["Execução"] != row["Execução"]:
+            status = "Execução de ingestão alterada"
+        elif before["Última ingestão (UTC)"] != row["Última ingestão (UTC)"]:
+            status = "Data de ingestão alterada"
         else:
             status = "Sem alteração detectada"
         changes.append({
             "Mês": month,
             "Comparação": status,
-            "Fragmentos anteriores": before["Fragmentos"] if before else None,
-            "Fragmentos atuais": row["Fragmentos"],
-            "Tamanho anterior (MiB)": before["Tamanho (MiB)"] if before else None,
-            "Tamanho atual (MiB)": row["Tamanho (MiB)"],
+            "Registros anteriores": before["Registros"] if before else None,
+            "Registros atuais": row["Registros"],
+            "Execução anterior": before["Execução"] if before else None,
+            "Execução atual": row["Execução"],
         })
     return changes

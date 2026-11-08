@@ -1,0 +1,2 @@
+# Explicit legacy Parquet/R2 migration and audit tools only.
+pyarrow>=18.0

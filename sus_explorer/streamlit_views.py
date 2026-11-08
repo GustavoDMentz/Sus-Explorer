@@ -293,6 +293,9 @@ def render_monthly(payload, question='', comparison_executor=None):
 
     provenance_heading('Interpretação', 'DERIVED', 'interpretation_heading')
     st.write(contextual_summary(summary))
+    if payload.get('answer'):
+        st.write(payload['answer'])
+    render_document_sources(payload)
     if temporal and yoy and yoy_available:
         available_yoy = [r for r in rows if r['metrics']['yoy_pct']['value'] is not None]
         if available_yoy:
@@ -325,6 +328,13 @@ def render_monthly(payload, question='', comparison_executor=None):
         st.download_button('Baixar resultado e proveniência JSON', json.dumps(payload, ensure_ascii=False, indent=2), 'sus_explorer_resultado.json', 'application/json', on_click='ignore')
         st.json(payload.get('plan', {}))
         st.json(payload['result'])  # source result, not presentation placeholders
+
+
+def render_document_sources(payload):
+    if payload.get('sources'):
+        with st.expander('Fontes documentais consultadas'):
+            for source in payload['sources']:
+                st.write(f"{source['title']} · {source['reference']} · trecho {source['chunkIndex']} · similaridade {source['score']:.3f}")
 
 
 def render_result(payload, question='', comparison_executor=None):
@@ -364,11 +374,12 @@ def render_result(payload, question='', comparison_executor=None):
         st.caption(f"Registros válidos: {data.get('n_valid', '—')}")
     st.subheader('Interpretação')
     st.write(percentage_summary(data['rows']) if operation == 'temporal' and any('pct_change' in r.get('metrics', {}) for r in data.get('rows', [])) else payload.get('answer') or 'Nenhuma interpretação disponível.')
+    render_document_sources(payload)
     for warning in result.get('warnings', []):
         st.warning(warning)
     st.download_button('Baixar resultado e proveniência JSON', json.dumps(payload, ensure_ascii=False, indent=2),
                        'sus_explorer_resultado.json', 'application/json', on_click='ignore')
     with st.expander('Plano, resultado e proveniência verificável'):
-        st.caption(f"Operação: {operation} · Fragmentos: {origin.get('parquet_fragments', '—')} · Tempo de origem: {origin.get('elapsed_seconds', '—')} s")
+        st.caption(f"Operação: {operation} · Partições: {origin.get('partitions_consulted', '—')} · Tempo de origem: {origin.get('elapsed_seconds', '—')} s")
         st.json(payload.get('plan', {}))
         st.json(result)

@@ -3,14 +3,10 @@ from __future__ import annotations
 import json
 import os
 import re
-import urllib.request
-import urllib.error
 from typing import Any
 
-from google import genai
-from google.genai import types
 
-from .config import settings
+from .ollama import OllamaClient
 from .schemas import QueryPlan
 
 
@@ -19,6 +15,11 @@ Você é o planner de um explorador de dados públicos do SI-PNI.
 
 REGRA CRÍTICA:
 NUNCA invente ano, mês, dia, UF, município, vacina ou período.
+Uma pergunta que pede explicação documental junto com uma contagem continua sendo
+uma consulta analítica de contagem; não peça campos adicionais por causa da explicação.
+Um mês nomeado com ano (por exemplo, "janeiro de 2020") é uma competência mensal
+completa. NUNCA peça "day" para uma consulta mensal. Só identifique dia quando
+o usuário pedir explicitamente uma data ou granularidade diária.
 
 Se uma informação necessária estiver ausente, use:
 
@@ -249,65 +250,10 @@ def guard_explicit_geography(question: str, plan: QueryPlan) -> QueryPlan:
     return QueryPlan.model_validate(payload)
 
 
-# OpenAI-compatible HTTP transport, without an additional runtime dependency.
-_PROVIDER_URLS = {
-    "groq": "https://api.groq.com/openai/v1",
-    "openrouter": "https://openrouter.ai/api/v1",
-    "mistral": "https://api.mistral.ai/v1",
-    "openai": "https://api.openai.com/v1",
-}
-
-
-def _compatible_completion(*, provider: str, model: str, prompt: str,
-                           temperature: float, json_mode: bool,
-                           api_key: str | None = None) -> str:
-    base = os.getenv("LLM_BASE_URL") or _PROVIDER_URLS[provider]
-    from urllib.parse import urlsplit
-    parsed = urlsplit(base)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
-        raise ValueError("LLM_BASE_URL deve ser um endpoint HTTPS válido")
-    key = api_key or os.getenv(f"{provider.upper()}_API_KEY") or os.getenv("LLM_API_KEY")
-    if not key:
-        raise RuntimeError(f"{provider.upper()}_API_KEY não configurada")
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature,
-    }
-    if json_mode:
-        payload["response_format"] = {"type": "json_object"}
-    request = urllib.request.Request(
-        base.rstrip("/") + "/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=90) as response:
-            body = response.read(1024 * 1024 + 1)
-    except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"Falha HTTP {exc.code} no provedor {provider}") from None
-    if len(body) > 1024 * 1024:
-        raise RuntimeError("Resposta do provedor excedeu o limite permitido")
-    result = json.loads(body)
-    return result["choices"][0]["message"]["content"]
-
-
-class GeminiAnalyst:
-    def __init__(self, *, api_key: str | None = None, model: str | None = None):
-        self.provider = os.getenv("LLM_PROVIDER", "gemini").lower()
-        if self.provider not in ("gemini", *_PROVIDER_URLS):
-            raise ValueError("LLM_PROVIDER não suportado")
-        self.model = model or os.getenv("LLM_MODEL") or settings.gemini_model
-        self.api_key = api_key
-        if self.provider == "gemini":
-            key = settings.gemini_api_key if api_key is None else api_key
-            if not key:
-                raise RuntimeError("GEMINI_API_KEY não configurada")
-            self.client = genai.Client(api_key=key)
-        else:
-            self.client = None
-        # Enabled by default; safe full-match patterns fall back to Gemini.
+class OllamaAnalyst:
+    def __init__(self, *, model: str | None = None, client: OllamaClient | None = None):
+        self.model = model or os.getenv("OLLAMA_CHAT_MODEL", "qwen3:4b-instruct-2507-q4_K_M")
+        self.client = client or OllamaClient()
         self.deterministic_enabled = os.getenv("SUS_DETERMINISTIC_PLANNER", "1") != "0"
         self.last_planner_source = None
 
@@ -327,7 +273,7 @@ class GeminiAnalyst:
                 plan = apply_whole_year_interval(q, self._plan_attempt(q, structured=structured))
                 if os.getenv("SUS_DETERMINISTIC_PLANNER") == "1":
                     plan = guard_explicit_geography(q, plan)
-                self.last_planner_source = getattr(self, "provider", "gemini")
+                self.last_planner_source = "ollama"
                 return plan
             except PlannerResponseError:
                 if not structured:
@@ -336,50 +282,15 @@ class GeminiAnalyst:
 
     def _plan_attempt(self, q: str, *, structured: bool) -> QueryPlan:
         schema = planner_output_schema()
-        prompt = f"{PLANNER}\n\nPergunta: {q}"
-        if not structured:
-            prompt += ("\nRetorne somente um objeto JSON compacto conforme este contrato. "
-                       "Omita campos não utilizados; nunca repita dígitos ou faça cálculos.\n"
-                       + json.dumps(schema, ensure_ascii=False))
+        prompt = q if structured else q + "\nRetorne somente JSON conforme este contrato: " + json.dumps(schema, ensure_ascii=False)
         try:
-            if getattr(self, "provider", "gemini") != "gemini":
-                output = _compatible_completion(provider=self.provider, model=self.model,
-                                                prompt=prompt, temperature=0, json_mode=True,
-                                                api_key=self.api_key)
-                if not isinstance(output, str) or len(output.encode("utf-8")) > PLANNER_MAX_RESPONSE_BYTES:
-                    raise PlannerResponseError()
-                return QueryPlan.model_validate_json(output)
-            r = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0,
-                    thinking_config=(types.ThinkingConfig(thinking_level="LOW")
-                                     if self.model.startswith("gemini-3") else None),
-                    max_output_tokens=PLANNER_MAX_OUTPUT_TOKENS,
-                    response_mime_type="application/json",
-                    response_json_schema=schema if structured else None,
-                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-                ),
-            )
-            candidates = getattr(r, "candidates", None)
-            if isinstance(candidates, list) and any(
-                getattr(candidate, "finish_reason", None) not in (None, "STOP")
-                for candidate in candidates
-            ):
+            output = self.client.chat(
+                [{"role": "system", "content": PLANNER}, {"role": "user", "content": prompt}],
+                model=self.model, format=schema if structured else "json", temperature=0)
+            if len(output.encode("utf-8")) > PLANNER_MAX_RESPONSE_BYTES:
                 raise PlannerResponseError()
-            text = getattr(r, "text", None)
-            if isinstance(text, str) and len(text.encode("utf-8")) > PLANNER_MAX_RESPONSE_BYTES:
-                raise PlannerResponseError()
-            parsed = getattr(r, "parsed", None)
-            if parsed is not None:
-                return QueryPlan.model_validate(parsed)
-            if not isinstance(text, str) or not text.strip():
-                raise PlannerResponseError()
-            return QueryPlan.model_validate_json(text)
+            return QueryPlan.model_validate_json(output)
         except (ValueError, KeyError, TypeError):
-            # Includes SDK json.loads integer-limit failures before r is returned,
-            # plus local Pydantic validation. Keep Python's integer guard enabled.
             raise PlannerResponseError() from None
 
     def answer(
@@ -401,26 +312,7 @@ class GeminiAnalyst:
                 "result": res.model_dump(),
             }
 
-        if getattr(self, "provider", "gemini") != "gemini":
-            return _compatible_completion(provider=self.provider, model=self.model,
-                                          prompt=f"{ANSWER}\n\n{json.dumps(payload, ensure_ascii=False)}",
-                                          temperature=0.1, json_mode=False, api_key=self.api_key)
-
-        r = self.client.models.generate_content(
-            model=self.model,
-            contents=(
-                f"{ANSWER}\n\n"
-                f"{json.dumps(payload, ensure_ascii=False, indent=2)}"
-            ),
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-                automatic_function_calling=(
-                    types.AutomaticFunctionCallingConfig(
-                        disable=True
-                    )
-                ),
-            ),
-        )
-
-        return r.text
-
+        return self.client.chat(
+            [{"role": "system", "content": ANSWER},
+             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
+            model=self.model, temperature=0.1)
