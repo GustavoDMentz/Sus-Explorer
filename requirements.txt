@@ -3,7 +3,7 @@ google-genai>=2.34.0
 pyarrow>=18.0
 pydantic>=2.14.2
 python-dotenv>=1.0
-pandas>=3.1.0
+pandas>=3.1.1
 numpy>=2.5.4
 
 requests>=2.32
