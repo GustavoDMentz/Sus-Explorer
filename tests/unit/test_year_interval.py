@@ -1,5 +1,5 @@
 import pytest
-from sus_explorer.llm import apply_whole_year_interval, GeminiAnalyst
+from sus_explorer.llm import apply_whole_year_interval, OllamaAnalyst
 from sus_explorer.schemas import QueryPlan
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -34,9 +34,9 @@ def test_no_expansion_of_subranges_comparisons_or_ambiguous_ranges(question):
 
 
 def test_planner_integration_releases_only_missing_months():
-    analyst=GeminiAnalyst.__new__(GeminiAnalyst)
+    analyst=OllamaAnalyst.__new__(OllamaAnalyst)
     analyst.model='test-model';analyst.client=Mock()
-    analyst.client.models.generate_content.return_value=SimpleNamespace(parsed=partial().model_dump())
+    analyst.client.chat.return_value=partial().model_dump_json()
     result=analyst.plan('Qual a variação mensal no RS de 2024 a 2025?')
     assert result.status == 'ready' and result.start_month == 1 and result.end_month == 12
 

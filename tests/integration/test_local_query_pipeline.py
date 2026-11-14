@@ -1,6 +1,6 @@
 """Real planner/parser, Parquet reader, analytics, service and Streamlit UI.
 
-Only the paid Gemini transport and remote R2 filesystem are replaced. This is
+Only the local Ollama transport and remote R2 filesystem are replaced. This is
 local integration, not an external end-to-end test.
 """
 
@@ -12,7 +12,7 @@ import pyarrow.parquet as pq
 import streamlit as st
 from streamlit.testing.v1 import AppTest
 
-from sus_explorer.llm import GeminiAnalyst
+from sus_explorer.llm import OllamaAnalyst
 from sus_explorer.pni import PNIRemote
 from sus_explorer.schemas import QueryPlan
 from sus_explorer.service import SUSExplorer
@@ -41,17 +41,18 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     }
     calls = []
 
-    def generate_content(**kwargs):
-        calls.append(kwargs)
-        if "Explique em português claro" in str(kwargs.get("contents", "")):
-            return SimpleNamespace(text="Resumo dos agregados.")
-        return SimpleNamespace(parsed=planner_response, text=None, candidates=[])
+    def chat(messages, **kwargs):
+        calls.append((messages, kwargs))
+        if kwargs.get("format") is None:
+            return "Resumo dos agregados."
+        return __import__("json").dumps(planner_response)
 
-    analyst = GeminiAnalyst.__new__(GeminiAnalyst)
+    analyst = OllamaAnalyst.__new__(OllamaAnalyst)
     analyst.model = "test-model"
-    analyst.client = SimpleNamespace(models=SimpleNamespace(generate_content=generate_content))
-    monkeypatch.setattr("sus_explorer.service.GeminiAnalyst", lambda **kwargs: analyst)
-    monkeypatch.setattr("sus_explorer.service.PNIRemote", lambda **kwargs: pni)
+    analyst.client = SimpleNamespace(chat=chat)
+    monkeypatch.setattr("sus_explorer.service.OllamaAnalyst", lambda **kwargs: analyst)
+    monkeypatch.setattr("sus_explorer.service.PostgresQueryExecutor", lambda: pni)
+    monkeypatch.setattr("sus_explorer.service.KnowledgeStore", lambda client: SimpleNamespace(search=lambda q: []))
     monkeypatch.setenv("POSTGRES_HISTORY_ENABLED", "0")
     monkeypatch.setenv("POSTGRES_COUNT_ENABLED", "0")
 
@@ -72,7 +73,7 @@ def test_local_parquet_through_planner_analytics_streamlit_and_rerun(tmp_path, m
     st.cache_resource.clear()
     try:
         app = AppTest.from_file(APP)
-        app.session_state["byok_explorer"] = SUSExplorer()
+        app.session_state["local_explorer"] = SUSExplorer()
         app.run()
         assert not app.exception
         app.text_area[0].set_value(QUESTION)

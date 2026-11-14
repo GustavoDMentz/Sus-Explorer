@@ -1,5 +1,20 @@
 
 services:
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
   postgres:
     image: pgvector/pgvector:0.8.6-pg17
     restart: unless-stopped
@@ -25,3 +40,4 @@ services:
 
 volumes:
   postgres_data:
+  ollama_data:

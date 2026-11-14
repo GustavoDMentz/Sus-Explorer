@@ -27,7 +27,7 @@ def test_form_only_runs_on_submit_and_preserves_result_across_reruns(monkeypatch
     service.ask.return_value = response()
     monkeypatch.setattr(sus_explorer.service, 'SUSExplorer', lambda: service)
     at = AppTest.from_file(APP)
-    at.session_state['byok_explorer'] = service
+    at.session_state['local_explorer'] = service
     at.run()
     assert not at.exception
     service.ask.assert_not_called()
@@ -136,7 +136,7 @@ def test_source_tab_uses_analytical_executor_even_when_history_is_saved():
     at.run()
     assert not at.exception
     text = ' '.join(item.value for item in at.markdown)
-    assert 'R2 / Parquet' in text
+    assert 'PostgreSQL' in text
     assert 'Histórico operacional salvo no PostgreSQL' in ' '.join(
         item.value for item in at.caption
     )

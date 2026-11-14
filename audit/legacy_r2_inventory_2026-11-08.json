@@ -1,0 +1,6568 @@
+{
+  "source": "healthbr-data/sipni/microdados/",
+  "checked_at": "2026-11-08T17:11:13.154639+00:00",
+  "partition_count": 2187,
+  "partitions": [
+    {
+      "partition": "ano=2020/mes=01/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=01/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=02/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=03/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=04/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=05/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=06/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=07/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=08/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=09/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=10/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=11/uf=TO"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=AC"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=AL"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=AM"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=AP"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=BA"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=CE"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=DF"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=ES"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=GO"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=MA"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=MG"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=MS"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=MT"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=PA"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=PB"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=PE"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=PI"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=PR"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=RJ"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=RN"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=RO"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=RR"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=RS"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=SC"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=SE"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=SP"
+    },
+    {
+      "partition": "ano=2020/mes=12/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=01/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=02/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=03/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=04/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=05/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=06/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=07/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=08/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=09/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=10/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=11/uf=TO"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=AC"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=AL"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=AM"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=AP"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=BA"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=CE"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=DF"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=ES"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=GO"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=MA"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=MG"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=MS"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=MT"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=PA"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=PB"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=PE"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=PI"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=PR"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=RJ"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=RN"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=RO"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=RR"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=RS"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=SC"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=SE"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=SP"
+    },
+    {
+      "partition": "ano=2021/mes=12/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=01/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=02/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=03/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=04/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=05/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=06/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=07/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=08/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=09/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=10/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=11/uf=TO"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=AC"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=AL"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=AM"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=AP"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=BA"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=CE"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=DF"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=ES"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=GO"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=MA"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=MG"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=MS"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=MT"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=PA"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=PB"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=PE"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=PI"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=PR"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=RJ"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=RN"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=RO"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=RR"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=RS"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=SC"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=SE"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=SP"
+    },
+    {
+      "partition": "ano=2022/mes=12/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=01/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=02/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=03/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=04/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=05/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=06/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=07/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=08/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=09/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=10/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=11/uf=TO"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=AC"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=AL"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=AM"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=AP"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=BA"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=CE"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=DF"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=ES"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=GO"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=MA"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=MG"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=MS"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=MT"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=PA"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=PB"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=PE"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=PI"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=PR"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=RJ"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=RN"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=RO"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=RR"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=RS"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=SC"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=SE"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=SP"
+    },
+    {
+      "partition": "ano=2023/mes=12/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=01/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=02/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=03/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=04/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=05/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=06/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=07/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=08/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=09/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=10/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=11/uf=TO"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=AC"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=AL"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=AM"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=AP"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=BA"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=CE"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=DF"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=ES"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=GO"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=MA"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=MG"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=MS"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=MT"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=PA"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=PB"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=PE"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=PI"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=PR"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=RJ"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=RN"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=RO"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=RR"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=RS"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=SC"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=SE"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=SP"
+    },
+    {
+      "partition": "ano=2024/mes=12/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=01/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=02/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=03/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=04/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=05/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=06/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=07/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=08/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=09/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=10/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=11/uf=TO"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=AC"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=AL"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=AM"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=AP"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=BA"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=CE"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=DF"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=ES"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=GO"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=MA"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=MG"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=MS"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=MT"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=PA"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=PB"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=PE"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=PI"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=PR"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=RJ"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=RN"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=RO"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=RR"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=RS"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=SC"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=SE"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=SP"
+    },
+    {
+      "partition": "ano=2025/mes=12/uf=TO"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=AC"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=AL"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=AM"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=AP"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=BA"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=CE"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=DF"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=ES"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=GO"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=MA"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=MG"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=MS"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=MT"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=PA"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=PB"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=PE"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=PI"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=PR"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=RJ"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=RN"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=RO"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=RR"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=RS"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=SC"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=SE"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=SP"
+    },
+    {
+      "partition": "ano=2026/mes=01/uf=TO"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=AC"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=AL"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=AM"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=AP"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=BA"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=CE"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=DF"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=ES"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=GO"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=MA"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=MG"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=MS"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=MT"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=PA"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=PB"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=PE"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=PI"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=PR"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=RJ"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=RN"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=RO"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=RR"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=RS"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=SC"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=SE"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=SP"
+    },
+    {
+      "partition": "ano=2026/mes=02/uf=TO"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=AC"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=AL"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=AM"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=AP"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=BA"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=CE"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=DF"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=ES"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=GO"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=MA"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=MG"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=MS"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=MT"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=PA"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=PB"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=PE"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=PI"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=PR"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=RJ"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=RN"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=RO"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=RR"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=RS"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=SC"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=SE"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=SP"
+    },
+    {
+      "partition": "ano=2026/mes=03/uf=TO"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=AC"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=AL"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=AM"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=AP"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=BA"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=CE"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=DF"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=ES"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=GO"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=MA"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=MG"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=MS"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=MT"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=PA"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=PB"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=PE"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=PI"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=PR"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=RJ"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=RN"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=RO"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=RR"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=RS"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=SC"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=SE"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=SP"
+    },
+    {
+      "partition": "ano=2026/mes=04/uf=TO"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=AC"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=AL"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=AM"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=AP"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=BA"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=CE"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=DF"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=ES"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=GO"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=MA"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=MG"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=MS"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=MT"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=PA"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=PB"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=PE"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=PI"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=PR"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=RJ"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=RN"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=RO"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=RR"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=RS"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=SC"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=SE"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=SP"
+    },
+    {
+      "partition": "ano=2026/mes=05/uf=TO"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=AC"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=AL"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=AM"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=AP"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=BA"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=CE"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=DF"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=ES"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=GO"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=MA"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=MG"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=MS"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=MT"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=PA"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=PB"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=PE"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=PI"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=PR"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=RJ"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=RN"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=RO"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=RR"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=RS"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=SC"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=SE"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=SP"
+    },
+    {
+      "partition": "ano=2026/mes=06/uf=TO"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=AC"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=AL"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=AM"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=AP"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=BA"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=CE"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=DF"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=ES"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=GO"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=MA"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=MG"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=MS"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=MT"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=PA"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=PB"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=PE"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=PI"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=PR"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=RJ"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=RN"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=RO"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=RR"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=RS"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=SC"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=SE"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=SP"
+    },
+    {
+      "partition": "ano=2026/mes=07/uf=TO"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=AC"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=AL"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=AM"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=AP"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=BA"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=CE"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=DF"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=ES"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=GO"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=MA"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=MG"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=MS"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=MT"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=PA"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=PB"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=PE"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=PI"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=PR"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=RJ"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=RN"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=RO"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=RR"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=RS"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=SC"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=SE"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=SP"
+    },
+    {
+      "partition": "ano=2026/mes=08/uf=TO"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=AC"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=AL"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=AM"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=AP"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=BA"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=CE"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=DF"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=ES"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=GO"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=MA"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=MG"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=MS"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=MT"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=PA"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=PB"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=PE"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=PI"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=PR"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=RJ"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=RN"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=RO"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=RR"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=RS"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=SC"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=SE"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=SP"
+    },
+    {
+      "partition": "ano=2026/mes=09/uf=TO"
+    }
+  ]
+}
