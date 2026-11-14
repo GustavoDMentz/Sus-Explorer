@@ -33,6 +33,10 @@ _SENSITIVE_ASSIGNMENT = re.compile(
 )
 _EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}(?![\w.-])")
 _CPF = re.compile(r"(?<!\d)\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)")
+# Digests hexadecimais (SHA-256 etc.) trazem com frequência 11 dígitos seguidos
+# (~4% dos SHA-256) e não podem ser confundidos com CPF.
+_HEX_DIGEST = re.compile(r"(?<![0-9A-Za-z])[0-9A-Fa-f]{32,}(?![0-9A-Za-z])")
+_CPF_OUTSIDE_DIGEST = re.compile(f"(?P<digest>{_HEX_DIGEST.pattern})|(?P<cpf>{_CPF.pattern})")
 _SENSITIVE_QUERY_NAMES = {
     "access_token", "apikey", "api_key", "authorization", "auth",
     "awsaccesskeyid", "googleaccessid", "id_token", "key", "key-pair-id",
@@ -86,7 +90,9 @@ def sanitize_text(value: str, secrets: Iterable[str] = ()) -> str:
     )
     sanitized = _URL.sub(_sanitize_url, sanitized)
     sanitized = _EMAIL.sub(_REDACTED, sanitized)
-    sanitized = _CPF.sub(_REDACTED, sanitized)
+    sanitized = _CPF_OUTSIDE_DIGEST.sub(
+        lambda match: match.group("digest") or _REDACTED, sanitized
+    )
     for secret in secrets:
         if secret:
             sanitized = sanitized.replace(secret, _REDACTED)
