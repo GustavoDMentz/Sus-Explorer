@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from sus_explorer.analytics.temporal_query import (
     SOURCE_LABEL, TemporalQueryError, execute_temporal, temporal_answer_payload,
 )
-from sus_explorer.llm import ANSWER, PLANNER, GeminiAnalyst, planner_output_schema
+from sus_explorer.llm import ANSWER, PLANNER, OllamaAnalyst, planner_output_schema
 from sus_explorer.pni import PNIRemote, QueryResult
 from sus_explorer.schemas import QueryPlan, TemporalRequest
 from sus_explorer.service import SUSExplorer
@@ -300,20 +300,22 @@ def test_sanitization_drops_microdata_private_metadata_and_preserves_origin(monk
     assert origin.model_dump() == before
 
 
-class Models:
+class FakeClient:
     def __init__(self, response):
         self.response = response
         self.calls = []
 
-    def generate_content(self, **kwargs):
-        self.calls.append(kwargs)
-        return self.response
+    def chat(self, messages, **kwargs):
+        self.calls.append({"messages": messages, **kwargs})
+        if getattr(self.response, "parsed", None) is not None:
+            return json.dumps(self.response.parsed)
+        return self.response.text
 
 
 def analyst(response):
-    llm = GeminiAnalyst.__new__(GeminiAnalyst)
+    llm = OllamaAnalyst.__new__(OllamaAnalyst)
     llm.model = "mock"
-    llm.client = SimpleNamespace(models=Models(response))
+    llm.client = FakeClient(response)
     return llm
 
 
@@ -330,11 +332,11 @@ def test_planner_intent_contract_with_mocked_gemini(question, order, phrase, mon
     llm = analyst(SimpleNamespace(parsed=expected.model_dump()))
     actual = llm.plan(question)
     assert actual == expected
-    call = llm.client.models.calls[0]
-    assert question in call["contents"] and phrase in PLANNER
-    assert call["config"].response_schema is None
-    assert call["config"].response_json_schema == planner_output_schema()
-    assert call["config"].automatic_function_calling.disable is True
+    call = llm.client.calls[0]
+    assert question in str(call["messages"]) and phrase in PLANNER
+    assert call["format"] == planner_output_schema()
+    assert call["format"] == planner_output_schema()
+    assert call["temperature"] == 0
 
 
 def test_planner_text_fallback_and_clarification():
@@ -351,7 +353,7 @@ def test_answer_receives_only_sanitized_aggregates_and_no_free_user_text():
     result = execute_temporal(p, lambda _: source([10, 15, 18, 20]))
     response = llm.answer("CPF 123.456.789-00 patient@example.com", p, result)
     assert "volume ainda cresceu" in response
-    contents = llm.client.models.calls[0]["contents"]
+    contents = str(llm.client.calls[0]["messages"])
     assert "patient@example.com" not in contents and "123.456.789-00" not in contents
     assert '"classification": "DERIVED"' in contents
     assert '"observation_classification": "DIRECT"' in contents
@@ -366,12 +368,17 @@ def test_natural_language_service_with_mocked_boundaries():
     backend.timeseries = lambda _: source([10, 15, 18, 20])
     explorer.pni = backend
     calls = []
-    explorer.llm = SimpleNamespace(plan=lambda _: p, answer=lambda q, p, result: calls.append(result) or "Variação mensal diminuindo.")
+    explorer.llm = SimpleNamespace(plan=lambda _: p, client=SimpleNamespace(),
+                                   answer=lambda q, p, result: calls.append(result) or "Variação mensal diminuindo.")
+    explorer.knowledge = SimpleNamespace(search=lambda _: [])
     response = explorer.ask("A vacinação contra influenza no RS está acelerando de janeiro a abril de 2026?")
     assert not response["needs_clarification"]
     assert response["result"]["operation"] == "temporal"
     assert response["result"]["provenance"]["classification"] == "DERIVED"
-    assert values(calls[0], 2) == [None, None, -2, -1]
+    from sus_explorer.rag import INSUFFICIENT_CONTEXT
+    assert response["answer"] == INSUFFICIENT_CONTEXT
+    assert not calls  # documental questions must not fall back to free generation
+    assert [row["metrics"]["delta_2"]["value"] for row in response["result"]["data"]["rows"]] == [None, None, -2, -1]
 
 
 def test_service_clarification_avoids_query_and_answer():

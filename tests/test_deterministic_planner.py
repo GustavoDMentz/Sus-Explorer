@@ -87,8 +87,8 @@ def test_numeric_date_does_not_swallow_extra_filters():
 
 
 def test_gemini_analyst_records_regex_planner_source_without_api_call():
-    from sus_explorer.llm import GeminiAnalyst
-    analyst = object.__new__(GeminiAnalyst)
+    from sus_explorer.llm import OllamaAnalyst
+    analyst = object.__new__(OllamaAnalyst)
     analyst.deterministic_enabled = True
     analyst.last_planner_source = None
     plan = analyst.plan("Quantas doses foram aplicadas no RS em 05/2026?")

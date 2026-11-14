@@ -39,7 +39,7 @@ import pandas as pd
 import pyarrow.fs as pa_fs
 import pyarrow.parquet as pq
 
-from ..config import settings
+from ..legacy_r2_config import settings
 from ..operational_logging import JsonlRunLogger
 from ..paths import PROJECT_ROOT
 
@@ -132,7 +132,7 @@ def make_audit_filesystem() -> pa_fs.S3FileSystem:
     """
     Cria filesystem S3 para o bucket sus-dados (read-only audit).
 
-    Usa exclusivamente SUS_DATA_R2_* — sem fallback para healthbr-data.
+    Ferramenta histórica isolada; usa exclusivamente LEGACY_AUDIT_R2_*.
     Levanta RuntimeError se as credenciais não estiverem configuradas.
     """
     endpoint = settings.sus_data_r2_endpoint
@@ -142,11 +142,11 @@ def make_audit_filesystem() -> pa_fs.S3FileSystem:
     if not all([endpoint, access_key, secret_key]):
         missing = []
         if not endpoint:
-            missing.append("SUS_DATA_R2_ENDPOINT")
+            missing.append("LEGACY_AUDIT_R2_ENDPOINT")
         if not access_key:
-            missing.append("SUS_DATA_R2_ACCESS_KEY_ID")
+            missing.append("LEGACY_AUDIT_R2_ACCESS_KEY_ID")
         if not secret_key:
-            missing.append("SUS_DATA_R2_SECRET_ACCESS_KEY")
+            missing.append("LEGACY_AUDIT_R2_SECRET_ACCESS_KEY")
         raise RuntimeError(
             f"Credenciais ausentes para o bucket de auditoria: {', '.join(missing)}"
         )
@@ -516,8 +516,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Auditoria independente: MS oficial × cubo SI-PNI no Cloudflare R2 (sus-dados).\n"
-            "Credenciais: SUS_DATA_R2_ACCESS_KEY_ID, SUS_DATA_R2_SECRET_ACCESS_KEY, "
-            "SUS_DATA_R2_ENDPOINT (via .env ou variáveis de ambiente)."
+            "Credenciais da ferramenta histórica: LEGACY_AUDIT_R2_ACCESS_KEY_ID, "
+            "LEGACY_AUDIT_R2_SECRET_ACCESS_KEY, LEGACY_AUDIT_R2_ENDPOINT."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
