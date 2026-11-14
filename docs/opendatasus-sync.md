@@ -1,19 +1,35 @@
-# OpenDataSUS CKAN discovery — PostgreSQL branch
+# Descoberta de ZIPs mensais do OpenDataSUS (fase 1)
 
-This is **phase 1: discovery only**, intentionally isolated from the ingestion path.
+Esta fase é **somente descoberta**. Ela não baixa ZIPs, não escreve em PostgreSQL, não agenda tarefas e não promove versões.
 
-The new module `sus_explorer.data.persistence.ckan_discovery` queries the configured CKAN catalog over HTTPS, lists dataset resources, and compares resource metadata with a saved JSON manifest. It does **not** download resource URLs, import data, modify PostgreSQL, schedule jobs, or promote a new version.
+## Por que não CKAN
 
-Example (replace the dataset slug with the verified official identifier):
+Em 2026-11-14 `https://dadosabertos.saude.gov.br/api/3/action/*` responde 404: o portal é um frontend Next.js que consulta o CKAN no servidor e não expõe a API ao público. A descoberta usa duas fontes:
+
+1. **Página do dataset anual** (`.../dataset/doses-aplicadas-pelo-programa-de-nacional-de-imunizacoes-pni-AAAA`). O JSON embutido (`__NEXT_DATA__`) lista os recursos; se ele desaparecer, há contingência por links `.zip` no HTML. A competência vem do **nome do arquivo** (`vacinacao_<mes>_<ano>_csv.zip`), não do título, porque os títulos variam ("Janeiro 2026", "Out 2026").
+2. **`HEAD` no ZIP** (`s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/PNI/csv/`), que informa `Content-Length`, `Last-Modified` e `ETag`. O portal devolve `hash` vazio e `size` nulo, então esses cabeçalhos são os metadados úteis.
+
+## Uso
 
 ```bash
-python -m sus_explorer.data.persistence.ckan_discovery \
-  --dataset OFFICIAL_DATASET_SLUG \
-  --manifest audit/opendatasus-pni.json
+python -m sus_explorer.data.remote.opendatasus_catalog \
+  --years 2025 2026 --manifest audit/opendatasus-pni.json
 ```
 
-This prints differences without changing files. After verifying the catalog response, append `--write` to save the manifest. The endpoint defaults to `https://dadosabertos.saude.gov.br/api/3/action`; confirm that the live portal exposes the expected CKAN API before enabling any automation. `OPENDATASUS_CKAN_BASE` can override the endpoint.
+Sem `--write`, apenas imprime as diferenças. Com `--write`, grava o manifesto de forma atômica, e só se **nenhum ano** falhou. `--no-head` usa só o catálogo, sem consultar os ZIPs.
 
-**Important:** catalog timestamps and hashes are hints, not proof of source content identity. The next phase must validate actual ZIP SHA-256, restrict download destinations to trusted HTTPS hosts, enforce file size/time limits, derive year/month from verified official metadata, stage downloads, call the existing `ingest_csv` only after validation, and preserve the previous successful partition if a new ingestion fails. Do not silently treat missing or removed resources as zero. Implement locking, retries/backoff, audit events, scheduler, retention and integration tests before unattended operation.
+Estados por competência: `available` (HEAD 200) e `listed_unavailable` (listada, mas o HEAD não respondeu 200; hoje out e nov/2026 respondem 403).
+A comparação devolve `added`, `removed`, `changed` (com os campos antes/depois), `unchanged`, `unavailable` e `skipped_years`.
 
-This branch derives from `review/postgres-ollama-migration`, not `master`.
+## Garantias
+
+- Somente HTTPS e somente os hosts `dadosabertos.saude.gov.br` e `s3.sa-east-1.amazonaws.com` (sem redirecionamentos); timeout de 30 s e limite de 5 MB por página.
+- Página sem nenhum ZIP mensal é **erro**, não "tudo removido": uma mudança do portal não pode apagar o manifesto.
+- Ano cuja consulta falhou entra em `skipped_years`; suas competências nunca são reportadas como `removed`.
+- Competência ausente nunca é tratada como zero doses.
+
+## Limites e próximas fases
+
+`ETag`, `Last-Modified` e tamanho são indícios de mudança, não prova de conteúdo. Fases seguintes, cada uma em PR próprio: plano de sincronização a partir do manifesto; download com staging, retomada por `Range` e SHA-256; ingestão multi-UF em uma só leitura do ZIP com troca atômica da partição; lock, retries, auditoria e agendador.
+
+Os testes usam um trecho real da página de 2026 (`tests/fixtures/opendatasus_pni_2026_excerpt.html`); se o portal mudar de formato, atualize o fixture a partir da página real.
