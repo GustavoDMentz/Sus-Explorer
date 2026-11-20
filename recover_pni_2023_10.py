@@ -25,6 +25,7 @@ from sus_explorer.data.cache.manifest import (
     utc_now,
 )
 from sus_explorer.paths import CACHE_ROOT
+from sus_explorer.data.zip_guard import check_archive
 
 
 YEAR = 2023
@@ -104,6 +105,7 @@ def main() -> None:
             )
 
         csv_name = names[0]
+        check_archive(z, csv_name)
         print("CSV interno:", csv_name)
         print()
 

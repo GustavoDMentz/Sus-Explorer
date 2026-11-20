@@ -39,6 +39,7 @@ import pandas as pd
 import pyarrow.fs as pa_fs
 import pyarrow.parquet as pq
 
+from ..data.zip_guard import check_archive
 from ..legacy_r2_config import settings
 from ..operational_logging import JsonlRunLogger
 from ..paths import PROJECT_ROOT
@@ -190,6 +191,7 @@ def read_ms_zip(
         if len(csvs) != 1:
             raise RuntimeError(f"Esperava 1 CSV no ZIP, encontrei: {csvs}")
 
+        check_archive(z, csvs[0])
         with z.open(csvs[0]) as raw:
             reader = pd.read_csv(
                 raw,

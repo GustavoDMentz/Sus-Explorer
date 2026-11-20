@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .database import connect
+from ..zip_guard import check_archive
 from .immunization_transform import project
 from .operational_events import event
 from .repositories import IngestionRunRepository, OperationalPersistence
@@ -35,6 +36,7 @@ def _open_reader(path: Path, *, encoding: str, delimiter: str,
                 zip_member = members[0]
             if zip_member not in members:
                 raise ValueError("Membro CSV não encontrado no ZIP")
+            check_archive(archive, zip_member)
             with archive.open(zip_member) as binary, io.TextIOWrapper(
                     binary, encoding=encoding, newline="") as stream:
                 yield csv.DictReader(stream, delimiter=delimiter)
