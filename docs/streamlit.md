@@ -30,7 +30,7 @@ podem levar minutos e mantêm os timeouts dos respectivos clientes externos.
 
 ```bash
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install -c constraints.txt -r requirements.txt
 python -m streamlit run app.py
 ```
 
@@ -55,8 +55,9 @@ real. A integração mantém somente Python e Streamlit; o protótipo web separa
 A apresentação não recalcula diferenças, não infere cobertura ou causalidade e
 não altera filtros, contratos de consulta, Parquet/R2, PostgreSQL, logging,
 auditoria ou artefatos científicos. Dados reais só aparecem após uma consulta;
-não há dados demonstrativos ou microdados na interface. A sessão guarda apenas
-o último resultado agregado; não há cache global de resultados de consultas.
+não há dados demonstrativos ou microdados na interface. A sessão guarda o último resultado agregado
+e, por padrão, até 20 consultas anteriores (pergunta, plano e resultado), apenas em memória e com botão para limpar;
+não há cache global de resultados de consultas. Não digite dados pessoais na pergunta.
 
 ## Verificação
 

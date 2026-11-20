@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+!.env.economy.example
+!.env.legacy-r2.example
 
 # --- Python ---
 __pycache__/
