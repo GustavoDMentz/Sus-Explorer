@@ -9,6 +9,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from .text_safety import strip_remote_images
 from .streamlit_provenance import (PROVENANCE_STYLES, NEUTRAL_REFERENCE,
     provenance_label, render_provenance_legend, install_provenance_styles,
     provenance_heading, provenance_metric, style_provenance_table, documented_enrichment, badge_html)
@@ -294,7 +295,7 @@ def render_monthly(payload, question='', comparison_executor=None):
     provenance_heading('Interpretação', 'DERIVED', 'interpretation_heading')
     st.write(contextual_summary(summary))
     if payload.get('answer'):
-        st.write(payload['answer'])
+        st.write(strip_remote_images(payload['answer']))
     render_document_sources(payload)
     if temporal and yoy and yoy_available:
         available_yoy = [r for r in rows if r['metrics']['yoy_pct']['value'] is not None]
@@ -334,7 +335,7 @@ def render_document_sources(payload):
     if payload.get('sources'):
         with st.expander('Fontes documentais consultadas'):
             for source in payload['sources']:
-                st.write(f"{source['title']} · {source['reference']} · trecho {source['chunkIndex']} · similaridade {source['score']:.3f}")
+                st.write(strip_remote_images(f"{source['title']} · {source['reference']} · trecho {source['chunkIndex']} · similaridade {source['score']:.3f}"))
 
 
 def render_result(payload, question='', comparison_executor=None):
