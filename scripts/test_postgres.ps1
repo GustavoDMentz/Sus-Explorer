@@ -19,7 +19,7 @@ try {
         -e "POSTGRES_PASSWORD=$dbPassword" -e 'POSTGRES_DB=sus_explorer_test' `
         -p '127.0.0.1::5432' `
         --tmpfs '/var/lib/postgresql/data:rw,size=512m' `
-        'pgvector/pgvector:0.8.6-pg17' | Out-Null
+        'pgvector/pgvector:0.8.6-pg17@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f' | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'Disposable PostgreSQL container did not start' }
     $containerStarted = $true
 
