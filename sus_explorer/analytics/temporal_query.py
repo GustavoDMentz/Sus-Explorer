@@ -32,7 +32,9 @@ class TemporalQueryError(RuntimeError):
 
 def _secrets() -> tuple[str, ...]:
     configured = vars(settings)
-    return tuple(value for name, value in (list(os.environ.items()) + list(configured.items())) if isinstance(value, str) and value and
+    # Values shorter than 8 characters ("1", "true", a port) would corrupt ordinary
+    # provenance text when replaced everywhere; real secrets are longer.
+    return tuple(value for name, value in (list(os.environ.items()) + list(configured.items())) if isinstance(value, str) and len(value) >= 8 and
                  re.search(r"TOKEN|SECRET|PASSWORD|KEY|CREDENTIAL|DSN", name, re.I))
 
 

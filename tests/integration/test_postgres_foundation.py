@@ -583,3 +583,79 @@ def test_database_constraints_and_error_sanitization(secured_database, monkeypat
         "abcdef",
     ):
         assert secret not in persisted
+
+
+def denied(connection, statement, values=()):
+    """Like rejected(), but only a missing privilege counts (not a typo or a bad value)."""
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        with connection.transaction():
+            connection.execute(statement, values)
+
+
+def _schema_tables(admin, schema):
+    rows = admin.execute(
+        """SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+           WHERE n.nspname = %s AND c.relkind IN ('r', 'p') ORDER BY c.relname""",
+        (schema,),
+    ).fetchall()
+    return [row["relname"] for row in rows]
+
+
+def _has_table_privilege(connection, schema, table, privilege):
+    qualified = '"' + schema.replace('"', '""') + '"."' + table.replace('"', '""') + '"'
+    return connection.execute(
+        "SELECT has_table_privilege(current_user, %s, %s) AS allowed", (qualified, privilege)
+    ).fetchone()["allowed"]
+
+
+def test_privilege_matrix_reader_is_read_only_and_runtime_cannot_delete(secured_database):
+    admin, runtime, reader, schema = secured_database
+    tables = _schema_tables(admin, schema)
+    assert {"query_history", "analytical_queries", "analytical_result_versions",
+            "knowledge_documents", "knowledge_chunks", "datasus_raw_records"} <= set(tables)
+    for table in tables:
+        for privilege in ("INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"):
+            assert not _has_table_privilege(reader, schema, table, privilege), (table, privilege)
+        for privilege in ("DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"):
+            assert not _has_table_privilege(runtime, schema, table, privilege), (table, privilege)
+    for connection in (runtime, reader):
+        assert connection.execute(
+            "SELECT has_schema_privilege(current_user, %s, 'CREATE') AS allowed", (schema,)
+        ).fetchone()["allowed"] is False
+
+
+def test_specific_privilege_errors_for_history_and_result_versions(secured_database):
+    _, runtime, reader, _ = secured_database
+    denied(reader, "INSERT INTO query_history DEFAULT VALUES")
+    denied(reader, "INSERT INTO analytical_queries DEFAULT VALUES")
+    denied(runtime, "DELETE FROM analytical_queries")
+    denied(runtime, "DELETE FROM query_history")
+    denied(runtime, "UPDATE analytical_result_versions SET result_hash = repeat('a', 64)")
+    denied(runtime, "UPDATE analytical_result_versions SET result_ciphertext = '\\x00'::bytea")
+    denied(runtime, "UPDATE analytical_result_versions SET result_mac = repeat('b', 64)")
+    denied(runtime, "TRUNCATE analytical_result_versions")
+
+
+def test_security_definer_functions_are_not_public_and_pin_search_path(secured_database):
+    admin, _, _, schema = secured_database
+    functions = admin.execute(
+        """SELECT p.proname, p.proconfig, p.proacl
+           FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+           WHERE n.nspname = %s AND p.prosecdef""",
+        (schema,),
+    ).fetchall()
+    assert functions, "esperava funções SECURITY DEFINER no schema"
+    for function in functions:
+        config = function["proconfig"] or []
+        assert any(item.startswith("search_path=") for item in config), function["proname"]
+        public_execute = admin.execute(
+            """SELECT EXISTS (
+                 SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+                 WHERE n.nspname = %s AND p.proname = %s
+                   AND (p.proacl IS NULL OR EXISTS (
+                         SELECT 1 FROM aclexplode(p.proacl) a
+                         WHERE a.grantee = 0 AND a.privilege_type = 'EXECUTE'))
+               ) AS public_execute""",
+            (schema, function["proname"]),
+        ).fetchone()["public_execute"]
+        assert public_execute is False, function["proname"]

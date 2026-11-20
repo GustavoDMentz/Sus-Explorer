@@ -9,6 +9,8 @@ from zipfile import ZipFile
 import pandas as pd
 import pyarrow.parquet as pq
 
+from sus_explorer.data.zip_guard import check_archive
+
 
 YEAR = 2023
 MONTH = 10
@@ -134,6 +136,7 @@ def main():
                 f"Esperava 1 CSV, encontrei: {csvs}"
             )
 
+        check_archive(z, csvs[0])
         with z.open(csvs[0]) as raw:
             reader = pd.read_csv(
                 raw,

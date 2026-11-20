@@ -9,6 +9,7 @@ from sus_explorer.service import SUSExplorer
 from sus_explorer.schemas import QueryPlan
 from copy import deepcopy
 from sus_explorer.streamlit_views import render_result
+from sus_explorer.text_safety import strip_remote_images
 
 st.set_page_config(page_title='SUS Explorer', page_icon='💉', layout='wide',
                    initial_sidebar_state='expanded')
@@ -139,7 +140,7 @@ with explorer_tab:
         if source in ('regex', 'ollama'):
             st.caption('Planejamento: ' + ('REGEX (determinístico)' if source == 'regex' else source.capitalize() + ' (IA)'))
         if payload.get('needs_clarification'):
-            st.warning(payload.get('clarification_question') or 'Informe os parâmetros ausentes.')
+            st.warning(strip_remote_images(payload.get('clarification_question') or 'Informe os parâmetros ausentes.'))
             with st.expander('Plano parcial'):
                 st.json(payload.get('plan', {}))
         else:
