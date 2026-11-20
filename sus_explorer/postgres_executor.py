@@ -105,10 +105,11 @@ class PostgresQueryExecutor:
 
     @staticmethod
     def _from() -> str:
+        # Through the observations of the selected run: records that a republished
+        # snapshot no longer contains are stored but not served.
         return """FROM datasus_ingestion_runs run
-            JOIN datasus_raw_records r ON r.source=run.source
-              AND r.resource_type=run.resource_type
-              AND r.source_resource_id=run.source_resource_id
+            JOIN datasus_raw_record_observations o ON o.ingestion_run_id=run.id
+            JOIN datasus_raw_records r ON r.id=o.raw_record_id
             JOIN immunization_records i ON i.source_record_id=r.id"""
 
     def _provenance(self, plan, runs, missing, started):
