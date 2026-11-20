@@ -1000,3 +1000,67 @@ A auditoria examinou caminhos Streamlit, serviço, planejador, persistência de 
 A fonte de verdade do comportamento implementado é o **código da `master` no commit consultado**, complementado por migrations e testes. O README descreve operação atual; `docs/query-result-version-history.md` descreve o contrato de versionamento e deve diferenciar implementação de requisitos pendentes; este diário preserva decisões e evidências datadas. PR aberto/draft significa **proposta não entregue**; teste relatado por PR não significa execução nesta atualização. A revisão documental identificou divergências no texto histórico do #31 (R2 BYOK), no checklist do #32 e no README anterior às mudanças recentes. Padronização desses documentos deve preservar o histórico, evitar alegações de testes não executados e não modificar código funcional.
 
 **Pendências técnicas prioritárias:** verificar permissões efetivas do PostgreSQL com credencial runtime em banco descartável; limitar acesso do serviço a microdados; testar adulteração de proveniência; confirmar isolamento de sessões com AppTest e navegador; testar PRs #33/#34 antes de merge; rever dependências e CI. Não executar testes adversariais contra serviços reais ou credenciais de produção.
+
+---
+
+# 2026-10-20 a 2026-11-20 — Streamlit integrado, migração para PostgreSQL/Ollama e descoberta de ZIPs
+
+Esta seção foi escrita a partir do histórico do GitHub (PRs, commits, CI) e de verificações feitas em 2026-11-14. As seções anteriores permanecem como registro histórico; onde houver divergência com o que segue, vale esta seção e o código da `master`. As correções às entradas de 2026-10-20 estão em "Correções às entradas anteriores".
+
+## 2026-10-20 — Integração do Streamlit e consolidação de segurança ([#35](https://github.com/GustavoDMentz/Sus-Explorer/pull/35)–[#45](https://github.com/GustavoDMentz/Sus-Explorer/pull/45))
+
+- [#35](https://github.com/GustavoDMentz/Sus-Explorer/pull/35), [#36](https://github.com/GustavoDMentz/Sus-Explorer/pull/36), [#38](https://github.com/GustavoDMentz/Sus-Explorer/pull/38): documentação (reconciliação do histórico de PRs, README para profissionais de saúde, instalação para iniciantes).
+- [#39](https://github.com/GustavoDMentz/Sus-Explorer/pull/39)–[#44](https://github.com/GustavoDMentz/Sus-Explorer/pull/44): histórico de sessão no Streamlit, planejador REGEX com fallback Gemini, catálogo de disponibilidade mensal no R2, tamanho e última modificação dos arquivos, comparação de verificações do catálogo na sessão e consolidação arquitetural com testes.
+- [#45](https://github.com/GustavoDMentz/Sus-Explorer/pull/45): reaplica à `master` o que ainda era necessário dos drafts de segurança [#33](https://github.com/GustavoDMentz/Sus-Explorer/pull/33) (limite de 4.096 bytes UTF-8 na pergunta) e [#37](https://github.com/GustavoDMentz/Sus-Explorer/pull/37) (migration 006 revoga `UPDATE(source_fingerprint)` da role de runtime). O [#34](https://github.com/GustavoDMentz/Sus-Explorer/pull/34) foi dado como superado pelo [#39](https://github.com/GustavoDMentz/Sus-Explorer/pull/39), que passou o histórico visual para `st.session_state`. Os três e o [#17](https://github.com/GustavoDMentz/Sus-Explorer/pull/17) (catálogo de campanhas) foram fechados sem merge. O próprio [#45](https://github.com/GustavoDMentz/Sus-Explorer/pull/45) registra que a validação de privilégios em PostgreSQL descartável era necessária e não afirma tê-la concluído.
+
+## 2026-10-25 a 2026-11-06 — LLM independente de provedor e dependências
+
+- [#54](https://github.com/GustavoDMentz/Sus-Explorer/pull/54) (28/10): promove `llm.py` e `app.py` da branch experimental, com suporte a Gemini, Groq, OpenRouter, Mistral e OpenAI, por chave de ambiente ou BYOK de sessão; Gemini continua padrão. [#55](https://github.com/GustavoDMentz/Sus-Explorer/pull/55) corrige 23 testes que quebraram por mocks sem o atributo `provider`. O corpo do [#54](https://github.com/GustavoDMentz/Sus-Explorer/pull/54) dizia validação pendente; o CI da `master` passou depois.
+- [#52](https://github.com/GustavoDMentz/Sus-Explorer/pull/52) (diagnósticos de tempo, com paralelização de contagens R2) e [#53](https://github.com/GustavoDMentz/Sus-Explorer/pull/53) (draft) ficaram abertos até 14/11, quando foram fechados (ver abaixo).
+- Dependabot: [#46](https://github.com/GustavoDMentz/Sus-Explorer/pull/46)–[#51](https://github.com/GustavoDMentz/Sus-Explorer/pull/51) e [#56](https://github.com/GustavoDMentz/Sus-Explorer/pull/56)–[#58](https://github.com/GustavoDMentz/Sus-Explorer/pull/58) (google-genai, Streamlit 1.66.1, cryptography ≥ 50.0.2, setup-python 7.1.0, pandas 3.1.0, pytest 9.2.0, Pydantic 2.14.2).
+
+## 2026-11-08 — Migração para PostgreSQL, pgvector e Ollama, e sua reversão
+
+- Gabriel Andrade enviou à `master` o commit "feat: migra analítica para PostgreSQL e torna o RAG verificável": Ollama no lugar do Gemini, `PostgresQueryExecutor`, ingestão em streaming de ZIPs oficiais (`ingest_csv`), RAG com citação por arquivo e chunk (`INSUFFICIENT_CONTEXT` quando não há trecho), R2/Parquet isolado em ferramentas de migração e remoção dos workflows exclusivos de R2.
+- O mesmo dia registrou o documento `docs/migration-validation-2026-11-08.md`: 467 testes aprovados, teste ponta a ponta com 16.275 doses reais (AC, jan/2020) e **migração não concluída** (2 de 2.187 partições ingeridas; 215,2 GB compactados de ZIPs, mais do que o disco de dados Docker local comportava). O documento também aponta credenciais R2 antigas no histórico Git, que exigem rotação.
+- Esse commit foi **revertido na `master`** (`Revert "feat: migra analítica..."`). O trabalho continuou na branch `review/postgres-ollama-migration`, com quatro correções e o [#60](https://github.com/GustavoDMentz/Sus-Explorer/pull/60), que ajustou um teste que esperava chamada ao Ollama quando o fluxo temporal já passa pelo RAG.
+
+## 2026-11-14 — Reaplicação da migração e descoberta de ZIPs
+
+**Reaplicação ([#66](https://github.com/GustavoDMentz/Sus-Explorer/pull/66)).** A migração foi isolada em um PR próprio contra a `master`. Como a `master` já continha o commit e o revert, o PR foi montado com o revert do revert (autoria de Gabriel preservada) mais as quatro correções; a árvore de arquivos é idêntica à da branch de revisão. CI verde antes do merge. Estado: a `master` passa a ter PostgreSQL/Ollama/RAG, **sem dados carregados por padrão**; a ingestão é manual, por competência e UF.
+
+**Descoberta de ZIPs ([#59](https://github.com/GustavoDMentz/Sus-Explorer/pull/59)).** A versão inicial (descoberta por API CKAN) foi descartada depois de verificar que `https://dadosabertos.saude.gov.br/api/3/action/*` responde 404: o portal passou a ser um frontend Next.js que consulta o CKAN no servidor, e o domínio antigo `opendatasus.saude.gov.br` apenas redireciona. A versão integrada lê a página de cada dataset anual (JSON embutido, com contingência por links no HTML), deriva a competência do nome do arquivo e faz `HEAD` nos ZIPs do S3 (`Content-Length`, `Last-Modified`, `ETag`). Verificações do mesmo dia contra o portal real:
+
+- 83 competências em 2020–2026; 81 disponíveis (215,23 GB), mesmas URLs do inventário de 08/11.
+- Out e nov/2026 estão listados, mas o S3 responde 403; ficam como `listed_unavailable`.
+- 72 meses (2020–2025) idênticos ao inventário de 08/11; os 9 meses de 2026 (jan–set) foram **republicados em 08/11** (novo `Last-Modified`, tamanhos maiores). Conclusão: uma competência já importada pode ficar defasada, e a ingestão futura precisa tratar revisões, não só meses novos.
+- Garantias do código: somente HTTPS e hosts oficiais, sem redirecionamento; página sem ZIPs é erro, não remoção; ano com falha de consulta não gera `removed`; `--write` recusa gravar se algum ano falhou.
+
+**Correção de proveniência ([#68](https://github.com/GustavoDMentz/Sus-Explorer/pull/68)).** O teste `test_local_parquet_through_planner_analytics_streamlit_and_rerun` falhava de forma intermitente (cerca de 2 em 40 execuções isoladas). Causa: a regex de CPF de `operational_logging` (11 dígitos seguidos) casava dentro de hashes SHA-256 em cerca de 4,4% dos casos (875 de 20.000 hashes aleatórios); `redact()` trocava o hash por `[REDACTED]` e a validação do fingerprint lançava `ValueError`. Como a mesma redação roda sobre a proveniência real, uma consulta podia falhar ao acaso. Digests hexadecimais isolados de 32 ou mais caracteres agora ficam fora da regra de CPF; CPF isolado, formatado ou ao lado de um digest continua redigido. Após a correção: 0 falhas em 120 execuções.
+
+**Dependências.** [#64](https://github.com/GustavoDMentz/Sus-Explorer/pull/64) (pandas 3.1.1), [#65](https://github.com/GustavoDMentz/Sus-Explorer/pull/65) (PyArrow 26.0.1, só para as ferramentas de migração) e [#67](https://github.com/GustavoDMentz/Sus-Explorer/pull/67). Este último junta [#61](https://github.com/GustavoDMentz/Sus-Explorer/pull/61) e [#63](https://github.com/GustavoDMentz/Sus-Explorer/pull/63): o `psycopg-binary` fixa a versão exata do `psycopg`, então os PRs separados do Dependabot falhavam no `pip`. [#62](https://github.com/GustavoDMentz/Sus-Explorer/pull/62) (google-genai 3.0.0) foi fechado porque o pacote saiu de `requirements.txt` com o [#66](https://github.com/GustavoDMentz/Sus-Explorer/pull/66).
+
+**Fechamentos.** [#52](https://github.com/GustavoDMentz/Sus-Explorer/pull/52): otimizava a leitura R2/Parquet, que saiu do fluxo de consulta, e conflitava em `service.py`; as medições por etapa podem ser refeitas sobre o fluxo PostgreSQL. [#53](https://github.com/GustavoDMentz/Sus-Explorer/pull/53): a parte útil já entrara pelo [#54](https://github.com/GustavoDMentz/Sus-Explorer/pull/54) e a camada de LLM virou Ollama.
+
+**Autoria e histórico.** A `master` e a branch do [#59](https://github.com/GustavoDMentz/Sus-Explorer/pull/59) foram reescritas com `git filter-branch` e force-push para que os autores fossem apenas o mantenedor, Gabriel Andrade (mantidos os dois e-mails) e `dependabot[bot]`: quatro commits de 06/10 atribuídos a um agente de IA foram reatribuídos ao mantenedor e o trailer `Co-authored-by` de IA foi removido. Os 146 commits e as árvores de arquivos foram preservados (verificado por comparação de árvores). **Efeito: todos os hashes de commits anteriores a essa data mudaram;** referências a hashes em textos antigos não valem mais, os números de PR sim. Branches remotas antigas, que ainda guardavam o histórico anterior, foram apagadas. Cópias locais do histórico anterior existem apenas na máquina do mantenedor. Clones antigos divergem e precisam ser refeitos.
+
+## 2026-11-15 — README
+
+[#69](https://github.com/GustavoDMentz/Sus-Explorer/pull/69) atualiza o README: ZIPs oficiais importados manualmente no PostgreSQL, ferramenta de descoberta, volume (cerca de 215 GB), estado da migração e requisito de PostgreSQL com pgvector e Ollama.
+
+## 2026-11-20 — Dependências
+
+[#72](https://github.com/GustavoDMentz/Sus-Explorer/pull/72) (Streamlit 1.67.0), [#73](https://github.com/GustavoDMentz/Sus-Explorer/pull/73) (Pydantic 2.14.3) e [#74](https://github.com/GustavoDMentz/Sus-Explorer/pull/74) (psycopg e psycopg-binary 3.3.9, que junta [#70](https://github.com/GustavoDMentz/Sus-Explorer/pull/70) e [#71](https://github.com/GustavoDMentz/Sus-Explorer/pull/71) pelo mesmo motivo do [#67](https://github.com/GustavoDMentz/Sus-Explorer/pull/67)). Sem PRs abertos ao final.
+
+## Correções às entradas anteriores
+
+- Na seção de 2026-10-09 a 2026-10-20, [#33](https://github.com/GustavoDMentz/Sus-Explorer/pull/33) e [#34](https://github.com/GustavoDMentz/Sus-Explorer/pull/34) constam como drafts abertos e [#17](https://github.com/GustavoDMentz/Sus-Explorer/pull/17) como aberto: os três foram fechados sem merge em 20/10 ([#33](https://github.com/GustavoDMentz/Sus-Explorer/pull/33) reaplicado pelo [#45](https://github.com/GustavoDMentz/Sus-Explorer/pull/45); [#34](https://github.com/GustavoDMentz/Sus-Explorer/pull/34) superado pelo [#39](https://github.com/GustavoDMentz/Sus-Explorer/pull/39)).
+- Gemini, R2 compartilhado e BYOK Gemini descritos nas seções anteriores não fazem mais parte do fluxo de consulta desde o [#66](https://github.com/GustavoDMentz/Sus-Explorer/pull/66).
+
+## Estado verificado em 2026-11-20 e o que ainda não foi feito
+
+- **CI da `master`** (PostgreSQL 17 + pgvector): verde nos commits de 14/11 a 19/11, com 481 testes aprovados no commit do [#59](https://github.com/GustavoDMentz/Sus-Explorer/pull/59) (a suíte sem serviços externos passa 463 testes localmente e deixa 18 de PostgreSQL de fora). Ambiente local sem Docker, PostgreSQL nem Ollama: ingestão real de ZIP, os 2 testes `external` (Ollama/RAG) e o fluxo ponta a ponta com resposta gerada **não foram executados fora do CI**.
+- **App sem banco:** o Streamlit sobe, renderiza as quatro abas e, ao perguntar, mostra erro genérico sem vazar detalhes.
+- **Migração incompleta:** 2 de 2.187 partições ingeridas na última validação documentada; nenhuma carga em PostgreSQL permanente; contagem por UF desconhecida nas partições pendentes.
+- **Sincronização:** a descoberta é só a fase 1. Faltam plano de sincronização a partir do manifesto, download com staging, retomada por `Range` e SHA-256, ingestão multi-UF em uma única leitura do ZIP (hoje `ingest_csv` filtra uma UF por execução, o que leria cada ZIP de ~2 GB 27 vezes), troca atômica da partição, lock, retries, auditoria e agendador.
+- **Credenciais R2** antigas no histórico Git: a rotação continua pendente de responsável; reescrever a `master` não invalida credenciais já expostas.
