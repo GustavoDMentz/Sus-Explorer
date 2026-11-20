@@ -10,7 +10,7 @@ import re
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from psycopg.types.json import Jsonb
 
-from .database import connect
+from .database import connect_history
 from .history import safe_parameters, safe_provenance
 
 SEMANTICS_VERSION = 1
@@ -104,7 +104,7 @@ def observe_result(*, plan, result, connection=None):
     fingerprint = _fingerprint(result)
     own = connection is None
     if own:
-        connection = connect()
+        connection = connect_history()
     try:
         with connection.transaction():
             # Per-key serialization before first insertion, including concurrent sessions.
@@ -145,7 +145,7 @@ def get_versions(query_key, *, connection=None):
     secret = _secret()
     own = connection is None
     if own:
-        connection = connect()
+        connection = connect_history()
     try:
         rows = connection.execute(
             """SELECT version, result_hash, result_ciphertext, result_mac,

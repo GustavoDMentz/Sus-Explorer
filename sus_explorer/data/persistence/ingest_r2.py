@@ -11,7 +11,7 @@ from datetime import date, datetime, timezone
 import pyarrow as pa
 
 from ...pni import PNIRemote
-from .database import allow_long_ingestion_statement, connect
+from .database import allow_long_ingestion_statement, connect_ingest
 from .operational_events import event
 from .repositories import ImmunizationProjection, IngestionRunRepository, OperationalPersistence
 from .validation import PAYLOAD_MAX_BYTES, validate_json_object
@@ -114,7 +114,7 @@ def ingest_partition(
                 "identity_column": "co_documento", "schema_version": 1}
     own_connection = connection is None
     if own_connection:
-        connection = connect()
+        connection = connect_ingest()
     run_id = None
     locked = False
     try:

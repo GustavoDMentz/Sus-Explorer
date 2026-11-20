@@ -6,7 +6,7 @@ import time
 import unicodedata
 
 from . import disclosure
-from .data.persistence.database import connect
+from .data.persistence.database import connect_reader
 from .query_result import QueryResult, months, require_ready_plan
 from .schemas import QueryPlan
 from .terminology import terminology
@@ -37,7 +37,7 @@ def _escape_like(value: str) -> str:
 
 
 class PostgresQueryExecutor:
-    def __init__(self, *, connect_db=connect, min_cell_count: int | None = None):
+    def __init__(self, *, connect_db=connect_reader, min_cell_count: int | None = None):
         self.connect_db = connect_db
         self.min_cell_count = disclosure.configured_min_cell_count(min_cell_count)
 

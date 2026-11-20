@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from .data.persistence.database import connect
+from .data.persistence.database import connect_reader
 
 
-def inspect_competencies(*, uf: str, year: int, connect_db=connect) -> dict:
+def inspect_competencies(*, uf: str, year: int, connect_db=connect_reader) -> dict:
     if not (isinstance(uf, str) and len(uf) == 2 and uf.isalpha() and uf.isupper()):
         raise ValueError("UF inválida.")
     if not (isinstance(year, int) and 2000 <= year <= 2100):

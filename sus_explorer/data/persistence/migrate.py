@@ -85,5 +85,7 @@ def migrate(
 
 
 if __name__ == "__main__":
+    # Bootstrap superuser, not a profile: migration 002 re-asserts NOSUPERUSER on the group
+    # roles, which only a superuser may do.
     with connect() as connection:
         migrate(connection)
