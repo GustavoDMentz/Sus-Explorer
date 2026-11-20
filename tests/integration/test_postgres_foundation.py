@@ -234,6 +234,7 @@ def test_atomic_raw_normalization_history_and_completion(database):
         "006_immutable_source_fingerprint.sql",
         "007_knowledge_rag.sql",
         "008_postgres_analytical_lookup.sql",
+        "009_purge_audit.sql",
     ]
     assert migrate(connection, schema=schema) == []
 
@@ -368,7 +369,8 @@ def test_concurrent_migrations_are_serialized(database):
         [],
         ["001_foundation.sql", "002_security_hardening.sql", "003_partition_lookup_indexes.sql",
          "004_query_history.sql", "005_analytical_result_versions.sql",
-         "006_immutable_source_fingerprint.sql", "007_knowledge_rag.sql", "008_postgres_analytical_lookup.sql"],
+         "006_immutable_source_fingerprint.sql", "007_knowledge_rag.sql", "008_postgres_analytical_lookup.sql",
+         "009_purge_audit.sql"],
     ]
 
 
@@ -722,7 +724,12 @@ def test_purge_execute_removes_the_partition_and_it_becomes_unavailable_not_zero
     with pytest.raises(FileNotFoundError):
         _raw_executor().execute(QueryPlan(operation="count", year=2026, month=5, uf="RS"))
     # the immutability triggers are back on
-    rejected(connection, "DELETE FROM datasus_raw_record_observations")
+    # (the tables are empty now, so a row-level trigger would not fire on a DELETE: check the catalog)
+    enabled = connection.execute("""SELECT tgname, tgenabled FROM pg_trigger
+        WHERE tgname IN ('raw_revisions_immutable', 'raw_observations_immutable', 'purge_audit_immutable')""").fetchall()
+    assert {row["tgname"] for row in enabled} == {"raw_revisions_immutable", "raw_observations_immutable",
+                                                   "purge_audit_immutable"}
+    assert all(row["tgenabled"] == "O" for row in enabled)
     rejected(connection, "DELETE FROM datasus_purge_audit")
     rejected(connection, "UPDATE datasus_purge_audit SET reason = 'tentativa de alterar a auditoria'")
     # ...and the partition can be imported again
