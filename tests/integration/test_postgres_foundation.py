@@ -85,7 +85,12 @@ def test_postgres_executor_uses_completed_partition_without_r2(database, monkeyp
     runs.finish(run["id"], status="SUCCESS", records_received=3, records_inserted=3, records_updated=0)
     connection.commit()
     monkeypatch.setenv("POSTGRES_SCHEMA", schema)
+    # Default executor applies disclosure control (k=5): these tiny counts are suppressed.
+    protected = PostgresQueryExecutor().execute(QueryPlan(operation="count", year=2026, month=5, uf="RS"))
+    assert protected.data["doses"] is None and protected.data["suppressed"] is True
+    assert protected.provenance["disclosure_control"]["suppressed_cells"] == 1
     executor = PostgresQueryExecutor()
+    executor.min_cell_count = 1      # raw counts, to test the calculations themselves
     base = {"year": 2026, "month": 5, "uf": "RS"}
     assert executor.execute(QueryPlan(operation="count", **base)).data == {"doses": 3}
     assert executor.execute(QueryPlan(operation="count", sex="F", **base)).data == {"doses": 2}
@@ -113,7 +118,9 @@ def test_streaming_csv_import_is_idempotent(database, tmp_path, monkeypatch):
     assert first["status"] == "SUCCESS" and first["records_received"] == 2
     assert second["id"] == first["id"]
     monkeypatch.setenv("POSTGRES_SCHEMA", schema)
-    result = PostgresQueryExecutor().execute(QueryPlan(operation="count", year=2026, month=5, uf="RS"))
+    executor = PostgresQueryExecutor()
+    executor.min_cell_count = 1      # raw count: the import itself is under test
+    result = executor.execute(QueryPlan(operation="count", year=2026, month=5, uf="RS"))
     assert result.data == {"doses": 2}
 
 
