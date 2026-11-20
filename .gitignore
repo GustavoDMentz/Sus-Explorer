@@ -43,3 +43,12 @@ env/
 .vscode/
 .idea/
 .DS_Store
+
+# --- Artefatos locais na raiz (nunca versionar com `git add .`) ---
+/.venv-antigo/
+/.agents/
+/*.png
+/semantic_benchmark_*.json
+/sus_explorer_*.json
+/SUS_EXPLORER_PROVENIENCIA_E_CACHE.md
+/SECURITY_AUDIT_*.md
