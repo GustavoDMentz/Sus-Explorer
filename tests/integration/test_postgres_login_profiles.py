@@ -49,18 +49,14 @@ def profiles(monkeypatch):
             "NOREPLICATION NOBYPASSRLS; END IF; END $$").format(
                 name=sql.Literal(group), ident=sql.Identifier(group)))
     superuser.execute("CREATE EXTENSION IF NOT EXISTS vector")
-    attributes = {"migrator": "CREATEROLE", "ingest": "NOCREATEROLE", "history": "NOCREATEROLE",
-                  "reader": "NOCREATEROLE"}
-    groups = {"ingest": "sus_explorer_runtime", "history": "sus_explorer_history", "reader": "sus_explorer_reader"}
+    attributes = {profile: "NOCREATEROLE" for profile in logins}
+    groups = {"migrator": "sus_explorer_migrator", "ingest": "sus_explorer_runtime",
+              "history": "sus_explorer_history", "reader": "sus_explorer_reader"}
     for profile, login in logins.items():
         superuser.execute(sql.SQL("CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB {} NOREPLICATION PASSWORD {}").format(
             sql.Identifier(login), sql.SQL(attributes[profile]), sql.Literal(PASSWORD)))
-    superuser.execute(sql.SQL("GRANT {} TO {} WITH ADMIN OPTION").format(
-        sql.SQL(", ").join(sql.Identifier(g) for g in GROUPS), sql.Identifier(logins["migrator"])))
     for profile, group in groups.items():
         superuser.execute(sql.SQL("GRANT {} TO {}").format(sql.Identifier(group), sql.Identifier(logins[profile])))
-    superuser.execute(sql.SQL("GRANT CREATE, CONNECT ON DATABASE {} TO {}").format(
-        sql.Identifier(database_name), sql.Identifier(logins["migrator"])))
     superuser.commit()
 
     def login_connection(profile):
@@ -86,21 +82,25 @@ def profiles(monkeypatch):
         superuser.close()
 
 
-def test_migrations_run_as_the_migrator_login_and_it_owns_every_table(profiles, monkeypatch):
-    _, login_connection, schema, _ = profiles
+def test_migrations_need_a_superuser_and_leave_every_table_to_the_migrator_group(profiles):
+    superuser, login_connection, schema, _ = profiles
+    # Migration 002 re-asserts NOSUPERUSER on the group roles: a plain login cannot run it.
     with login_connection("migrator") as admin:
-        applied = migrate(admin, schema=schema)
-        assert applied[-1] == "010_login_role_privileges.sql" and len(applied) == 10
-        assert migrate(admin, schema=schema) == []
-        owners = {row["tableowner"] for row in admin.execute(
-            "SELECT tableowner FROM pg_tables WHERE schemaname = %s", (schema,)).fetchall()}
-        assert owners == {"sus_explorer_migrator"}            # includes the RAG tables (migration 010)
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            migrate(admin, schema=schema)
+    applied = migrate(superuser, schema=schema)
+    assert applied[-1] == "010_login_role_privileges.sql" and len(applied) == 10
+    assert migrate(superuser, schema=schema) == []
+    owners = {row["tablename"]: row["tableowner"] for row in superuser.execute(
+        "SELECT tablename, tableowner FROM pg_tables WHERE schemaname = %s", (schema,)).fetchall()}
+    owners.pop("schema_migrations", None)             # bookkeeping table, created by the runner
+    assert owners and set(owners.values()) == {"sus_explorer_migrator"}     # includes the RAG tables (010)
 
 
 def _migrated(profiles):
-    _, login_connection, schema, _ = profiles
-    with login_connection("migrator") as admin:
-        migrate(admin, schema=schema)
+    superuser, _, schema, _ = profiles
+    migrate(superuser, schema=schema)
+    superuser.commit()
 
 
 def test_reader_profile_is_read_only_everywhere(profiles):
@@ -139,6 +139,18 @@ def test_ingest_login_cannot_read_the_rag_tables(profiles):
         denied(ingest, "SELECT count(*) FROM knowledge_documents")
         denied(ingest, "DROP TABLE datasus_raw_records")
         denied(ingest, "DELETE FROM datasus_raw_record_observations")
+
+
+def test_migrator_login_owns_the_schema_objects_through_its_group(profiles):
+    _migrated(profiles)
+    _, login_connection, _, _ = profiles
+    with login_connection("migrator") as admin:
+        admin.execute("""INSERT INTO knowledge_documents (title, source, source_type, original_reference,
+            content_hash, embedding_model) VALUES ('t', 's', 'markdown', 'r', %s, 'm')""", ("a" * 64,))
+        admin.commit()
+        assert admin.execute("SELECT count(*) AS n FROM knowledge_documents").fetchone()["n"] == 1
+        denied(admin, "CREATE ROLE attacker LOGIN")
+        denied(admin, "ALTER ROLE sus_explorer_reader SUPERUSER")
 
 
 def test_connect_resolves_each_profile_to_its_login_and_refuses_the_superuser(profiles):

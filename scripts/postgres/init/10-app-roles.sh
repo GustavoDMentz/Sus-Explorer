@@ -25,21 +25,19 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r)
 \gexec
 
 -- Logins: one group each, never more, and none of them is a superuser.
--- The migrator login needs CREATEROLE because migration 002 re-asserts the attributes of the
--- group roles; since PostgreSQL 16 that only works on roles it administers (ADMIN OPTION below).
-CREATE ROLE sus_explorer_admin  LOGIN NOSUPERUSER NOCREATEDB CREATEROLE NOREPLICATION PASSWORD :'migrator_password';
+-- Migrations still run as the bootstrap superuser: migration 002 re-asserts NOSUPERUSER on the
+-- group roles and only a superuser may mention that attribute. This login owns the schema
+-- objects through its group and serves purge and RAG indexing.
+CREATE ROLE sus_explorer_admin  LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD :'migrator_password';
 CREATE ROLE sus_explorer_ingest LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD :'ingest_password';
 CREATE ROLE sus_explorer_hist   LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD :'history_password';
 CREATE ROLE sus_explorer_app    LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD :'reader_password';
-GRANT sus_explorer_migrator, sus_explorer_runtime, sus_explorer_reader, sus_explorer_history
-  TO sus_explorer_admin WITH ADMIN OPTION;
+GRANT sus_explorer_migrator TO sus_explorer_admin;
 GRANT sus_explorer_runtime  TO sus_explorer_ingest;
 GRANT sus_explorer_history  TO sus_explorer_hist;
 GRANT sus_explorer_reader   TO sus_explorer_app;
 
--- The migrator login creates the schema and the objects (migrations).
-GRANT CREATE, CONNECT ON DATABASE :"DBNAME" TO sus_explorer_admin;
-GRANT CONNECT ON DATABASE :"DBNAME" TO sus_explorer_ingest, sus_explorer_hist, sus_explorer_app;
--- pgvector needs a superuser once; the migrator uses it afterwards.
+GRANT CONNECT ON DATABASE :"DBNAME" TO sus_explorer_admin, sus_explorer_ingest, sus_explorer_hist, sus_explorer_app;
+-- pgvector needs a superuser once.
 CREATE EXTENSION IF NOT EXISTS vector;
 SQL

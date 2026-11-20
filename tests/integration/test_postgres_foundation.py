@@ -240,6 +240,7 @@ def test_atomic_raw_normalization_history_and_completion(database):
         "007_knowledge_rag.sql",
         "008_postgres_analytical_lookup.sql",
         "009_purge_audit.sql",
+        "010_login_role_privileges.sql",
     ]
     assert migrate(connection, schema=schema) == []
 
@@ -375,7 +376,7 @@ def test_concurrent_migrations_are_serialized(database):
         ["001_foundation.sql", "002_security_hardening.sql", "003_partition_lookup_indexes.sql",
          "004_query_history.sql", "005_analytical_result_versions.sql",
          "006_immutable_source_fingerprint.sql", "007_knowledge_rag.sql", "008_postgres_analytical_lookup.sql",
-         "009_purge_audit.sql"],
+         "009_purge_audit.sql", "010_login_role_privileges.sql"],
     ]
 
 

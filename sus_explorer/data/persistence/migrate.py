@@ -7,7 +7,7 @@ from pathlib import Path
 
 from psycopg import sql
 
-from .database import configured_schema, connect_migrator
+from .database import configured_schema, connect
 from .operational_events import event
 
 
@@ -85,5 +85,7 @@ def migrate(
 
 
 if __name__ == "__main__":
-    with connect_migrator() as connection:
+    # Bootstrap superuser, not a profile: migration 002 re-asserts NOSUPERUSER on the group
+    # roles, which only a superuser may do.
+    with connect() as connection:
         migrate(connection)

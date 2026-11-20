@@ -94,7 +94,6 @@ def test_call_sites_use_the_least_privileged_profile():
         "sus_explorer/data/persistence/ingest_r2.py": "connect_ingest",
         "sus_explorer/data/persistence/history.py": "connect_history",
         "sus_explorer/data/persistence/result_versions.py": "connect_history",
-        "sus_explorer/data/persistence/migrate.py": "connect_migrator",
         "sus_explorer/data/persistence/purge.py": "connect_migrator",
     }
     for path, factory in expectations.items():
@@ -117,17 +116,22 @@ def test_bootstrap_script_has_no_literal_passwords_and_requires_every_password()
     assert "SUPERUSER" in script and "NOSUPERUSER" in script and " SUPERUSER " not in script.replace("NOSUPERUSER", "")
 
 
+def test_migrations_run_as_the_bootstrap_superuser_not_a_profile():
+    text = (ROOT / "sus_explorer/data/persistence/migrate.py").read_text("utf-8")
+    assert "connect_migrator" not in text and "with connect() as connection" in text
+
+
 def test_each_login_is_a_member_of_exactly_one_group():
     script = (ROOT / "scripts/postgres/init/10-app-roles.sh").read_text("utf-8")
     grants = re.findall(r"GRANT\s+(sus_explorer_\w+)\s+TO\s+(sus_explorer_\w+);", script)
     members = {}
     for group, login in grants:
         members.setdefault(login, []).append(group)
-    assert members == {"sus_explorer_ingest": ["sus_explorer_runtime"],
+    assert members == {"sus_explorer_admin": ["sus_explorer_migrator"],
+                       "sus_explorer_ingest": ["sus_explorer_runtime"],
                        "sus_explorer_hist": ["sus_explorer_history"],
                        "sus_explorer_app": ["sus_explorer_reader"]}
-    # the migrator login is granted all groups only WITH ADMIN OPTION (needed by migration 002)
-    assert "TO sus_explorer_admin WITH ADMIN OPTION" in script
+    assert "CREATEROLE" not in script.replace("NOCREATEROLE", "")
 
 
 def test_compose_requires_the_passwords_and_mounts_the_bootstrap_read_only():
