@@ -143,7 +143,7 @@ def test_official_zip_import_filters_selected_uf_without_extraction(database, tm
     assert connection.execute("SELECT payload->>'co_documento' AS id FROM datasus_raw_records").fetchone()["id"] == "ac-1"
 
 
-def test_streaming_csv_import_resumes_interrupted_snapshot(database, tmp_path, monkeypatch):
+def test_interrupted_import_leaves_an_orphan_that_the_next_import_closes(database, tmp_path, monkeypatch):
     connection, schema = database
     migrate(connection, schema=schema)
     connection.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))
@@ -172,7 +172,12 @@ def test_streaming_csv_import_resumes_interrupted_snapshot(database, tmp_path, m
     monkeypatch.setattr(csv_module.OperationalPersistence, "save_immunization", original)
     resumed = ingest_csv(source, year=2026, month=5, uf="RS", resource_id="resume-resource",
                          connection=connection, batch_size=1)
-    assert resumed["id"] == pending["id"] and resumed["status"] == "SUCCESS"
+    # The interrupted snapshot was one transaction: nothing of it survived. The next import
+    # closes the orphan (nobody holds its lock) and starts a fresh run.
+    assert resumed["id"] != pending["id"] and resumed["status"] == "SUCCESS"
+    closed = connection.execute("SELECT status, error_summary FROM datasus_ingestion_runs WHERE id=%s",
+                                (pending["id"],)).fetchone()
+    assert closed["status"] == "FAILED" and "Orphaned" in closed["error_summary"]
     assert connection.execute("SELECT count(*) AS n FROM datasus_raw_records").fetchone()["n"] == 2
 
 
@@ -771,3 +776,108 @@ def test_runtime_and_reader_cannot_purge_or_write_the_audit(secured_database, tm
     denied(runtime, audit_insert)
     denied(reader, audit_insert)
     assert reader.execute("SELECT count(*) AS n FROM datasus_purge_audit").fetchone()["n"] == 0
+
+
+HEADER = ("co_documento,co_vacina,dt_vacina,co_municipio_estabelecimento,sg_uf_estabelecimento,"
+          "tp_sexo_paciente\n")
+
+
+def _csv(tmp_path, name, rows):
+    path = tmp_path / name
+    path.write_text(HEADER + "".join(f"{r}\n" for r in rows), encoding="utf-8")
+    return path
+
+
+def _import(connection, path):
+    return ingest_csv(path, year=2026, month=5, uf="RS", resource_id="republished",
+                      connection=connection, batch_size=1)
+
+
+def _sex_counts(executor):
+    result = executor.execute(QueryPlan(operation="group", group_by="sex", year=2026, month=5, uf="RS"))
+    return {row["value"]: row["count"] for row in result.data["rows"]}
+
+
+def _prepare(connection, schema, monkeypatch):
+    migrate(connection, schema=schema)
+    connection.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))
+    connection.commit()
+    monkeypatch.setenv("POSTGRES_SCHEMA", schema)
+
+
+V1 = ["doc-a,9,2026-05-01,4314902,RS,F", "doc-b,9,2026-05-02,4314902,RS,M", "doc-c,9,2026-05-03,4314902,RS,F"]
+# doc-b changes sex, doc-c disappears, doc-d is new
+V2 = ["doc-a,9,2026-05-01,4314902,RS,F", "doc-b,9,2026-05-02,4314902,RS,F", "doc-d,9,2026-05-04,4314902,RS,M"]
+
+
+def test_republished_snapshot_replaces_the_previous_one_including_removed_records(database, tmp_path, monkeypatch):
+    connection, schema = database
+    _prepare(connection, schema, monkeypatch)
+    first = _import(connection, _csv(tmp_path, "v1.csv", V1))
+    executor = _raw_executor()
+    assert _sex_counts(executor) == {"F": 2, "M": 1}
+    second = _import(connection, _csv(tmp_path, "v2.csv", V2))
+    assert second["id"] != first["id"] and second["status"] == "SUCCESS"
+    assert second["metadata"]["snapshot_id"].startswith("republished/ano=2026/mes=05/uf=RS@")
+    assert executor.execute(QueryPlan(operation="count", year=2026, month=5, uf="RS")).data == {"doses": 3}
+    assert _sex_counts(executor) == {"F": 2, "M": 1}            # a, b(now F), d(M); c is gone
+    # the removed record is retained in storage (history), just not served
+    keys = {r["record_key"] for r in connection.execute("SELECT record_key FROM datasus_raw_records").fetchall()}
+    assert keys == {"doc-a", "doc-b", "doc-c", "doc-d"}
+    assert second["records_received"] == 3
+
+
+def test_failed_reimport_rolls_back_and_the_previous_snapshot_keeps_being_served(database, tmp_path, monkeypatch):
+    connection, schema = database
+    _prepare(connection, schema, monkeypatch)
+    _import(connection, _csv(tmp_path, "v1.csv", V1))
+    _import(connection, _csv(tmp_path, "v2.csv", V2))
+    executor = _raw_executor()
+    before = _sex_counts(executor)
+    revisions_before = connection.execute("SELECT count(*) AS n FROM datasus_raw_record_revisions").fetchone()["n"]
+    bad = _csv(tmp_path, "v3.csv", ["doc-a,9,2026-05-01,4314902,RS,M", "doc-b,9,2026-05-02,4314902,RS,M",
+                                    "doc-x,9,2026-06-09,4314902,RS,F"])   # last row: outside the month
+    with pytest.raises(ValueError, match="fora da competência"):
+        _import(connection, bad)
+    # nothing from the failed snapshot is visible: counts and stored revisions are unchanged
+    assert _sex_counts(executor) == before == {"F": 2, "M": 1}
+    assert connection.execute("SELECT count(*) AS n FROM datasus_raw_record_revisions").fetchone()["n"] == revisions_before
+    assert connection.execute("SELECT count(*) AS n FROM datasus_raw_records WHERE record_key='doc-x'").fetchone()["n"] == 0
+    latest = connection.execute("SELECT status FROM datasus_ingestion_runs ORDER BY id DESC LIMIT 1").fetchone()
+    assert latest["status"] == "FAILED"
+
+
+def test_duplicate_record_keys_in_a_file_are_reported_and_nothing_is_committed(database, tmp_path, monkeypatch):
+    connection, schema = database
+    _prepare(connection, schema, monkeypatch)
+    dup = _csv(tmp_path, "dup.csv", ["doc-a,9,2026-05-01,4314902,RS,F", "doc-a,9,2026-05-01,4314902,RS,F"])
+    with pytest.raises(ValueError, match="duplicado"):
+        _import(connection, dup)
+    assert connection.execute("SELECT count(*) AS n FROM datasus_raw_records").fetchone()["n"] == 0
+    with pytest.raises(FileNotFoundError):
+        _raw_executor().execute(QueryPlan(operation="count", year=2026, month=5, uf="RS"))
+
+
+def test_orphan_running_run_is_closed_and_the_import_proceeds(database, tmp_path, monkeypatch):
+    connection, schema = database
+    _prepare(connection, schema, monkeypatch)
+    runs = IngestionRunRepository(connection)
+    orphan = runs.start(source="opendatasus-csv", resource_type="immunization",
+                        source_resource_id="republished/ano=2026/mes=05/uf=RS",
+                        metadata={"partition": "ano=2026/mes=05/uf=RS", "source_sha256": "old", "source_rows": 9})
+    connection.commit()
+    result = _import(connection, _csv(tmp_path, "v1.csv", V1))
+    assert result["status"] == "SUCCESS" and result["id"] != orphan["id"]
+    closed = connection.execute("SELECT status, error_summary FROM datasus_ingestion_runs WHERE id=%s",
+                                (orphan["id"],)).fetchone()
+    assert closed["status"] == "FAILED" and "Orphaned" in closed["error_summary"]
+    assert _raw_executor().execute(QueryPlan(operation="count", year=2026, month=5, uf="RS")).data == {"doses": 3}
+
+
+def test_same_snapshot_is_idempotent_and_does_not_start_a_new_run(database, tmp_path, monkeypatch):
+    connection, schema = database
+    _prepare(connection, schema, monkeypatch)
+    path = _csv(tmp_path, "v1.csv", V1)
+    first, again = _import(connection, path), _import(connection, path)
+    assert again["id"] == first["id"]
+    assert connection.execute("SELECT count(*) AS n FROM datasus_ingestion_runs").fetchone()["n"] == 1

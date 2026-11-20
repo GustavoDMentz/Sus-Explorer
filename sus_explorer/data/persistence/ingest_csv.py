@@ -105,7 +105,8 @@ def ingest_csv(path: Path, *, year: int, month: int, uf: str, resource_id: str,
     metadata = {"partition": partition, "source_sha256": snapshot["sha256"],
                 "source_rows": snapshot["rows"], "identity_column": "co_documento",
                 "schema_version": 2, "source_filename": path.name,
-                "payload_allowlist_version": PAYLOAD_ALLOWLIST_VERSION}
+                "payload_allowlist_version": PAYLOAD_ALLOWLIST_VERSION,
+                "snapshot_id": f"{resource}@{snapshot['sha256'][:16]}"}
     own_connection = connection is None
     db = connection or connect()
     run_id = None
@@ -114,6 +115,18 @@ def ingest_csv(path: Path, *, year: int, month: int, uf: str, resource_id: str,
         locked = db.execute("SELECT pg_try_advisory_lock(91627135, hashtext(%s)) AS acquired", (resource,)).fetchone()["acquired"]
         if not locked:
             raise RuntimeError("Outra ingestão ocupa esta partição")
+        runs = IngestionRunRepository(db)
+        # We hold the partition lock, so no live importer owns a RUNNING run: it is an
+        # orphan (the process died). Close it before looking at the latest state.
+        for orphan in db.execute("""SELECT id FROM datasus_ingestion_runs
+                WHERE source=%s AND resource_type='immunization' AND source_resource_id=%s
+                  AND status='RUNNING' ORDER BY id""", (source, resource)).fetchall():
+            counts = _counts(db, orphan["id"], source, resource)
+            runs.finish(orphan["id"], status="FAILED", records_received=counts["observed"],
+                        records_inserted=counts["inserted"], records_updated=counts["updated"],
+                        error_summary="Orphaned run closed: no live importer held the partition lock")
+            db.commit()
+            event("csv_ingestion_orphan_closed", level="WARNING", ingestion_run_id=orphan["id"])
         latest = db.execute("""SELECT * FROM datasus_ingestion_runs
             WHERE source=%s AND resource_type='immunization' AND source_resource_id=%s
             ORDER BY id DESC LIMIT 1""", (source, resource)).fetchone()
@@ -123,31 +136,27 @@ def ingest_csv(path: Path, *, year: int, month: int, uf: str, resource_id: str,
                 (partition, latest["finished_at"])).fetchone()
             if not purged:           # a purged partition must be importable again
                 return latest
-        runs = IngestionRunRepository(db)
-        if latest and latest["status"] == "RUNNING":
-            if latest["metadata"] != metadata:
-                raise RuntimeError("Há uma execução interrompida para outro snapshot; verifique-a antes de iniciar nova origem")
-            run = latest  # replay from row one; record and observation keys make it idempotent
-        else:
-            run = runs.start(source=source, resource_type="immunization", source_resource_id=resource, metadata=metadata)
+        run = runs.start(source=source, resource_type="immunization", source_resource_id=resource, metadata=metadata)
         run_id = run["id"]
         db.commit()
         persisted = OperationalPersistence(db)
         seen = 0
         fetched_at = datetime.now(timezone.utc)
-        with _open_reader(path, encoding=encoding, delimiter=delimiter,
-                          zip_member=zip_member) as reader:
-            while True:
-                batch = []
-                while len(batch) < batch_size:
-                    row = next(reader, None)
-                    if row is None:
+        # The whole snapshot is ONE transaction: readers keep seeing the previous snapshot
+        # until the commit swaps everything at once, and any failure rolls back to it.
+        with db.transaction():
+            with _open_reader(path, encoding=encoding, delimiter=delimiter,
+                              zip_member=zip_member) as reader:
+                while True:
+                    batch = []
+                    while len(batch) < batch_size:
+                        row = next(reader, None)
+                        if row is None:
+                            break
+                        if row.get("sg_uf_estabelecimento") == uf:
+                            batch.append(row)
+                    if not batch:
                         break
-                    if row.get("sg_uf_estabelecimento") == uf:
-                        batch.append(row)
-                if not batch:
-                    break
-                with db.transaction():
                     for row in batch:
                         seen += 1
                         key, payload, projection = project(row, uf)
@@ -157,15 +166,21 @@ def ingest_csv(path: Path, *, year: int, month: int, uf: str, resource_id: str,
                             source=source, resource_type="immunization", source_resource_id=resource,
                             record_key=key, external_id=key, payload=payload, fetched_at=fetched_at,
                             ingestion_run_id=run_id, projection=projection)
-                event("csv_ingestion_batch", ingestion_run_id=run_id, rows_seen=seen)
-        if _hash_file(path) != snapshot["sha256"] or seen != snapshot["rows"]:
-            raise ValueError("Arquivo CSV mudou durante a ingestão")
-        counts = _counts(db, run_id, source, resource)
-        if not (counts["observed"] == counts["raw_count"] == counts["projected"] == seen):
-            raise ValueError("Contagens da importação não conferem")
-        result = runs.finish(run_id, status="SUCCESS", records_received=seen,
-                             records_inserted=counts["inserted"], records_updated=counts["updated"])
-        db.commit()
+                    event("csv_ingestion_batch", ingestion_run_id=run_id, rows_seen=seen)
+            if _hash_file(path) != snapshot["sha256"] or seen != snapshot["rows"]:
+                raise ValueError("Arquivo CSV mudou durante a ingestão")
+            counts = _counts(db, run_id, source, resource)
+            event("csv_ingestion_reconciled", ingestion_run_id=run_id, rows_seen=seen,
+                  observed=counts["observed"], projected=counts["projected"],
+                  raw_count=counts["raw_count"], retired=max(counts["raw_count"] - counts["observed"], 0))
+            if counts["observed"] < seen:
+                raise ValueError(f"co_documento duplicado no arquivo: {seen - counts['observed']} linha(s) repetida(s)")
+            # Records of the previous snapshot absent from this one stay stored but are not
+            # observed by this run, so the executor no longer serves them (raw_count >= observed).
+            if not (counts["observed"] == counts["projected"] == seen) or counts["raw_count"] < counts["observed"]:
+                raise ValueError("Contagens da importação não conferem")
+            result = runs.finish(run_id, status="SUCCESS", records_received=seen,
+                                 records_inserted=counts["inserted"], records_updated=counts["updated"])
         event("csv_ingestion_completed", ingestion_run_id=run_id, rows_seen=seen)
         return result
     except Exception as exc:

@@ -17,3 +17,13 @@ O inventário de 08/11/2026 contém 2.187 partições ano/mês/UF. Uma checagem 
 ## Segurança operacional
 
 Use papéis distintos para migrations, ingestão e leitura analítica quando implantar. Restrinja a porta do PostgreSQL à rede necessária e configure TLS conforme o ambiente. Mantenha backup, teste restauração e monitore volume, RAM, tempo de consulta e crescimento de índices antes de importar centenas de milhões de registros. As credenciais de produção não pertencem ao Git.
+
+## Reimportação de meses republicados
+
+O Ministério republica os ZIPs mensais com frequência (em novembro de 2026, os meses de janeiro a setembro foram atualizados). `ingest_csv` trata cada arquivo como um **snapshot** identificado por `snapshot_id` (recurso, partição e os 16 primeiros caracteres do SHA-256 do arquivo), com o checksum completo e a contagem de linhas nos metadados da execução.
+
+- **Troca atômica.** O snapshot inteiro é gravado em **uma transação**. Enquanto ela não for confirmada, o app continua servindo o snapshot anterior; quando for, tudo muda de uma vez. Qualquer falha desfaz tudo (registros, revisões, observações) e o snapshot anterior continua valendo; a execução fica `FAILED`. O custo é que uma interrupção reinicia a leitura do arquivo do começo.
+- **Registros removidos.** Um registro que o novo snapshot não traz continua guardado (o histórico é imutável), mas deixa de ser servido: o executor lê apenas o que a execução bem-sucedida mais recente **observou**.
+- **Reconciliação por etapas.** Linhas lidas = observações = projeções; as contagens (lidas, observadas, projetadas, registros guardados e aposentados) vão para o log `csv_ingestion_reconciled`. Um `co_documento` repetido no arquivo é recusado com a quantidade de duplicatas e nada é confirmado.
+- **Execuções órfãs.** Se o processo morre no meio, a execução fica `RUNNING`. Como o importador mantém um *lock* da partição durante todo o trabalho, quem consegue o lock sabe que não há dono vivo: a próxima importação da partição fecha a órfã como `FAILED` ("Orphaned run closed") e começa uma nova. O expurgo também recusa partições com execução em andamento.
+- **Disponibilidade.** A leitura usa a última execução **bem-sucedida** de cada partição; uma execução em andamento ou falha nunca tira do ar o que já estava sendo servido.
