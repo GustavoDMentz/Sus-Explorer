@@ -659,3 +659,101 @@ def test_security_definer_functions_are_not_public_and_pin_search_path(secured_d
             (schema, function["proname"]),
         ).fetchone()["public_execute"]
         assert public_execute is False, function["proname"]
+
+
+def _import_partition(connection, schema, tmp_path, monkeypatch, name="purge_source.csv"):
+    connection.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))
+    connection.commit()
+    source = tmp_path / name
+    source.write_text("co_documento,co_vacina,dt_vacina,co_municipio_estabelecimento,sg_uf_estabelecimento,"
+                      "tp_sexo_paciente,co_paciente,nu_cep\n"
+                      "doc-a,9,2026-05-01,4314902,RS,F,PAC-1,90010000\n"
+                      "doc-b,9,2026-05-02,4314902,RS,M,PAC-2,90020000\n", encoding="utf-8")
+    run = ingest_csv(source, year=2026, month=5, uf="RS", resource_id="purge-resource",
+                     connection=connection, batch_size=1)
+    monkeypatch.setenv("POSTGRES_SCHEMA", schema)
+    return source, run
+
+
+def _raw_executor():
+    executor = PostgresQueryExecutor()
+    executor.min_cell_count = 1       # raw counts: the data path itself is under test
+    return executor
+
+
+def test_import_stores_only_allowlisted_columns_and_records_the_version(database, tmp_path, monkeypatch):
+    connection, schema = database
+    migrate(connection, schema=schema)
+    _, run = _import_partition(connection, schema, tmp_path, monkeypatch)
+    assert run["metadata"]["payload_allowlist_version"] == 1
+    payloads = [row["payload"] for row in connection.execute("SELECT payload FROM datasus_raw_records").fetchall()]
+    assert len(payloads) == 2
+    for payload in payloads:
+        assert "co_paciente" not in payload and "nu_cep" not in payload
+        assert payload["tp_sexo_paciente"] in ("F", "M")
+
+
+def test_purge_is_dry_run_by_default_and_audited(database, tmp_path, monkeypatch):
+    from sus_explorer.data.persistence.purge import purge
+    connection, schema = database
+    migrate(connection, schema=schema)
+    _import_partition(connection, schema, tmp_path, monkeypatch)
+    planned = purge(connection, scope="partition", partition="ano=2026/mes=05/uf=RS",
+                    reason="simulação de teste do expurgo")
+    assert planned["dry_run"] is True and planned["raw_records"] == 2 and planned["immunization_records"] == 2
+    assert connection.execute("SELECT count(*) AS n FROM datasus_raw_records").fetchone()["n"] == 2
+    audit = connection.execute("SELECT dry_run, scope, partition, counts FROM datasus_purge_audit").fetchall()
+    assert [(a["dry_run"], a["scope"], a["partition"]) for a in audit] == [(True, "partition", "ano=2026/mes=05/uf=RS")]
+    assert _raw_executor().execute(QueryPlan(operation="count", year=2026, month=5, uf="RS")).data == {"doses": 2}
+
+
+def test_purge_execute_removes_the_partition_and_it_becomes_unavailable_not_zero(database, tmp_path, monkeypatch):
+    from sus_explorer.data.persistence.purge import purge
+    connection, schema = database
+    migrate(connection, schema=schema)
+    source, first = _import_partition(connection, schema, tmp_path, monkeypatch)
+    done = purge(connection, scope="partition", partition="ano=2026/mes=05/uf=RS",
+                 reason="retirada solicitada pela fonte", execute=True)
+    assert done["dry_run"] is False and done["raw_records"] == 2
+    for table in ("datasus_raw_records", "immunization_records", "datasus_raw_record_revisions",
+                  "datasus_raw_record_observations"):
+        assert connection.execute(f"SELECT count(*) AS n FROM {table}").fetchone()["n"] == 0
+    # unavailable, never "0 doses"
+    with pytest.raises(FileNotFoundError):
+        _raw_executor().execute(QueryPlan(operation="count", year=2026, month=5, uf="RS"))
+    # the immutability triggers are back on
+    rejected(connection, "DELETE FROM datasus_raw_record_observations")
+    rejected(connection, "DELETE FROM datasus_purge_audit")
+    rejected(connection, "UPDATE datasus_purge_audit SET reason = 'tentativa de alterar a auditoria'")
+    # ...and the partition can be imported again
+    again = ingest_csv(source, year=2026, month=5, uf="RS", resource_id="purge-resource",
+                       connection=connection, batch_size=1)
+    assert again["id"] != first["id"] and again["status"] == "SUCCESS"
+    assert _raw_executor().execute(QueryPlan(operation="count", year=2026, month=5, uf="RS")).data == {"doses": 2}
+
+
+def test_purge_old_revisions_keeps_current_versions(database, tmp_path, monkeypatch):
+    from sus_explorer.data.persistence.purge import purge
+    connection, schema = database
+    migrate(connection, schema=schema)
+    _import_partition(connection, schema, tmp_path, monkeypatch)
+    result = purge(connection, scope="old_revisions", older_than_days=30,
+                   reason="retenção de revisões antigas", execute=True)
+    assert result["revisions"] == 0
+    assert connection.execute("SELECT count(*) AS n FROM datasus_raw_records").fetchone()["n"] == 2
+
+
+def test_runtime_and_reader_cannot_purge_or_write_the_audit(secured_database, tmp_path, monkeypatch):
+    from sus_explorer.data.persistence.purge import PurgeError, purge
+    admin, runtime, reader, schema = secured_database
+    _import_partition(admin, schema, tmp_path, monkeypatch)
+    with pytest.raises(PurgeError):
+        purge(runtime, scope="partition", partition="ano=2026/mes=05/uf=RS",
+              reason="tentativa sem privilégio de dono", execute=True)
+    runtime.rollback()
+    assert admin.execute("SELECT count(*) AS n FROM datasus_raw_records").fetchone()["n"] == 2
+    audit_insert = ("INSERT INTO datasus_purge_audit (scope, partition, dry_run, reason, counts) "
+                    "VALUES ('partition', 'ano=2026/mes=05/uf=RS', false, 'registro falso de auditoria', '{}')")
+    denied(runtime, audit_insert)
+    denied(reader, audit_insert)
+    assert reader.execute("SELECT count(*) AS n FROM datasus_purge_audit").fetchone()["n"] == 0

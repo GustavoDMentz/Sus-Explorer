@@ -46,13 +46,24 @@ class PostgresQueryExecutor:
     def _ready(self, db, plan: QueryPlan):
         periods = self._periods(plan)
         labels = [f"ano={year}/mes={month:02d}/uf={plan.uf}" for year, month in periods]
+        # Latest SUCCESSFUL run per partition: a run in progress or a failed re-import
+        # never hides the snapshot that is already being served (it was rolled back or
+        # has not committed yet).
         rows = db.execute("""SELECT DISTINCT ON (metadata->>'partition')
-                 id, source, source_resource_id, status, records_received, metadata
+                 id, source, source_resource_id, status, records_received, metadata, finished_at
             FROM datasus_ingestion_runs
-            WHERE resource_type='immunization' AND metadata->>'partition'=ANY(%s)
+            WHERE resource_type='immunization' AND status='SUCCESS'
+              AND metadata->>'partition'=ANY(%s)
             ORDER BY metadata->>'partition', id DESC""", (labels,)).fetchall()
+        # A partition purged after its last import is unavailable, never "zero doses".
+        purged = {row["partition"]: row["purged_at"] for row in db.execute(
+            """SELECT partition, max(purged_at) AS purged_at FROM datasus_purge_audit
+               WHERE NOT dry_run AND scope='partition' AND partition=ANY(%s) GROUP BY partition""",
+            (labels,)).fetchall()}
         ready = {row["metadata"]["partition"]: row for row in rows
-                 if row["status"] == "SUCCESS" and
+                 if not (row["metadata"]["partition"] in purged and row["finished_at"] is not None
+                         and purged[row["metadata"]["partition"]] > row["finished_at"]) and
+                 row["status"] == "SUCCESS" and
                  type(row["metadata"].get("source_rows")) is int and
                  row["metadata"]["source_rows"] == row["records_received"] and
                  row["records_received"] >= 0}
