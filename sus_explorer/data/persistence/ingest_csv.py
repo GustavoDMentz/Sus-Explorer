@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .database import connect
+from .database import allow_long_ingestion_statement, connect
 from ..zip_guard import check_archive
 from .immunization_transform import project
 from .operational_events import event
@@ -71,6 +71,7 @@ def _snapshot(path: Path, *, encoding: str, delimiter: str,
 
 
 def _counts(db, run_id, source, resource_id):
+    allow_long_ingestion_statement(db)
     return db.execute("""SELECT
        (SELECT count(*) FROM datasus_raw_record_observations WHERE ingestion_run_id=%s) AS observed,
        (SELECT count(*) FROM datasus_raw_record_observations o JOIN datasus_raw_records r ON r.id=o.raw_record_id

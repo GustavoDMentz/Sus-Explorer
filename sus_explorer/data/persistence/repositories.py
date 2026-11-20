@@ -107,6 +107,9 @@ class IngestionRunRepository:
             )["count"]
             if observed > records_received:
                 raise ValueError("records_received cannot be below observed records")
+            if status == "SUCCESS" and observed != records_received:
+                # A partial or inflated load must never look complete to the executor.
+                raise ValueError("SUCCESS requires records_received to equal observed records")
             result = _one(
                 self.connection,
                 """

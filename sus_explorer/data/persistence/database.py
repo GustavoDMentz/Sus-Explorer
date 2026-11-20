@@ -37,6 +37,19 @@ def _is_loopback_ip(host: str) -> bool:
         return False
 
 
+def allow_long_ingestion_statement(connection) -> None:
+    """Raise statement_timeout for the current transaction only.
+
+    Reconciliation counts scan a whole partition and can exceed the 30 s default that
+    protects the interactive app; a timeout there would leave a finished load marked
+    FAILED or RUNNING. Capped at one hour; applies to the open transaction only.
+    """
+    milliseconds = _integer_setting(
+        "POSTGRES_INGEST_STATEMENT_TIMEOUT_MS", 300_000, minimum=1_000, maximum=3_600_000
+    )
+    connection.execute("SELECT set_config('statement_timeout', %s, true)", (str(milliseconds),))
+
+
 def configured_schema() -> str:
     schema = os.getenv("POSTGRES_SCHEMA", "sus_explorer")
     if not _SCHEMA.fullmatch(schema):

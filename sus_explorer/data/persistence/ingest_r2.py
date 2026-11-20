@@ -11,7 +11,7 @@ from datetime import date, datetime, timezone
 import pyarrow as pa
 
 from ...pni import PNIRemote
-from .database import connect
+from .database import allow_long_ingestion_statement, connect
 from .operational_events import event
 from .repositories import ImmunizationProjection, IngestionRunRepository, OperationalPersistence
 from .validation import PAYLOAD_MAX_BYTES, validate_json_object
@@ -73,6 +73,7 @@ from .immunization_transform import project, _text, _date
 
 
 def _counts(connection, run_id: int) -> dict:
+    allow_long_ingestion_statement(connection)
     return connection.execute("""
         SELECT count(*) AS observed,
                count(*) FILTER (WHERE r.first_ingestion_run_id = %s) AS inserted,
