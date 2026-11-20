@@ -99,7 +99,8 @@ explorer_tab, history_tab, catalog_tab, sources_tab = st.tabs(
 )
 
 with explorer_tab:
-    st.info('Cálculos no backend Python, com proveniência. Nenhum microdado individual é enviado ao LLM.')
+    st.info('Cálculos no backend Python, com proveniência. O modelo de IA recebe apenas resultados agregados, nunca linhas individuais. '
+            'Contagens muito pequenas podem permitir identificar pessoas: interprete-as com cuidado.')
     with st.form('query_form'):
         question = st.text_area('Sua pergunta', key='query_question', max_chars=1000,
                                 placeholder='Qual foi a variação mensal das doses no RS de janeiro a junho de 2026?')
