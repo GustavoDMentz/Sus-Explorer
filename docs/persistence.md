@@ -16,7 +16,7 @@ O inventário de 08/11/2026 contém 2.187 partições ano/mês/UF. Uma checagem 
 
 ## Segurança operacional
 
-Use papéis distintos para migrations, ingestão e leitura analítica quando implantar. Restrinja a porta do PostgreSQL à rede necessária e configure TLS conforme o ambiente. Mantenha backup, teste restauração e monitore volume, RAM, tempo de consulta e crescimento de índices antes de importar centenas de milhões de registros. As credenciais de produção não pertencem ao Git.
+Use papéis distintos para migrations, ingestão, histórico e leitura analítica: o guia está em [postgres-roles.md](postgres-roles.md), e os perfis `reader`, `ingest`, `history` e `migrator` já são usados pelo código. Restrinja a porta do PostgreSQL à rede necessária e configure TLS conforme o ambiente. Mantenha backup, teste restauração e monitore volume, RAM, tempo de consulta e crescimento de índices antes de importar centenas de milhões de registros. As credenciais de produção não pertencem ao Git.
 
 ## Reimportação de meses republicados
 

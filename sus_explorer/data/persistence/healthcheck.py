@@ -1,10 +1,10 @@
 """Real PostgreSQL connectivity check with no schema mutation."""
 
-from .database import connect
+from .database import connect_reader
 
 
 def check_postgres() -> bool:
-    with connect() as connection:
+    with connect_reader() as connection:
         row = connection.execute("SELECT 1 AS healthy").fetchone()
         return row is not None and row["healthy"] == 1
 

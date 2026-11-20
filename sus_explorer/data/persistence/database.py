@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import ipaddress
 import os
 import re
@@ -57,17 +58,44 @@ def configured_schema() -> str:
     return schema
 
 
-def connect() -> psycopg.Connection:
+# Least-privilege login profiles. Each maps to a login role that is a member of exactly one
+# structural group role (see docs/postgres-roles.md):
+#   reader   -> sus_explorer_reader   (analytical queries, RAG search: read-only)
+#   ingest   -> sus_explorer_runtime  (imports: writes raw records and runs)
+#   history  -> sus_explorer_history  (opt-in query/result history: insert-only tables)
+#   migrator -> sus_explorer_migrator (migrations, purge, RAG indexing: schema owner)
+PROFILES = ("reader", "ingest", "history", "migrator")
+_warned_fallback: set[str] = set()
+
+
+def _credentials(profile: str | None) -> tuple[str | None, str | None, list[str]]:
+    """User, password and the names of the variables that are missing."""
+    if profile is None:
+        names = ("POSTGRES_USER", "POSTGRES_PASSWORD")
+    else:
+        if profile not in PROFILES:
+            raise RuntimeError("Unknown PostgreSQL profile")
+        names = (f"POSTGRES_{profile.upper()}_USER", f"POSTGRES_{profile.upper()}_PASSWORD")
+        if os.getenv(names[0]) and os.getenv(names[1]):
+            return os.environ[names[0]], os.environ[names[1]], []
+        if os.getenv("POSTGRES_REQUIRE_PROFILES") == "1":
+            return None, None, [name for name in names if not os.getenv(name)]
+        # Backward compatible: without profile credentials, the single legacy login is
+        # used, which in the default compose setup is a superuser. Say so, once.
+        if profile not in _warned_fallback:
+            _warned_fallback.add(profile)
+            event("postgres_profile_fallback", level="WARNING", profile=profile)
+        names = ("POSTGRES_USER", "POSTGRES_PASSWORD")
+    missing = [name for name in names if not os.getenv(name)]
+    return os.getenv(names[0]), os.getenv(names[1]), missing
+
+
+def connect(profile: str | None = None) -> psycopg.Connection:
     """Connect from environment variables without logging credentials or DSNs."""
     load_dotenv()
-    required = (
-        "POSTGRES_HOST",
-        "POSTGRES_PORT",
-        "POSTGRES_DB",
-        "POSTGRES_USER",
-        "POSTGRES_PASSWORD",
-    )
-    missing = [name for name in required if not os.getenv(name)]
+    user, password, missing_credentials = _credentials(profile)
+    required = ("POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB")
+    missing = [name for name in required if not os.getenv(name)] + missing_credentials
     if missing:
         event("postgres_configuration_missing", level="ERROR", missing=missing)
         raise RuntimeError("Missing database settings: " + ", ".join(missing))
@@ -110,8 +138,8 @@ def connect() -> psycopg.Connection:
             host=os.environ["POSTGRES_HOST"],
             port=os.environ["POSTGRES_PORT"],
             dbname=os.environ["POSTGRES_DB"],
-            user=os.environ["POSTGRES_USER"],
-            password=os.environ["POSTGRES_PASSWORD"],
+            user=user,
+            password=password,
             connect_timeout=connect_timeout,
             application_name=application_name,
             sslmode=sslmode,
@@ -141,3 +169,10 @@ def connect() -> psycopg.Connection:
                 sql.Identifier(schema), sql.Identifier(extension["extension_schema"])))
     connection.commit()
     return connection
+
+
+# Ready-made factories for call sites that take a ``connect_db`` callable.
+connect_reader = functools.partial(connect, "reader")
+connect_ingest = functools.partial(connect, "ingest")
+connect_history = functools.partial(connect, "history")
+connect_migrator = functools.partial(connect, "migrator")

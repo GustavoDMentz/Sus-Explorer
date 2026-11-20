@@ -7,7 +7,7 @@ from uuid import UUID
 
 from psycopg.types.json import Jsonb
 
-from .database import connect
+from .database import connect_history
 
 
 PARAMETER_FIELDS = (
@@ -69,7 +69,7 @@ def record_query(*, query_id: UUID, plan, executor: str, status: str,
         raise ValueError("Invalid query history identity or operation")
     own_connection = connection is None
     if own_connection:
-        connection = connect()
+        connection = connect_history()
     try:
         with connection.transaction():
             connection.execute(
@@ -89,7 +89,7 @@ def recent_queries(*, limit: int = 20, connection=None) -> list[dict]:
         raise ValueError("Invalid query history limit")
     own_connection = connection is None
     if own_connection:
-        connection = connect()
+        connection = connect_history()
     try:
         return connection.execute(
             """SELECT id, executed_at, operation, parameters, executor, status,

@@ -88,6 +88,7 @@ A documentação técnica foi preservada e organizada separadamente:
 
 - [**Guia técnico e operacional**](docs/technical-guide.md) — instalação, importação, arquitetura e testes.
 - [**Retenção de dados e expurgo**](docs/data-retention.md) — o que é guardado, por quanto tempo e como remover.
+- [**Logins separados no PostgreSQL**](docs/postgres-roles.md) — leitura, ingestão, histórico e migração com privilégios mínimos.
 - [**IA local e RAG**](docs/local-ai-rag.md) — Ollama, PostgreSQL com pgvector e respostas documentais.
 - [**Descoberta de ZIPs do OpenDataSUS**](docs/opendatasus-sync.md) — como detectar competências novas ou republicadas.
 - [**Validação da migração para PostgreSQL**](docs/migration-validation-2026-11-08.md) — o que foi verificado e o que falta.

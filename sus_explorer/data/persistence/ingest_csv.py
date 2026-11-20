@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .database import allow_long_ingestion_statement, connect
+from .database import allow_long_ingestion_statement, connect_ingest
 from ..zip_guard import check_archive
 from .immunization_transform import project
 from .payload_policy import PAYLOAD_ALLOWLIST_VERSION
@@ -108,7 +108,7 @@ def ingest_csv(path: Path, *, year: int, month: int, uf: str, resource_id: str,
                 "payload_allowlist_version": PAYLOAD_ALLOWLIST_VERSION,
                 "snapshot_id": f"{resource}@{snapshot['sha256'][:16]}"}
     own_connection = connection is None
-    db = connection or connect()
+    db = connection or connect_ingest()
     run_id = None
     locked = False
     try:

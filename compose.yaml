@@ -23,12 +23,19 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-sus_explorer}
       POSTGRES_USER: ${POSTGRES_USER:-sus_explorer}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      # Passwords of the four least-privilege logins created on first start by
+      # scripts/postgres/init/10-app-roles.sh (see docs/postgres-roles.md).
+      POSTGRES_MIGRATOR_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?Set POSTGRES_MIGRATOR_PASSWORD in .env}
+      POSTGRES_INGEST_PASSWORD: ${POSTGRES_INGEST_PASSWORD:?Set POSTGRES_INGEST_PASSWORD in .env}
+      POSTGRES_HISTORY_PASSWORD: ${POSTGRES_HISTORY_PASSWORD:?Set POSTGRES_HISTORY_PASSWORD in .env}
+      POSTGRES_READER_PASSWORD: ${POSTGRES_READER_PASSWORD:?Set POSTGRES_READER_PASSWORD in .env}
 
     ports:
       - "127.0.0.1:5432:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres/init:/docker-entrypoint-initdb.d:ro
 
     healthcheck:
       test:

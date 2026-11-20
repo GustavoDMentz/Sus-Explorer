@@ -24,7 +24,7 @@ import json
 import re
 import sys
 
-from .database import connect
+from .database import connect_migrator
 from .operational_events import event
 
 PARTITION = re.compile(r"ano=[0-9]{4}/mes=(0[1-9]|1[0-2])/uf=[A-Z]{2}")
@@ -159,7 +159,7 @@ def main(argv=None) -> int:
     parser.add_argument("--execute", action="store_true", help="remove de fato; sem isto é só simulação")
     args = parser.parse_args(argv)
     try:
-        with connect() as connection:
+        with connect_migrator() as connection:
             result = purge(connection, scope=args.scope, reason=args.reason, partition=args.partition,
                            older_than_days=args.older_than_days, execute=args.execute)
     except PurgeError as exc:

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from psycopg.types.json import Jsonb
 
-from .data.persistence.database import connect
+from .data.persistence.database import connect_migrator, connect_reader
 from .ollama import OllamaClient
 
 
@@ -60,7 +60,7 @@ class KnowledgeStore:
         digest = hashlib.sha256(raw).hexdigest()
         reference = str(path.relative_to(root)).replace("\\", "/")
         identity = self.identity
-        with connect() as db:
+        with connect_migrator() as db:
             with db.cursor() as cur:
                 cur.execute("SELECT content_hash, embedding_model FROM knowledge_documents WHERE original_reference=%s", (reference,))
                 existing = cur.fetchone()
@@ -74,7 +74,7 @@ class KnowledgeStore:
             for i in range(0, len(parts), 8):
                 vectors.extend(self.client.embed(parts[i:i + 8]))
         except Exception as exc:
-            with connect() as db, db.cursor() as cur:
+            with connect_migrator() as db, db.cursor() as cur:
                 cur.execute("""INSERT INTO knowledge_indexing_attempts
                     (original_reference, content_hash, status, error_type)
                     VALUES (%s,%s,'FAILED',%s)""",
@@ -82,7 +82,7 @@ class KnowledgeStore:
             raise
         # All embeddings are ready before replacing the last valid index, and
         # the replacement itself is one transaction.
-        with connect() as db:
+        with connect_migrator() as db:
             with db.transaction():
                 with db.cursor() as cur:
                     cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (reference,))
@@ -117,7 +117,7 @@ class KnowledgeStore:
         threshold = float(os.getenv("RAG_MIN_SIMILARITY", "0.65"))
         if not 1 <= top_k <= 20 or not -1 <= threshold <= 1:
             raise ValueError("Configuração RAG inválida")
-        with connect() as db, db.cursor() as cur:
+        with connect_reader() as db, db.cursor() as cur:
             cur.execute("""SELECT d.id AS document_id, d.title, d.original_reference,
                        c.chunk_index, c.content, c.metadata,
                        1 - (c.embedding <=> %s::vector) AS score

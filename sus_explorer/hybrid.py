@@ -5,14 +5,14 @@ from __future__ import annotations
 import os
 import time
 
-from .data.persistence.database import connect
+from .data.persistence.database import connect_reader
 from .data.persistence.ingest_r2 import RESOURCE_TYPE, SOURCE, source_snapshot
 from .data.persistence.operational_events import event
 from .pni import QueryResult, require_ready_plan
 
 
 class HybridQueryExecutor:
-    def __init__(self, r2, *, postgres_enabled: bool | None = None, connect_db=connect):
+    def __init__(self, r2, *, postgres_enabled: bool | None = None, connect_db=connect_reader):
         self.r2 = r2
         self.postgres_enabled = (os.getenv("POSTGRES_COUNT_ENABLED") == "1"
                                  if postgres_enabled is None else postgres_enabled)

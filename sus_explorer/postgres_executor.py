@@ -5,7 +5,7 @@ import os
 import time
 import unicodedata
 
-from .data.persistence.database import connect
+from .data.persistence.database import connect_reader
 from .query_result import QueryResult, months, require_ready_plan
 from .schemas import QueryPlan
 from .terminology import terminology
@@ -33,7 +33,7 @@ def _escape_like(value: str) -> str:
 
 
 class PostgresQueryExecutor:
-    def __init__(self, *, connect_db=connect):
+    def __init__(self, *, connect_db=connect_reader):
         self.connect_db = connect_db
 
     def _periods(self, plan: QueryPlan) -> list[tuple[int, int]]:
