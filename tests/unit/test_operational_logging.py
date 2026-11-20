@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -110,7 +111,7 @@ def test_write_failure_is_fail_safe(tmp_path, monkeypatch):
     def fail_open(*args, **kwargs):
         raise OSError("disk full")
 
-    monkeypatch.setattr(Path, "open", fail_open)
+    monkeypatch.setattr(os, "open", fail_open)
     saved = logger.event("write_failed", rows=1)
 
     assert saved["logging_failed"] is True
