@@ -349,10 +349,13 @@ def render_result(payload, question='', comparison_executor=None):
     data, provenance = result.get('data', {}), result.get('provenance', {})
     origin = provenance.get('source_provenance', provenance)
     if operation == 'count':
-        provenance_metric(st, 'Doses/registros', str(data.get('doses', '—')), 'DIRECT', 'count')
+        provenance_metric(st, 'Doses/registros', data.get('count_display') if data.get('suppressed') else str(data.get('doses', '—')), 'DIRECT', 'count')
     elif operation == 'group' and data.get('rows'):
         rows = data['rows']
         table = pd.DataFrame(rows)
+        if 'count_display' in table.columns:      # suppressed small cells: show the label, not None
+            table['count'] = [d if d else c for c, d in zip(table['count'], table['count_display'])]
+            table = table.drop(columns=['count_display'])
         labels = [str(row.get('official_display') or row.get('value') or row.get('code') or row.get('display') or '—') for row in rows]
         frame = pd.DataFrame({'Grupo': labels, 'Doses/registros': [chart_number(row['count']) for row in rows],
                               'Origem': provenance_label('DIRECT')})
@@ -372,7 +375,7 @@ def render_result(payload, question='', comparison_executor=None):
                                       ('Mediana', 'P90', 'P95')):
             value = data.get(key)
             provenance_metric(column, label, str(value) if value is not None else '—', 'DERIVED', f'latency_{key}')
-        st.caption(f"Registros válidos: {data.get('n_valid', '—')}")
+        st.caption(f"Registros válidos: {data.get('count_display') if data.get('suppressed') else data.get('n_valid', '—')}")
     st.subheader('Interpretação')
     st.write(percentage_summary(data['rows']) if operation == 'temporal' and any('pct_change' in r.get('metrics', {}) for r in data.get('rows', [])) else payload.get('answer') or 'Nenhuma interpretação disponível.')
     render_document_sources(payload)
