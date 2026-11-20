@@ -2,7 +2,7 @@
 
 ## Instalação
 
-Use Python 3.12 ou versão compatível com as dependências. Instale o ambiente de execução com `python -m pip install -c constraints.txt -r requirements.txt`. Para testes e ferramentas de migração, use `requirements-dev.txt`; `requirements-migration.txt` contém PyArrow, que não é necessário ao serviço normal.
+Use Python 3.12 ou versão compatível com as dependências. Instale o ambiente de execução com `python -m pip install -c constraints.txt -r requirements.txt`. Para testes e ferramentas de migração, use `requirements-dev.txt`, ou, para reproduzir exatamente o ambiente do CI (dependências diretas **e transitivas**, verificadas por hash), `python -m pip install --require-hashes -r requirements-lock.txt` (Python 3.12, Linux; veja "Atualizar o lock" abaixo); `requirements-migration.txt` contém PyArrow, que não é necessário ao serviço normal.
 
 Copie `.env.example` para `.env` e defina as credenciais PostgreSQL. Inicie PostgreSQL com pgvector e Ollama: `docker compose up -d postgres ollama`. Baixe os modelos com `docker compose exec ollama ollama pull qwen3:4b-instruct-2507-q4_K_M` e `docker compose exec ollama ollama pull qwen3-embedding:0.6b`. Verifique a dimensão real usando `python -m sus_explorer.check_local_ai` e aplique as migrations com `python -m sus_explorer.data.persistence.migrate`. A migration 007 exige vetor de 1024 dimensões. Execute `streamlit run app.py`.
 
@@ -19,3 +19,13 @@ Para importar o espelho legado sem mantê-lo no fluxo de consulta, instale `requ
 `python -m pytest tests -q` executa contratos locais; os testes PostgreSQL exigem `SUS_EXPLORER_TEST_DB=1` e um banco descartável cujo nome termina em `_test`. O canário Ollama/RAG real está em `tests/e2e/test_local_rag.py` e exige também `SUS_EXPLORER_RAG_E2E=1`. Compare agregados PostgreSQL com referências independentes ou com o leitor legado durante a migração. O catálogo da interface mostra a última execução por competência e não interpreta ausência como zero.
 
 A documentação em `development_journal.md`, `pr_register.md`, `test_audit.md` e `refactor_findings.md` é histórica e pode descrever a arquitetura anterior. Não use esses registros como instruções de instalação atuais.
+
+## Atualizar o lock de dependências
+
+`requirements-lock.txt` fixa todas as dependências (diretas e transitivas) com hashes SHA-256 e é o que o CI instala, com `--require-hashes`. É gerado a partir de `requirements-dev.txt` respeitando `constraints.txt`, em Python 3.12 no Linux:
+
+```bash
+scripts/update_lock.sh
+```
+
+Sempre que o Dependabot (ou você) alterar `requirements*.txt` ou `constraints.txt`, regenere o lock no mesmo PR: o teste `tests/unit/test_lockfile.py` falha enquanto os dois divergirem. Isso dá trabalho a cada atualização, mas impede que uma versão não verificada entre no CI. Os hashes cobrem os arquivos de todas as plataformas, então o lock também serve para Python 3.12 em outros sistemas, embora o alvo suportado seja o do CI.
