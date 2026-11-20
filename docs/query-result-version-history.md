@@ -65,7 +65,7 @@ Auditoria abrangente de cibersegurança reservada ao #33. Nenhum merge automáti
 **Comandos de preparação (ambiente de teste):**
 
 ```bash
-python -m pip install -r requirements.txt -r requirements-dev.txt
+python -m pip install -c constraints.txt -r requirements.txt -r requirements-dev.txt
 export ANALYTICAL_HISTORY_ENABLED=1
 export ANALYTICAL_HISTORY_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
 python -m sus_explorer.data.persistence.migrate

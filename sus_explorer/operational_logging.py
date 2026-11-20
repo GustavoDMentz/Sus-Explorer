@@ -22,21 +22,41 @@ from .paths import PROJECT_ROOT
 SCHEMA_VERSION = 1
 OPERATIONAL_LOG_ROOT = PROJECT_ROOT / "logs"
 _SENSITIVE_KEY = re.compile(
-    r"(^|_)(authorization|credential|password|secret|token|api_key|access_key|cpf|cns|patient|paciente)($|_)",
+    r"(^|_)(authorization|credential|credentials|password|passwd|pwd|senha|secret|token|"
+    r"api_key|apikey|access_key|accesskey|private_key|dsn|database_url|connection_string|"
+    r"cpf|cns|patient|paciente|nascimento|birth_date|cep)($|_)",
     re.IGNORECASE,
 )
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+
+
+def _is_sensitive_key(key: Any) -> bool:
+    """Match sensitive names in snake_case, kebab-case and camelCase."""
+    normalized = _CAMEL_BOUNDARY.sub("_", str(key)).replace("-", "_")
+    return bool(_SENSITIVE_KEY.search(normalized))
+
 _REDACTED = "[REDACTED]"
 _URL = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
 _SENSITIVE_ASSIGNMENT = re.compile(
-    r"(?i)\b(password|passwd|pwd|secret|token|authorization|api[_-]?key|"
-    r"access[_-]?key|credential|dsn)\b\s*[:=]\s*([^\s,;&]+)"
+    r"(?i)(?<![A-Za-z0-9])"
+    r"(?P<key>[A-Za-z0-9_-]*(?:password|passwd|pwd|senha|secret|token|authorization|"
+    r"api[_-]?key|access[_-]?key|private[_-]?key|credential|dsn|database[_-]?url|"
+    r"connection[_-]?string)(?:[_-][A-Za-z0-9_-]*|(?-i:[A-Z])[A-Za-z0-9_-]*)?)"
+    r"(?P<sep>[\"']?\s*[:=]\s*)"
+    r"(?P<value>(?:(?:Bearer|Basic)\s+)?(?:\"[^\"]*\"|'[^']*'|[^\s,;&}\]]+))"
 )
+_BEARER = re.compile(r"(?i)\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}")
+# usuario:senha@host em qualquer esquema (postgresql://, redis://, s3://...)
+_URI_USERINFO = re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)([^/\s:@]*):([^@\s/]+)@")
 _EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}(?![\w.-])")
 _CPF = re.compile(r"(?<!\d)\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)")
 # Digests hexadecimais (SHA-256 etc.) trazem com frequência 11 dígitos seguidos
 # (~4% dos SHA-256) e não podem ser confundidos com CPF.
 _HEX_DIGEST = re.compile(r"(?<![0-9A-Za-z])[0-9A-Fa-f]{32,}(?![0-9A-Za-z])")
-_CPF_OUTSIDE_DIGEST = re.compile(f"(?P<digest>{_HEX_DIGEST.pattern})|(?P<cpf>{_CPF.pattern})")
+_CNS = re.compile(r"(?<!\d)\d{15}(?!\d)")
+_CPF_OUTSIDE_DIGEST = re.compile(
+    f"(?P<digest>{_HEX_DIGEST.pattern})|(?P<cns>{_CNS.pattern})|(?P<cpf>{_CPF.pattern})"
+)
 _SENSITIVE_QUERY_NAMES = {
     "access_token", "apikey", "api_key", "authorization", "auth",
     "awsaccesskeyid", "googleaccessid", "id_token", "key", "key-pair-id",
@@ -85,10 +105,15 @@ def _sanitize_url(match: re.Match[str]) -> str:
 
 def sanitize_text(value: str, secrets: Iterable[str] = ()) -> str:
     """Remove credentials and signed-URL material from arbitrary text."""
-    sanitized = _SENSITIVE_ASSIGNMENT.sub(
-        lambda match: f"{match.group(1)}={_REDACTED}", value
+    # http(s) primeiro: _sanitize_url remove userinfo e assinaturas e mantém a URL válida.
+    sanitized = _URL.sub(_sanitize_url, value)
+    sanitized = _URI_USERINFO.sub(
+        lambda match: f"{match.group(1)}{match.group(2)}:{_REDACTED}@", sanitized
     )
-    sanitized = _URL.sub(_sanitize_url, sanitized)
+    sanitized = _SENSITIVE_ASSIGNMENT.sub(
+        lambda match: f"{match.group('key')}{match.group('sep')}{_REDACTED}", sanitized
+    )
+    sanitized = _BEARER.sub(lambda match: f"{match.group(1)} {_REDACTED}", sanitized)
     sanitized = _EMAIL.sub(_REDACTED, sanitized)
     sanitized = _CPF_OUTSIDE_DIGEST.sub(
         lambda match: match.group("digest") or _REDACTED, sanitized
@@ -118,7 +143,7 @@ def redact(value: Any, secrets: Iterable[str] = ()) -> Any:
     def clean(item: Any) -> Any:
         if isinstance(item, Mapping):
             return {
-                str(key): _REDACTED if _SENSITIVE_KEY.search(str(key)) else clean(val)
+                str(key): _REDACTED if _is_sensitive_key(key) else clean(val)
                 for key, val in item.items()
             }
         if isinstance(item, (list, tuple, set, frozenset)):
@@ -149,7 +174,7 @@ class JsonlRunLogger:
         self.path: Path | None = None
         self.last_error: Exception | None = None
         try:
-            log_root.mkdir(parents=True, exist_ok=True)
+            log_root.mkdir(mode=0o700, parents=True, exist_ok=True)
             self.path = log_root / f"{self.run_id}.jsonl"
         except Exception as exc:
             self.last_error = exc
@@ -169,8 +194,12 @@ class JsonlRunLogger:
             safe_record = redact(record, self.secrets)
             encoded = json.dumps(safe_record, ensure_ascii=False, sort_keys=True)
             if self.path is not None:
-                with self._lock, self.path.open("a", encoding="utf-8") as stream:
-                    stream.write(encoded + "\n")
+                with self._lock:
+                    descriptor = os.open(
+                        self.path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600
+                    )
+                    with os.fdopen(descriptor, "a", encoding="utf-8") as stream:
+                        stream.write(encoded + "\n")
             return safe_record
         except Exception as exc:
             self.last_error = exc

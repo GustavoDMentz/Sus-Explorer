@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import unicodedata
 from pathlib import Path
@@ -36,14 +37,22 @@ def _norm(text: str | None) -> str | None:
     return " ".join(value.strip().casefold().split())
 
 
+MAX_RESPONSE_BYTES = 20_000_000
+
+
 def _request_json(url: str) -> dict:
     r = requests.get(
         url,
         timeout=30,
         headers={"Accept": "application/fhir+json, application/json"},
+        stream=True,
     )
     r.raise_for_status()
-    return r.json()
+    body = r.raw.read(MAX_RESPONSE_BYTES + 1, decode_content=True)
+    r.close()
+    if len(body) > MAX_RESPONSE_BYTES:
+        raise ValueError("Resposta de terminologia excedeu o limite")
+    return json.loads(body)
 
 
 def _flatten_go_concepts(items: list[dict]) -> list[dict]:
@@ -212,31 +221,41 @@ class ImmunobiologicalTerminology:
         }
 
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        self.cache_file.write_text(
+        # Atomic replace: another session or process never reads a half-written file.
+        temporary = self.cache_file.with_name(self.cache_file.name + f".{os.getpid()}.tmp")
+        temporary.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        os.replace(temporary, self.cache_file)
         return payload
+
+    def _read_cache(self) -> dict | None:
+        """Cached payload, or None when the file is missing or corrupt."""
+        try:
+            payload = json.loads(self.cache_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        return payload if isinstance(payload, dict) else None
 
     def load(self, force_refresh: bool = False) -> dict:
         if self._payload is not None and not force_refresh:
             return self._payload
 
         if not force_refresh and self._cache_is_fresh():
-            self._payload = json.loads(
-                self.cache_file.read_text(encoding="utf-8")
-            )
-            return self._payload
+            cached = self._read_cache()
+            if cached is not None:       # corrupt cache is treated as expired
+                self._payload = cached
+                return self._payload
 
         try:
             self._payload = self._download_and_merge()
         except Exception:
             # Fallback para cache velho; nunca inventa terminologia.
-            if not self.cache_file.exists():
+            cached = self._read_cache()
+            if cached is None:
                 raise
-            self._payload = json.loads(
-                self.cache_file.read_text(encoding="utf-8")
-            )
+            self._payload = cached
 
         return self._payload
 

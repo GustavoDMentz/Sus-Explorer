@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import unicodedata
+
 import os
 import re
 import time
@@ -85,7 +87,15 @@ class SUSExplorer:
 
     def ask(self, question: str) -> dict:
         # Validate before REGEX, Ollama or PostgreSQL access.
-        if not isinstance(question, str) or not question.strip():
+        if not isinstance(question, str):
+            raise ValueError("Question must be a non-empty string")
+        # NFKC folds look-alike characters; control and zero-width characters are
+        # dropped so they cannot hide instructions from the user or the logs.
+        question = "".join(
+            c for c in unicodedata.normalize("NFKC", question)
+            if c in "\n\t" or unicodedata.category(c) not in ("Cc", "Cf")
+        )
+        if not question.strip():
             raise ValueError("Question must be a non-empty string")
         if len(question.encode("utf-8")) > 4096:
             raise ValueError("Question exceeds the 4096-byte limit")

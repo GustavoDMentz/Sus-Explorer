@@ -30,6 +30,7 @@ def test_connection_failure_never_logs_credentials(monkeypatch, tmp_path):
         "POSTGRES_DB": "sus",
         "POSTGRES_USER": "service-user",
         "POSTGRES_PASSWORD": "super-secret-value",
+        "POSTGRES_SSLMODE": "require",
     }
     for name, value in values.items():
         monkeypatch.setenv(name, value)

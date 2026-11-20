@@ -7,6 +7,7 @@ from typing import Any
 
 
 from .ollama import OllamaClient
+from .operational_logging import redact
 from .schemas import QueryPlan
 
 
@@ -271,8 +272,8 @@ class OllamaAnalyst:
         for structured in (True, False):
             try:
                 plan = apply_whole_year_interval(q, self._plan_attempt(q, structured=structured))
-                if os.getenv("SUS_DETERMINISTIC_PLANNER") == "1":
-                    plan = guard_explicit_geography(q, plan)
+                # Always applied: a city/UF contradiction must ask, not guess.
+                plan = guard_explicit_geography(q, plan)
                 self.last_planner_source = "ollama"
                 return plan
             except PlannerResponseError:
@@ -306,11 +307,13 @@ class OllamaAnalyst:
             # Free user text and arbitrary metadata are not needed by the explainer.
             payload = temporal_answer_payload(p, res)
         else:
-            payload = {
+            # Same hygiene as the temporal path: credentials, CPF/CNS and sensitive
+            # keys never reach the explainer, even when the question carries them.
+            payload = redact({
                 "question": q,
                 "plan": p.model_dump(),
                 "result": res.model_dump(),
-            }
+            })
 
         return self.client.chat(
             [{"role": "system", "content": ANSWER},

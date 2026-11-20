@@ -26,7 +26,7 @@ from .data.remote.r2 import (
     partition_path,
 )
 from .paths import CACHE_ROOT
-from .operational_logging import JsonlRunLogger
+from .operational_logging import JsonlRunLogger, sanitize_text
 from .transform.pni import (
     UFS,
     CUBE_ALIASES,
@@ -555,8 +555,8 @@ def _run(logger: JsonlRunLogger) -> None:
                             "month": month,
                             "uf": uf,
                             "error_type": type(exc).__name__,
-                            "error": str(exc),
-                            "traceback": traceback.format_exc(),
+                            "error": sanitize_text(str(exc)),
+                            "traceback": sanitize_text(traceback.format_exc()),
                             "updated_at": utc_now(),
                         }
 

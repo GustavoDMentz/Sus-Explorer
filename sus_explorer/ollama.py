@@ -1,6 +1,7 @@
 """Local Ollama transport shared by planning, explanations and embeddings."""
 from __future__ import annotations
 
+import ipaddress
 import os
 import threading
 from functools import lru_cache
@@ -22,6 +23,15 @@ def _inference_limit():
     return threading.BoundedSemaphore(count)
 
 
+def _is_loopback_host(host: str) -> bool:
+    if host == "localhost" or host.endswith(".localhost"):
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
 class OllamaClient:
     def __init__(self, base_url: str | None = None):
         if os.getenv("AI_PROVIDER", "ollama").lower() != "ollama":
@@ -30,6 +40,12 @@ class OllamaClient:
         parsed = urlsplit(self.base_url)
         if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.path not in ("", "/"):
             raise ValueError("OLLAMA_BASE_URL inválida")
+        if not _is_loopback_host(parsed.hostname):
+            # Questions and aggregates would leave this machine: require opt-in and TLS.
+            if os.getenv("OLLAMA_ALLOW_REMOTE") != "1":
+                raise ValueError("OLLAMA_BASE_URL remota exige OLLAMA_ALLOW_REMOTE=1")
+            if parsed.scheme != "https":
+                raise ValueError("OLLAMA_BASE_URL remota exige https")
         self.session = requests.Session()
         self.session.trust_env = False
         self.session.mount(self.base_url, HTTPAdapter(pool_connections=4, pool_maxsize=4))
@@ -39,13 +55,24 @@ class OllamaClient:
         timeout = float(os.getenv(timeout_name, "120"))
         if timeout <= 0:
             raise ValueError(f"{timeout_name} deve ser positivo")
-        with self._semaphore:
-            try:
-                response = self.session.post(self.base_url + path, json=payload, timeout=(5, timeout))
-            except requests.Timeout:
-                raise OllamaError("Ollama excedeu o tempo limite") from None
-            except requests.ConnectionError:
-                raise OllamaError("Ollama indisponível; verifique OLLAMA_BASE_URL") from None
+        queue_timeout = float(os.getenv("OLLAMA_QUEUE_TIMEOUT", "60"))
+        if queue_timeout <= 0:
+            raise ValueError("OLLAMA_QUEUE_TIMEOUT deve ser positivo")
+        # Bounded wait: a slow request must not block every other session forever.
+        if not self._semaphore.acquire(timeout=queue_timeout):
+            raise OllamaError("Ollama ocupado; tente novamente em instantes")
+        try:
+            response = self.session.post(
+                self.base_url + path, json=payload, timeout=(5, timeout), allow_redirects=False
+            )
+        except requests.Timeout:
+            raise OllamaError("Ollama excedeu o tempo limite") from None
+        except requests.ConnectionError:
+            raise OllamaError("Ollama indisponível; verifique OLLAMA_BASE_URL") from None
+        finally:
+            self._semaphore.release()
+        if 300 <= response.status_code < 400:
+            raise OllamaError("Ollama respondeu com redirecionamento; recusado")
         if response.status_code == 404:
             raise OllamaError(f"Modelo Ollama ausente: {payload['model']}. Execute ollama pull.")
         if not response.ok:

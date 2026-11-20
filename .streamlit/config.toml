@@ -16,3 +16,8 @@ textColor = "#EAF2F5"
 
 [theme.dark.sidebar]
 backgroundColor = "#172B37"
+
+[server]
+# O app não tem autenticação: escuta só no próprio computador. Para expor,
+# use um proxy reverso com autenticação e limite de uso.
+address = "127.0.0.1"

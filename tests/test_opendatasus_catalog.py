@@ -122,3 +122,25 @@ def test_cli_refuses_to_write_when_a_year_failed(tmp_path, monkeypatch, capsys):
     manifest = tmp_path / "m.json"
     assert cat.main(["--years", "2026", "--manifest", str(manifest), "--write"]) == 2
     assert not manifest.exists()
+
+
+@pytest.mark.parametrize("url", [
+    "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/PNI/csv/../../outro-bucket/vacinacao_jan_2026_csv.zip",
+    "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/PNI/csv/%2e%2e/vacinacao_jan_2026_csv.zip",
+    "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/PNI/csv/vacinacao_jan_2026_csv.zip?x=1",
+    "https://s3.sa-east-1.amazonaws.com:8443/ckan.saude.gov.br/PNI/csv/vacinacao_jan_2026_csv.zip",
+    "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/PNI/csv/sub/vacinacao_jan_2026_csv.zip",
+])
+def test_data_url_must_match_the_exact_official_path(url):
+    with pytest.raises(cat.CatalogError):
+        cat._check_url(url, cat.DATA_HOST, cat.DATA_PATH_PATTERN)
+    if "?" in url:
+        return  # o link do HTML sem query é aceito normalmente; só a URL com query é recusada acima
+    data = {"props": {"pageProps": {"resources": [{"id": "x", "url": url}]}}}
+    html = f'<script id="__NEXT_DATA__" type="application/json">{json.dumps(data)}</script>'
+    with pytest.raises(cat.CatalogError):      # nenhum ZIP válido: falha estrutural
+        cat.extract_resources(html, 2026)
+
+
+def test_official_data_url_is_accepted():
+    cat._check_url(GOOD, cat.DATA_HOST, cat.DATA_PATH_PATTERN)
