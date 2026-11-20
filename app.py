@@ -100,7 +100,7 @@ explorer_tab, history_tab, catalog_tab, sources_tab = st.tabs(
 with explorer_tab:
     st.info('Cálculos no backend Python, com proveniência. Nenhum microdado individual é enviado ao LLM.')
     with st.form('query_form'):
-        question = st.text_area('Sua pergunta', key='query_question',
+        question = st.text_area('Sua pergunta', key='query_question', max_chars=1000,
                                 placeholder='Qual foi a variação mensal das doses no RS de janeiro a junho de 2026?')
         submitted = st.form_submit_button('Explorar', type='primary')
 
@@ -119,6 +119,12 @@ with explorer_tab:
                 st.session_state.result_question = question.strip()
                 if st.session_state.get('session_history_enabled', True):
                     remember_query(question.strip(), st.session_state.query_result)
+            except ValueError as exc:
+                # Entrada recusada pela validação (vazia, longa demais): mensagem própria.
+                if str(exc).startswith('Question'):
+                    st.session_state.query_error = 'Pergunta inválida: escreva um texto de até 1000 caracteres.'
+                else:
+                    st.session_state.query_error = 'Não foi possível concluir a consulta. Confira a configuração e tente novamente.'
             except Exception:
                 st.session_state.query_error = 'Não foi possível concluir a consulta. Confira a configuração e tente novamente.'
 

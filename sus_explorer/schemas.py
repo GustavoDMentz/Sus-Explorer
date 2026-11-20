@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+import unicodedata
 from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -8,6 +9,10 @@ Operation = Literal["count", "group", "timeseries", "latency", "temporal"]
 PlanStatus = Literal["ready", "needs_clarification"]
 ResultClassification = Literal["DIRECT", "DERIVED", "ENRICHED"]
 MAX_MONTHLY_INTERVAL_MONTHS = 36
+VALID_UFS = frozenset(
+    "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split()
+)
+MAX_TEXT_FILTER_CHARS = 128
 DAILY_QUERY_UNSUPPORTED = (
     "Consultas diárias não são suportadas. Reformule a pergunta para um mês ou ano."
 )
@@ -96,8 +101,7 @@ class QueryPlan(BaseModel):
         ) if getattr(self, name) is None or getattr(self, name) == ""]
 
     def validate_temporal(self) -> None:
-        valid_ufs = set("AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split())
-        if self.uf and self.uf not in valid_ufs:
+        if self.uf and self.uf not in VALID_UFS:
             raise ValueError("Invalid temporal UF")
         if self.top_n != 20 or any(getattr(self, name) is not None for name in ("year", "month", "day", "group_by")):
             raise ValueError("Temporal plans require an explicit monthly interval, without day/group_by")
@@ -120,11 +124,45 @@ class QueryPlan(BaseModel):
                                       "://" in value):
                 raise ValueError(f"Invalid temporal {name}")
 
+    def validate_bounds(self) -> None:
+        """Bound every field the LLM can fill, whatever the operation.
+
+        The executor only uses parameterized SQL, but unbounded values would still
+        reach provenance, history and expensive LIKE scans.
+        """
+        if self.uf and self.uf not in VALID_UFS:
+            raise ValueError("Invalid UF")
+        if self.municipality_code and not re.fullmatch(r"[0-9]{6,7}", self.municipality_code):
+            raise ValueError("municipality_code must be a 6 or 7 digit IBGE code")
+        if self.vaccine_code and not re.fullmatch(r"[0-9]{1,8}", self.vaccine_code):
+            raise ValueError("vaccine_code must be numeric")
+        for name in ("municipality_name", "vaccine_text"):
+            value = getattr(self, name)
+            if value is not None and (
+                len(value) > MAX_TEXT_FILTER_CHARS or "://" in value
+                or any(unicodedata.category(c).startswith("C") for c in value)
+            ):
+                raise ValueError(f"Invalid {name}")
+        for name in ("age_min", "age_max"):
+            value = getattr(self, name)
+            if value is not None and not 0 <= value <= 200:
+                raise ValueError(f"{name} must be between 0 and 200")
+        if self.age_min is not None and self.age_max is not None and self.age_min > self.age_max:
+            raise ValueError("age_min must not exceed age_max")
+        if not 1 <= self.top_n <= 100:
+            raise ValueError("top_n must be between 1 and 100")
+        if self.group_by is not None and len(self.group_by) > 32:
+            raise ValueError("Invalid group_by")
+        if self.clarification_question is not None and len(self.clarification_question) > 500:
+            raise ValueError("clarification_question too long")
+        if len(self.missing) > 20 or any(len(item) > 64 for item in self.missing):
+            raise ValueError("Invalid missing fields")
+
     @model_validator(mode="after")
     def validate_plan(self):
-
         if self.uf:
             self.uf = self.uf.upper()
+        self.validate_bounds()
 
         if self.operation in ("timeseries", "temporal"):
             minimum_year = 2020 if self.operation == "temporal" else 2019
