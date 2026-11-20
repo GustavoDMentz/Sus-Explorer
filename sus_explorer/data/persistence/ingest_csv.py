@@ -14,6 +14,7 @@ from pathlib import Path
 from .database import allow_long_ingestion_statement, connect
 from ..zip_guard import check_archive
 from .immunization_transform import project
+from .payload_policy import PAYLOAD_ALLOWLIST_VERSION
 from .operational_events import event
 from .repositories import IngestionRunRepository, OperationalPersistence
 
@@ -103,7 +104,8 @@ def ingest_csv(path: Path, *, year: int, month: int, uf: str, resource_id: str,
                          zip_member=zip_member, uf=uf)
     metadata = {"partition": partition, "source_sha256": snapshot["sha256"],
                 "source_rows": snapshot["rows"], "identity_column": "co_documento",
-                "schema_version": 2, "source_filename": path.name}
+                "schema_version": 2, "source_filename": path.name,
+                "payload_allowlist_version": PAYLOAD_ALLOWLIST_VERSION}
     own_connection = connection is None
     db = connection or connect()
     run_id = None
@@ -116,7 +118,11 @@ def ingest_csv(path: Path, *, year: int, month: int, uf: str, resource_id: str,
             WHERE source=%s AND resource_type='immunization' AND source_resource_id=%s
             ORDER BY id DESC LIMIT 1""", (source, resource)).fetchone()
         if latest and latest["status"] == "SUCCESS" and latest["metadata"] == metadata:
-            return latest
+            purged = db.execute("""SELECT 1 FROM datasus_purge_audit
+                WHERE NOT dry_run AND scope='partition' AND partition=%s AND purged_at > %s""",
+                (partition, latest["finished_at"])).fetchone()
+            if not purged:           # a purged partition must be importable again
+                return latest
         runs = IngestionRunRepository(db)
         if latest and latest["status"] == "RUNNING":
             if latest["metadata"] != metadata:

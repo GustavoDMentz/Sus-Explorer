@@ -76,7 +76,7 @@ def test_projection_rejects_missing_identity_wrong_uf_and_bad_date():
     assert key == "doc-1" and payload == row
     assert projection.application_date == date(2026, 5, 1)
     for change in ({"co_documento": None}, {"sg_uf_estabelecimento": "SP"},
-                   {"dt_vacina": "2026-02-31"}, {"other": float("nan")}):
+                   {"dt_vacina": "2026-02-31"}, {"nu_idade_paciente": float("nan")}):
         with pytest.raises(ValueError):
             project(row | change, "RS")
 

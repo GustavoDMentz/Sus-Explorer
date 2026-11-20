@@ -82,3 +82,5 @@ O exemplo usa chave efêmera: **não a utilize para dados que precisem continuar
 - A impressão digital R2 atual é derivada de metadados de fragmentos; não prova igualdade byte a byte.
 - A observação do resultado é independente do texto Gemini. Se a persistência falhar, a consulta segue com aviso explícito.
 - Não existe reconstrução retrospectiva das observações anteriores à ativação.
+
+> A política de retenção e o procedimento de expurgo estão em [data-retention.md](data-retention.md).

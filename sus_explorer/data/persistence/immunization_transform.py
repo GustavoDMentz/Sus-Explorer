@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import date, datetime
 from .repositories import ImmunizationProjection
+from .payload_policy import filter_row
 from .validation import PAYLOAD_MAX_BYTES, validate_json_object
 
 DATE_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}(?:$|[T ])")
@@ -50,7 +51,9 @@ def project(row: dict, uf: str) -> tuple[str, dict, ImmunizationProjection]:
     dose = _text(dose, "dose") if dose is not None else None
     vaccination_date = _date(row.get("dt_vacina"))
     payload = {}
-    for name, value in row.items():
+    # Minimization: only allowlisted columns are persisted (see payload_policy).
+    kept, _dropped = filter_row(row)
+    for name, value in kept.items():
         if isinstance(value, (date, datetime)):
             value = value.isoformat()
         if value is not None and not isinstance(value, (str, int, float, bool, list, dict)):
