@@ -29,7 +29,12 @@ from typing import Callable
 
 PORTAL_HOST = "dadosabertos.saude.gov.br"
 DATA_HOST = "s3.sa-east-1.amazonaws.com"
-DATA_PATH_PREFIX = "/ckan.saude.gov.br/PNI/csv/"
+# Full-path patterns, not prefixes: a prefix check let "../" and "%2e%2e" segments
+# walk out of the official folder while still passing the allowlist.
+DATA_PATH_PATTERN = re.compile(
+    r"/ckan\.saude\.gov\.br/PNI/csv/vacinacao_[a-z]{3}_\d{4}_csv\.zip"
+)
+PORTAL_PATH_PATTERN = re.compile(r"/dataset/[a-z0-9-]{1,200}")
 DATASET_URL = (
     f"https://{PORTAL_HOST}/dataset/"
     "doses-aplicadas-pelo-programa-de-nacional-de-imunizacoes-pni-{year}"
@@ -72,11 +77,12 @@ def _default_open(request, timeout):
 Opener = Callable[..., object]
 
 
-def _check_url(url: str, host: str, path_prefix: str = "/") -> None:
+def _check_url(url: str, host: str, path_pattern: re.Pattern) -> None:
     parsed = urllib.parse.urlsplit(url)
     if (parsed.scheme != "https" or parsed.hostname != host
             or parsed.username or parsed.password
-            or not parsed.path.startswith(path_prefix)):
+            or parsed.query or parsed.fragment or parsed.port not in (None, 443)
+            or not path_pattern.fullmatch(parsed.path)):
         raise CatalogError("URL fora da lista de origens oficiais permitidas")
 
 
@@ -92,7 +98,7 @@ def fetch_dataset_page(year: int, *, opener: Opener | None = None) -> str:
     if not 2000 <= year <= 2100:
         raise ValueError("Ano inválido")
     url = DATASET_URL.format(year=year)
-    _check_url(url, PORTAL_HOST, "/dataset/")
+    _check_url(url, PORTAL_HOST, PORTAL_PATH_PATTERN)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with (opener or _default_open)(request, timeout=TIMEOUT_SECONDS) as response:
@@ -143,7 +149,7 @@ def _add(entries, url, year, resource_id, name, listed_last_modified) -> None:
     if competence is None or competence[0] != year:
         return
     try:
-        _check_url(url, DATA_HOST, DATA_PATH_PREFIX)
+        _check_url(url, DATA_HOST, DATA_PATH_PATTERN)
     except CatalogError:
         return
     entries[competence] = {
@@ -159,7 +165,7 @@ def _add(entries, url, year, resource_id, name, listed_last_modified) -> None:
 
 def probe(entry: dict, *, opener: Opener | None = None) -> dict:
     """``HEAD`` no ZIP; acrescenta estado e cabeçalhos observados."""
-    _check_url(entry["url"], DATA_HOST, DATA_PATH_PREFIX)
+    _check_url(entry["url"], DATA_HOST, DATA_PATH_PATTERN)
     request = urllib.request.Request(
         entry["url"], method="HEAD", headers={"User-Agent": USER_AGENT})
     result = dict(entry, content_length=None, last_modified=None, etag=None,

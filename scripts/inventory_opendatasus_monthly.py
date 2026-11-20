@@ -15,15 +15,22 @@ import requests
 
 MONTHS = ("jan", "fev", "mar", "abr", "mai", "jun",
           "jul", "ago", "set", "out", "nov", "dez")
+MAX_PAGE_BYTES = 5_000_000
 BASE = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/PNI/csv"
 PORTAL = "https://dadosabertos.saude.gov.br/dataset/doses-aplicadas-pelo-programa-de-nacional-de-imunizacoes-pni-{year}"
 
 
 def catalog_year(year: int) -> dict:
     url = PORTAL.format(year=year)
-    response = requests.get(url, timeout=(5, 30))
+    # Bounded read and no redirects: the page is untrusted input.
+    response = requests.get(url, timeout=(5, 30), stream=True, allow_redirects=False)
     response.raise_for_status()
-    body = html.unescape(response.text).replace("\\/", "/")
+    raw = response.raw.read(MAX_PAGE_BYTES + 1, decode_content=True)
+    if len(raw) > MAX_PAGE_BYTES:
+        raise ValueError(f"Página do catálogo maior que {MAX_PAGE_BYTES} bytes")
+    response.close()
+    text = raw.decode(response.encoding or "utf-8", errors="replace")
+    body = html.unescape(text).replace("\\/", "/")
     pattern = re.compile(r"https://s3\.sa-east-1\.amazonaws\.com/ckan\.saude\.gov\.br/PNI/csv/vacinacao_([a-z]{3})_(20[0-9]{2})_csv\.zip")
     links = {}
     reverse_months = {name: i + 1 for i, name in enumerate(MONTHS)}
@@ -32,7 +39,7 @@ def catalog_year(year: int) -> dict:
         if month and int(source_year) == year:
             links[(year, month)] = f"{BASE}/vacinacao_{month_name}_{year}_csv.zip"
     return {"year": year, "url": url, "status_code": response.status_code,
-            "page_sha256": hashlib.sha256(response.content).hexdigest(),
+            "page_sha256": hashlib.sha256(raw).hexdigest(),
             "monthly_resources": links}
 
 
@@ -45,7 +52,7 @@ def probe(item: tuple[int, int, str | None, str | None]) -> dict:
                 "last_modified": None, "available": False,
                 "availability_reason": "URL mensal não encontrada na página oficial consultada."}
     try:
-        response = requests.head(url, timeout=(5, 20), allow_redirects=True)
+        response = requests.head(url, timeout=(5, 20), allow_redirects=False)
         return {"year": year, "month": month, "url": url,
                 "catalog_page": catalog_page, "catalog_verified": True,
                 "status_code": response.status_code,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import os
 import re
 
@@ -29,6 +30,13 @@ def _integer_setting(name: str, default: int, *, minimum: int, maximum: int) -> 
     return value
 
 
+def _is_loopback_ip(host: str) -> bool:
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
 def configured_schema() -> str:
     schema = os.getenv("POSTGRES_SCHEMA", "sus_explorer")
     if not _SCHEMA.fullmatch(schema):
@@ -53,11 +61,15 @@ def connect() -> psycopg.Connection:
 
     schema = configured_schema()
     application_name = os.getenv("POSTGRES_APPLICATION_NAME", "sus-explorer")
-    sslmode = os.getenv("POSTGRES_SSLMODE", "prefer")
+    host = os.environ["POSTGRES_HOST"]
+    local_host = host.startswith("/") or host == "localhost" or host.endswith(".localhost") or _is_loopback_ip(host)
+    sslmode = os.getenv("POSTGRES_SSLMODE", "prefer" if local_host else "require")
     if not _APPLICATION_NAME.fullmatch(application_name):
         raise RuntimeError("Invalid PostgreSQL setting: POSTGRES_APPLICATION_NAME")
     if sslmode not in _SSLMODES:
         raise RuntimeError("Invalid PostgreSQL setting: POSTGRES_SSLMODE")
+    if not local_host and sslmode in ("disable", "allow", "prefer"):
+        raise RuntimeError("POSTGRES_SSLMODE must be require or stronger for a remote host")
     connect_timeout = _integer_setting(
         "POSTGRES_CONNECT_TIMEOUT", 10, minimum=1, maximum=60
     )
