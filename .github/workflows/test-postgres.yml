@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: pgvector/pgvector:0.8.6-pg17@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f
+        image: pgvector/pgvector:0.8.7-pg17@sha256:b513c48566e4777cd3370451400000c78eda6a08131d68f4c31d4a76f27bd8fd
         env:
           POSTGRES_DB: sus_explorer_test
           POSTGRES_USER: sus_explorer_test
@@ -45,8 +45,9 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      # Exactly the locked set (direct + transitive), verified by hash: no free resolution.
       - name: Install dependencies
-        run: python -m pip install -c constraints.txt -r requirements-dev.txt
+        run: python -m pip install --require-hashes -r requirements-lock.txt
 
       - name: Run unit and PostgreSQL integration tests
         run: python -m pytest tests -q

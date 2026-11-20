@@ -5,6 +5,7 @@ import os
 import time
 import unicodedata
 
+from . import disclosure
 from .data.persistence.database import connect_reader
 from .query_result import QueryResult, months, require_ready_plan
 from .schemas import QueryPlan
@@ -15,7 +16,10 @@ SOURCE_LABEL = "SI-PNI / PostgreSQL"
 _GROUP_EXPRESSIONS = {
     "municipality": "r.payload->>'no_municipio_estabelecimento'",
     "sex": "coalesce(r.payload->>'tp_sexo_paciente', r.payload->>'co_sexo')",
-    "age": "r.payload->>'nu_idade_paciente'",
+    # Five-year bands, never exact ages (disclosure control).
+    "age": "CASE WHEN length(r.payload->>'nu_idade_paciente') <= 3 AND r.payload->>'nu_idade_paciente' ~ '^[0-9]+$' "
+           "THEN ((r.payload->>'nu_idade_paciente')::int / 5 * 5)::text || '-' || "
+           "((r.payload->>'nu_idade_paciente')::int / 5 * 5 + 4)::text END",
     "dose": "coalesce(r.payload->>'ds_tipo_dose', r.payload->>'ds_dose_vacina', r.payload->>'co_dose_vacina', r.payload->>'co_dose')",
     "facility": "coalesce(r.payload->>'co_cnes_estabelecimento', r.payload->>'co_cnes')",
     "system_origin": "coalesce(r.payload->>'ds_sistema_origem', r.payload->>'co_sistema_origem')",
@@ -33,8 +37,9 @@ def _escape_like(value: str) -> str:
 
 
 class PostgresQueryExecutor:
-    def __init__(self, *, connect_db=connect_reader):
+    def __init__(self, *, connect_db=connect_reader, min_cell_count: int | None = None):
         self.connect_db = connect_db
+        self.min_cell_count = disclosure.configured_min_cell_count(min_cell_count)
 
     def _periods(self, plan: QueryPlan) -> list[tuple[int, int]]:
         if plan.operation in ("timeseries", "temporal"):
@@ -132,6 +137,12 @@ class PostgresQueryExecutor:
         if plan.operation not in ("count", "group", "timeseries", "latency"):
             raise ValueError("Operação não suportada")
         started = time.perf_counter()
+        notices: list[str] = []
+        if plan.age_min is not None or plan.age_max is not None:
+            low, high, changed = disclosure.snap_age_range(plan.age_min, plan.age_max)
+            if changed:
+                plan = plan.model_copy(update={"age_min": low, "age_max": high})
+                notices.append(disclosure.age_warning(low, high))
         with self.connect_db() as db:
             runs, missing = self._ready(db, plan)
             where, values = self._filters(plan, [run["id"] for run in runs])
@@ -191,11 +202,17 @@ class PostgresQueryExecutor:
                 data = {"n_valid": row["n"], "median_days": round(row["median"], 3) if row["median"] is not None else None,
                         "p90_days": round(row["p90"], 3) if row["p90"] is not None else None,
                         "p95_days": round(row["p95"], 3) if row["p95"] is not None else None}
+        suppressed = disclosure.apply(plan.operation, data, self.min_cell_count)
         provenance = self._provenance(plan, runs, missing, started)
+        provenance["disclosure_control"] = {"min_cell_count": self.min_cell_count,
+                                            "suppressed_cells": suppressed,
+                                            "age_band_years": disclosure.AGE_BAND_YEARS}
+        if suppressed:
+            notices.append(disclosure.SUPPRESSION_WARNING.format(k=self.min_cell_count))
         if plan.operation == "group" and plan.group_by == "vaccine":
             provenance["terminology"] = terminology.metadata()
             provenance["vaccine_grouping"] = {"canonical_key": "co_vacina", "source_display_role": "audit_only", "source_display_variants_preserved": True}
         warnings = (["Algumas partições mensais não estavam disponíveis e foram ignoradas: " + ", ".join(missing)] if missing else [])
         if plan.operation == "latency":
             warnings.insert(0, "Latência de registro não mede qualidade clínica nem prova atraso operacional.")
-        return QueryResult(plan.operation, data, provenance, warnings)
+        return QueryResult(plan.operation, data, provenance, notices + warnings)

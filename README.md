@@ -51,6 +51,7 @@ Alguns cuidados são fundamentais para análises em saúde pública:
 - **Doses não são pessoas.** Uma pessoa pode aparecer em mais de um registro. Portanto, o total de doses não representa automaticamente o número de pessoas vacinadas.
 - **Registros não são cobertura vacinal.** Para calcular cobertura, são necessários denominadores populacionais e definições apropriadas.
 - **O local se refere ao estabelecimento de vacinação.** Ele não representa necessariamente o município ou estado de residência da pessoa vacinada.
+- **Números pequenos são ocultados.** Contagens menores que 5 aparecem como "menos de 5", e os filtros de idade usam faixas de 5 anos, para que ninguém seja identificado. Veja [privacidade](docs/privacy.md).
 - **Ausência de dados não significa zero.** Se uma partição mensal estiver indisponível, o sistema deve indicar a lacuna em vez de tratá-la como nenhuma vacinação.
 - **Associação não significa causalidade.** Mudanças nos registros podem refletir campanhas, sazonalidade, atraso de registro e outros fatores. O gráfico, sozinho, não explica a causa.
 
