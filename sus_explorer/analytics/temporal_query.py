@@ -173,6 +173,10 @@ def _monthly_source(plan: QueryPlan, execute_source, *, allow_empty=False):
             source_series_ref="pending", source_provenance=safe_origin,
         )
         result.provenance["source_series_ref"] = _reference(source_query, rows)
+        # Privacy notices (suppressed months, widened age band) must reach the user.
+        for notice in getattr(origin, "warnings", None) or []:
+            if notice.startswith(("Valores menores", "A faixa etária")):
+                result.warnings.append(notice)
     except (AttributeError, TypeError, ValueError, OverflowError):
         raise TemporalQueryError(
             "INVALID_SOURCE_SERIES", "A série mensal retornada não satisfaz o contrato temporal."
