@@ -45,8 +45,9 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      # Exactly the locked set (direct + transitive), verified by hash: no free resolution.
       - name: Install dependencies
-        run: python -m pip install -c constraints.txt -r requirements-dev.txt
+        run: python -m pip install --require-hashes -r requirements-lock.txt
 
       - name: Run unit and PostgreSQL integration tests
         run: python -m pytest tests -q
