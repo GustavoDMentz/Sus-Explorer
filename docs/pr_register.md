@@ -78,6 +78,19 @@ Este índice separa **integrado à master**, **fechado sem merge** e **aberto**.
 | [#72](https://github.com/GustavoDMentz/Sus-Explorer/pull/72) | Streamlit 1.67.0 | Integrado | 20/11 |
 | [#73](https://github.com/GustavoDMentz/Sus-Explorer/pull/73) | Pydantic 2.14.3 | Integrado | 20/11 |
 | [#74](https://github.com/GustavoDMentz/Sus-Explorer/pull/74) | psycopg e psycopg-binary 3.3.9 | Integrado | 20/11; junta #70 e #71 |
+| [#75](https://github.com/GustavoDMentz/Sus-Explorer/pull/75) | Registro de PRs e diário até 20/11 | Integrado | Documentação |
+| [#76](https://github.com/GustavoDMentz/Sus-Explorer/pull/76) | Endurecimento: logs, validação do plano, rede, documentação | Integrado | 20/11; auditoria de segurança |
+| [#77](https://github.com/GustavoDMentz/Sus-Explorer/pull/77) | ZIPs, ingestão, imagens por digest, testes de privilégio, renderização | Integrado | 20/11 |
+| [#78](https://github.com/GustavoDMentz/Sus-Explorer/pull/78) | pgvector 0.8.7 (Dependabot) | Fechado sem merge | 20/11; substituído pelo #86 |
+| [#79](https://github.com/GustavoDMentz/Sus-Explorer/pull/79) | numpy 2.5.5 | Integrado | 20/11 |
+| [#80](https://github.com/GustavoDMentz/Sus-Explorer/pull/80) | Afirmar só o que o código garante sobre dados e IA | Integrado | 20/11 |
+| [#81](https://github.com/GustavoDMentz/Sus-Explorer/pull/81) | Controle de divulgação: limiar 5 e supressão complementar | Integrado | 20/11 |
+| [#82](https://github.com/GustavoDMentz/Sus-Explorer/pull/82) | Lista de colunas, retenção e expurgo auditado (migration 009) | Integrado | 20/11 |
+| [#83](https://github.com/GustavoDMentz/Sus-Explorer/pull/83) | Reimportação atômica de snapshots | Fechado sem merge | Fechado pelo GitHub quando a branch-base do #82 foi apagada; refeito no #87 |
+| [#84](https://github.com/GustavoDMentz/Sus-Explorer/pull/84) | Lockfile com hashes, instalado com `--require-hashes` | Integrado | 20/11 |
+| [#85](https://github.com/GustavoDMentz/Sus-Explorer/pull/85) | Logins separados no PostgreSQL por tarefa (migration 010) | Integrado | 20/11 |
+| [#86](https://github.com/GustavoDMentz/Sus-Explorer/pull/86) | pgvector 0.8.7 (compose, CI e script local) | Integrado | 20/11; substitui o #78 |
+| [#87](https://github.com/GustavoDMentz/Sus-Explorer/pull/87) | Reimportação atômica de snapshots, com rollback e órfãs | Integrado | 20/11; substitui o #83 |
 
 ## Convenções para os próximos PRs
 

@@ -89,6 +89,7 @@ A documentação técnica foi preservada e organizada separadamente:
 
 - [**Guia técnico e operacional**](docs/technical-guide.md) — instalação, importação, arquitetura e testes.
 - [**Retenção de dados e expurgo**](docs/data-retention.md) — o que é guardado, por quanto tempo e como remover.
+- [**Arquitetura de segurança e privacidade**](docs/security-architecture.md) — mapa dos controles, demonstração executável (`python scripts/demo_security.py`) e provas no banco.
 - [**Logins separados no PostgreSQL**](docs/postgres-roles.md) — leitura, ingestão, histórico e migração com privilégios mínimos.
 - [**IA local e RAG**](docs/local-ai-rag.md) — Ollama, PostgreSQL com pgvector e respostas documentais.
 - [**Descoberta de ZIPs do OpenDataSUS**](docs/opendatasus-sync.md) — como detectar competências novas ou republicadas.
