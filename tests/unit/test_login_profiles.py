@@ -113,17 +113,17 @@ def test_bootstrap_script_has_no_literal_passwords_and_requires_every_password()
     for literal in re.findall(r"PASSWORD\s+'([^']*)'", script):
         pytest.fail(f"senha literal no script: {literal!r}")
     assert re.findall(r"PASSWORD\s+:'", script), "senhas devem vir de variáveis do psql"
-    assert "SUPERUSER" in script and "NOSUPERUSER" in script and " SUPERUSER " not in script.replace("NOSUPERUSER", "")
+    assert "CASE WHEN role_name = 'sus_explorer_admin' THEN 'SUPERUSER' ELSE 'NOSUPERUSER' END" in script
 
 
-def test_migrations_run_as_the_bootstrap_superuser_not_a_profile():
+def test_migrations_run_as_the_dedicated_profile():
     text = (ROOT / "sus_explorer/data/persistence/migrate.py").read_text("utf-8")
-    assert "connect_migrator" not in text and "with connect() as connection" in text
+    assert "connect_migrator" in text and "with connect_migrator() as connection" in text
 
 
 def test_each_login_is_a_member_of_exactly_one_group():
     script = (ROOT / "scripts/postgres/init/10-app-roles.sh").read_text("utf-8")
-    grants = re.findall(r"GRANT\s+(sus_explorer_\w+)\s+TO\s+(sus_explorer_\w+);", script)
+    grants = re.findall(r"GRANT\s+(sus_explorer_\w+)\s+TO\s+(sus_explorer_\w+)(?:\s+WITH ADMIN OPTION)?;", script)
     members = {}
     for group, login in grants:
         members.setdefault(login, []).append(group)
@@ -131,7 +131,8 @@ def test_each_login_is_a_member_of_exactly_one_group():
                        "sus_explorer_ingest": ["sus_explorer_runtime"],
                        "sus_explorer_hist": ["sus_explorer_history"],
                        "sus_explorer_app": ["sus_explorer_reader"]}
-    assert "CREATEROLE" not in script.replace("NOCREATEROLE", "")
+    assert "CASE WHEN role_name = 'sus_explorer_admin' THEN 'SUPERUSER' ELSE 'NOSUPERUSER' END" in script
+    assert "ALTER ROLE sus_explorer_admin  LOGIN INHERIT SUPERUSER" in script
 
 
 def test_compose_requires_the_passwords_and_mounts_the_bootstrap_read_only():
@@ -142,9 +143,9 @@ def test_compose_requires_the_passwords_and_mounts_the_bootstrap_read_only():
 
 
 def test_env_examples_define_profiles_without_secrets():
-    for name in (".env.example", ".env.economy.example"):
+    for name in (".env.example",):
         text = (ROOT / name).read_text("utf-8")
         for profile in ("MIGRATOR", "INGEST", "HISTORY", "READER"):
             assert re.search(rf"^POSTGRES_{profile}_PASSWORD=$", text, re.M), (name, profile)
             assert re.search(rf"^POSTGRES_{profile}_USER=sus_explorer_\w+$", text, re.M), (name, profile)
-        assert re.search(r"^POSTGRES_REQUIRE_PROFILES=0$", text, re.M)
+        assert re.search(r"^POSTGRES_REQUIRE_PROFILES=1$", text, re.M)

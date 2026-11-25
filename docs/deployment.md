@@ -1,17 +1,21 @@
 # Implantação e operação
 
-O modo suportado é execução local ou em host controlado, com Streamlit, PostgreSQL/pgvector e Ollama. O repositório não expõe API REST pública.
+## Execução local
 
-1. Instale com Linux/Python 3.12 e lockfile.
-2. Configure `.env` e papéis de banco distintos.
-3. Inicie PostgreSQL e Ollama.
-4. Verifique modelos e dimensão.
-5. Aplique migrations.
-6. Importe competências incrementalmente.
-7. Indexe apenas documentação pública revisada.
-8. Execute diagnóstico, suíte local e canários externos.
-9. Inicie `streamlit run app.py` atrás do controle de acesso adequado ao ambiente.
+A implantação local suportada usa Docker Compose e dispensa Python no host. Configure os segredos no `.env` conforme [installation.md](installation.md) e inicie toda a stack com:
 
-As portas do Compose são ligadas a `127.0.0.1`. Para acesso remoto, prefira proxy TLS e autenticação; não publique PostgreSQL ou Ollama diretamente. Monitore disco, WAL, conexões, latência de consulta, recuperação e inferência.
+```bash
+docker compose up -d --build
+```
+
+Compose controla as dependências de saúde e conclusão: `postgres` e `ollama` iniciam primeiro; `migrate` e `ollama-init` precisam concluir; `index-docs` termina a preparação documental; então `app` atende em `127.0.0.1:8501`. A aplicação conecta como `reader`. Não publique diretamente PostgreSQL ou Ollama. A rede interna Compose usa os aliases `postgres` e `ollama`; exceções de transporte sem TLS são limitadas a esses peers internos.
+
+Use `docker compose ps` e `docker compose logs migrate index-docs app` para acompanhar a inicialização. Migrations são numeradas, protegidas por checksum e lock transacional. O indexador mantém documentos e chunks existentes quando conteúdo, digest do embedding e configuração de chunking/dimensão continuam compatíveis.
+
+Os volumes nomeados `postgres_data_v2` e `ollama_data` preservam dados e modelos. `docker compose down` preserva volumes; `docker compose down -v` os apaga. Importe dados SI-PNI apenas por operação explícita conforme [data-migration.md](data-migration.md); a inicialização automática não executa a migração histórica.
+
+## Hosts compartilhados ou remotos
+
+Para acesso remoto, use proxy TLS e autenticação; não publique PostgreSQL ou Ollama diretamente. Configure conexão PostgreSQL externa com TLS e habilite acesso remoto ao Ollama somente com HTTPS e a opção explícita documentada em [configuration.md](configuration.md). Monitore disco, WAL, conexões, latência, recuperação e inferência.
 
 Backups precisam incluir banco e chaves necessárias aos históricos cifrados. Teste restauração. O staging de ZIPs pode ser efêmero; checkpoints e trilha de ingestão devem ser preservados.

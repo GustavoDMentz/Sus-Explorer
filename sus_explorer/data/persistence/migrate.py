@@ -7,7 +7,7 @@ from pathlib import Path
 
 from psycopg import sql
 
-from .database import configured_schema, connect
+from .database import configured_schema
 from .operational_events import event
 
 
@@ -30,11 +30,13 @@ def migrate(
     target_schema = schema or configured_schema()
     with connection.transaction():
         with connection.cursor() as cursor:
-            cursor.execute(
-                sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(
-                    sql.Identifier(target_schema)
+            # Serialize before even creating the schema or migration ledger.
+            cursor.execute("SELECT pg_advisory_xact_lock(91627134)")
+            cursor.execute("SELECT 1 FROM pg_namespace WHERE nspname = %s", (target_schema,))
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(target_schema))
                 )
-            )
             cursor.execute("""SELECT n.nspname AS extension_schema FROM pg_extension e
                 JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='vector'""")
             extension = cursor.fetchone()
@@ -43,7 +45,6 @@ def migrate(
                 namespaces.append(sql.Identifier(extension["extension_schema"]))
             namespaces.append(sql.Identifier("pg_catalog"))
             cursor.execute(sql.SQL("SET LOCAL search_path TO {}").format(sql.SQL(", ").join(namespaces)))
-            cursor.execute("SELECT pg_advisory_xact_lock(91627134)")
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS schema_migrations (
                     version text PRIMARY KEY,
@@ -85,7 +86,9 @@ def migrate(
 
 
 if __name__ == "__main__":
-    # Bootstrap superuser, not a profile: migration 002 re-asserts NOSUPERUSER on the group
-    # roles, which only a superuser may do.
-    with connect() as connection:
+    # The Compose bootstrap grants the dedicated migration login the role-management
+    # capability needed by migration 002. No application/bootstrap credential is used here.
+    from .database import connect_migrator
+
+    with connect_migrator() as connection:
         migrate(connection)

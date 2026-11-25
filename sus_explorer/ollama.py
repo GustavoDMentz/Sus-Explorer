@@ -40,7 +40,11 @@ class OllamaClient:
         parsed = urlsplit(self.base_url)
         if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.path not in ("", "/"):
             raise ValueError("OLLAMA_BASE_URL inválida")
-        if not _is_loopback_host(parsed.hostname):
+        trusted_compose_peer = (
+            parsed.hostname == "ollama"
+            and os.getenv("OLLAMA_TRUSTED_INTERNAL_NETWORK") == "1"
+        )
+        if not _is_loopback_host(parsed.hostname) and not trusted_compose_peer:
             # Questions and aggregates would leave this machine: require opt-in and TLS.
             if os.getenv("OLLAMA_ALLOW_REMOTE") != "1":
                 raise ValueError("OLLAMA_BASE_URL remota exige OLLAMA_ALLOW_REMOTE=1")

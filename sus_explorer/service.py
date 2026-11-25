@@ -88,6 +88,7 @@ class SUSExplorer:
             return {"status": "unavailable"}
 
     def ask(self, question: str) -> dict:
+        request_started = time.perf_counter()
         # Validate before REGEX, Ollama or PostgreSQL access.
         if not isinstance(question, str):
             raise ValueError("Question must be a non-empty string")
@@ -101,7 +102,8 @@ class SUSExplorer:
             raise ValueError("Question must be a non-empty string")
         if len(question.encode("utf-8")) > 4096:
             raise ValueError("Question exceeds the 4096-byte limit")
-        if unsupported := unsupported_scope(question):
+        unsupported = unsupported_scope(question)
+        if unsupported and not is_document_only(question):
             return {
                 "needs_clarification": True,
                 "clarification_question": scope_message(unsupported),
@@ -113,9 +115,18 @@ class SUSExplorer:
                 "answer": None,
             }
         if is_document_only(question):
-            hits = self.knowledge.search(question)
-            context_hits = select_context_hits(hits)
-            answer = answer_with_context(self.llm.client, question, {}, context_hits)
+            diagnostics = {"intent": "document", "routing": "document_router"}
+            search = getattr(self.knowledge, "search_with_diagnostics", None)
+            if search:
+                hits, retrieval_diagnostics = search(question)
+                diagnostics.update(retrieval_diagnostics)
+            else:
+                hits = self.knowledge.search(question)
+                diagnostics.update(candidate_count=len(hits), accepted_count=len(hits))
+            context_hits = select_context_hits(hits, diagnostics)
+            diagnostics["context_chunk_count"] = len(context_hits)
+            answer = answer_with_context(self.llm.client, question, {}, context_hits, diagnostics)
+            diagnostics["total_ms"] = int((time.perf_counter() - request_started) * 1000)
             return {
                 "needs_clarification": False,
                 "clarification_question": None,
@@ -125,6 +136,7 @@ class SUSExplorer:
                 "planner_source": "document_router",
                 "result": None,
                 "answer": answer,
+                "rag_diagnostics": diagnostics,
                 "sources": [{
                     "documentId": hit["document_id"],
                     "citationId": f"{hit['original_reference']}#chunk-{hit['chunk_index']}",
@@ -198,18 +210,33 @@ class SUSExplorer:
             rag_started = time.perf_counter()
             knowledge = getattr(self, "knowledge", None)
             document_context_requested = needs_document_context(question, plan.operation)
-            hits = knowledge.search(question) if knowledge is not None and document_context_requested else []
+            diagnostics = {"intent": "hybrid" if document_context_requested else "analytic",
+                           "routing": "analytical_planner", "planner_source": planner_source}
+            if knowledge is not None and document_context_requested:
+                search = getattr(knowledge, "search_with_diagnostics", None)
+                if search:
+                    hits, retrieval_diagnostics = search(question)
+                    diagnostics.update(retrieval_diagnostics)
+                else:
+                    hits = knowledge.search(question)
+                    diagnostics.update(candidate_count=len(hits), accepted_count=len(hits))
+            else:
+                hits = []
             retrieval_ms = int((time.perf_counter() - rag_started) * 1000)
-            context_hits = select_context_hits(hits)
+            context_hits = select_context_hits(hits, diagnostics if document_context_requested else None)
+            if document_context_requested:
+                diagnostics["context_chunk_count"] = len(context_hits)
             if document_context_requested:
                 from .analytics.temporal_query import temporal_answer_payload
                 payload = temporal_answer_payload(plan, result) if plan.operation == "temporal" else result.model_dump()
-                answer = answer_with_context(self.llm.client, question, payload, context_hits)
+                answer = answer_with_context(self.llm.client, question, payload, context_hits, diagnostics)
             else:
                 answer = self.llm.answer(question, plan, result)
             event("rag_answer_completed", retrieval_ms=retrieval_ms,
                   generation_ms=int((time.perf_counter() - rag_started) * 1000) - retrieval_ms,
                   retrieved_chunks=len(hits), included_chunks=len(context_hits))
+            if document_context_requested:
+                diagnostics["total_ms"] = int((time.perf_counter() - request_started) * 1000)
         except Exception:
             self._record_history(query_id, plan, result, "FAILED",
                                  int((time.perf_counter() - started) * 1000))
@@ -228,6 +255,7 @@ class SUSExplorer:
             "planner_source": planner_source,
             "result": result.model_dump(),
             "answer": answer,
+            **({"rag_diagnostics": diagnostics} if document_context_requested else {}),
             "sources": [{"documentId": h["document_id"], "citationId": f"{h['original_reference']}#chunk-{h['chunk_index']}", "title": h["title"],
                          "reference": h["original_reference"], "chunkIndex": h["chunk_index"],
                          "score": h["score"]} for h in context_hits],

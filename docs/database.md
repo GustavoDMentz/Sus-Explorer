@@ -19,7 +19,7 @@ O schema armazena execuções de ingestão, registros brutos minimizados, revis�
 | history | históricos opcionais | escrita limitada às tabelas de histórico |
 | migrator | migrations, expurgo e indexação | proprietário dos objetos administrativos |
 
-O superusuário do Compose serve ao bootstrap e às migrations que administram atributos de papéis. A aplicação usa `reader`.
+O serviço `migrate` conecta exclusivamente com o perfil `migrator`. Seu login `sus_explorer_admin` é superusuário porque a migration histórica imutável 002 altera atributos globais de papéis e exige esse privilégio no PostgreSQL. A credencial é fornecida somente aos serviços de migration e indexação documental; o Streamlit recebe somente o perfil `reader`, sem escrita.
 
 ## Retenção e reimportação
 

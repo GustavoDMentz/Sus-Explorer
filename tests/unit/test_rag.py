@@ -26,6 +26,12 @@ def test_simple_count_does_not_require_vector_lookup():
     assert needs_document_context("Quantas doses foram registradas segundo a documentação?", "count")
     assert needs_document_context("Qual a variação mensal?", "temporal")
     assert is_document_only("Segundo a documentação, qual é a fonte oficial?")
+    assert is_document_only("Quais são as fontes de dados utilizadas pelo SUS Explorer?")
+    assert is_document_only("Segundo a documentação do SUS Explorer, quais são as fontes oficiais dos dados utilizados pelo sistema?")
+    assert is_document_only("O que é o SI-PNI?")
+    assert is_document_only("Quais são as limitações dos dados disponíveis?")
+    assert is_document_only("Como funciona a arquitetura do SUS Explorer?")
+    assert is_document_only("Qual é a diferença entre doses registradas e indivíduos vacinados?")
     assert is_document_only("Segundo o manual, cada dose representa uma pessoa única?")
     assert not is_document_only("Segundo a documentação, quantas doses houve no RS em 2026?")
 
@@ -90,7 +96,27 @@ def test_generated_citation_must_be_one_of_the_retrieved_hits():
     })
     hits = [{"document_id": 1, "chunk_index": 0, "title": "Guia",
              "original_reference": "guia.md", "content": "Evidência."}]
-    assert answer_with_context(client, "Pergunta", {}, hits) == INSUFFICIENT_CONTEXT
+    diagnostics = {}
+    answer = answer_with_context(client, "Pergunta", {}, hits, diagnostics)
+    assert "validação literal das referências" in answer
+    assert diagnostics["fallback_reason"] == "citation_or_response_validation_failed"
+
+
+def test_synthesis_rejects_numeric_or_technical_literals_absent_from_evidence():
+    client = Mock()
+    client.chat.return_value = json.dumps({
+        "quotes": [{"text": "O arquivo usa SHA-257 para identificar o snapshot.",
+                    "citation_id": "fontes.md#chunk-0"}],
+    })
+    hits = [{"document_id": 1, "chunk_index": 0, "title": "Fontes",
+             "original_reference": "fontes.md", "content": "SHA-256 identifica o snapshot."}]
+    diagnostics = {}
+
+    answer = answer_with_context(client, "Como o snapshot é identificado?", {}, hits, diagnostics)
+
+    assert "SHA-256 identifica o snapshot." in answer
+    assert "SHA-257" not in answer
+    assert diagnostics["fallback_strategy"] == "deterministic_verbatim_excerpt"
 
 
 def test_service_never_uses_free_generation_when_document_context_is_missing():
@@ -122,4 +148,34 @@ def test_document_only_question_bypasses_analytical_planner():
     response = explorer.ask("Segundo a documentação, qual é a fonte oficial?")
     assert response["plan"] == {"operation": "document"}
     assert response["answer"] == INSUFFICIENT_CONTEXT
+    explorer.llm.plan.assert_not_called()
+
+
+@pytest.mark.parametrize("question", [
+    "Quais são as fontes de dados utilizadas pelo SUS Explorer?",
+    "Segundo a documentação do SUS Explorer, quais são as fontes oficiais dos dados utilizados pelo sistema?",
+])
+def test_reported_document_questions_bypass_analytical_planner(question):
+    from sus_explorer.service import SUSExplorer
+
+    hit = {"document_id": 2, "chunk_index": 0, "title": "data-sources",
+           "original_reference": "data-sources.md", "score": 0.62,
+           "content": "Os dados públicos vêm dos ZIPs oficiais do OpenDataSUS para o SI-PNI."}
+    client = Mock()
+    client.chat.return_value = json.dumps({
+        "quotes": [{"text": "Os dados públicos vêm dos ZIPs oficiais do OpenDataSUS para o SI-PNI.",
+                    "citation_id": "data-sources.md#chunk-0"}],
+    })
+    explorer = SUSExplorer.__new__(SUSExplorer)
+    explorer.llm = SimpleNamespace(client=client, plan=Mock())
+    explorer.knowledge = SimpleNamespace(search_with_diagnostics=Mock(return_value=(
+        [hit], {"embedding_ms": 3, "retrieval_ms": 1, "candidate_count": 1,
+                "accepted_count": 1, "candidates": []})))
+
+    response = explorer.ask(question)
+
+    assert response["plan"] == {"operation": "document"}
+    assert response["sources"][0]["citationId"] == "data-sources.md#chunk-0"
+    assert response["rag_diagnostics"]["intent"] == "document"
+    assert response["rag_diagnostics"]["fallback_reason"] is None
     explorer.llm.plan.assert_not_called()

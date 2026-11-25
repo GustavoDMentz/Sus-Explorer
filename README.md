@@ -10,14 +10,19 @@ Em vez de montar uma consulta técnica, você descreve o que deseja investigar. 
 
 ## Como acessar
 
-**O SUS Explorer é disponibilizado como projeto de código aberto para execução no próprio computador.** Não há uma versão pública hospedada da aplicação. O ambiente recomendado é Linux com Python 3.12, PostgreSQL/pgvector e Ollama. Consulte a [instalação](docs/installation.md) e a [configuração](docs/configuration.md).
+**O SUS Explorer é disponibilizado como projeto de código aberto para execução no próprio computador.** Não há uma versão pública hospedada da aplicação. Configure as senhas no `.env` a partir do `.env.example` e execute:
+
+```bash
+docker compose up -d --build
+```
+
+O Compose inicializa PostgreSQL/pgvector e Ollama, aplica migrations pendentes, baixa modelos ausentes, indexa os documentos selecionados e inicia a aplicação em <http://localhost:8501>. Consulte a [instalação](docs/installation.md) e a [configuração](docs/configuration.md). A importação histórica completa do SI-PNI continua manual e explícita.
 
 Ao abrir o aplicativo:
 
-1. Configure Ollama e PostgreSQL e rode `python -m sus_explorer.diagnose`.
-2. Escreva uma pergunta indicando **local e período**.
-3. Clique em **Explorar** e aguarde o processamento. Algumas consultas podem levar minutos.
-4. Examine os números, gráficos, avisos e a aba **Fontes e proveniência**.
+1. Escreva uma pergunta indicando **local e período**.
+2. Clique em **Explorar** e aguarde o processamento. Algumas consultas podem levar minutos.
+3. Examine os números, gráficos, avisos e a aba **Fontes e proveniência**.
 
 O processamento de IA usa modelos locais no Ollama; as consultas analíticas leem as partições completas já importadas no PostgreSQL.
 

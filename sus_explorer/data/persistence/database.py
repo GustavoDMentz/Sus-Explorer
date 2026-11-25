@@ -109,7 +109,11 @@ def connect(profile: str | None = None) -> psycopg.Connection:
         raise RuntimeError("Invalid PostgreSQL setting: POSTGRES_APPLICATION_NAME")
     if sslmode not in _SSLMODES:
         raise RuntimeError("Invalid PostgreSQL setting: POSTGRES_SSLMODE")
-    if not local_host and sslmode in ("disable", "allow", "prefer"):
+    trusted_compose_peer = (
+        host == "postgres"
+        and os.getenv("POSTGRES_TRUSTED_INTERNAL_NETWORK") == "1"
+    )
+    if not local_host and not trusted_compose_peer and sslmode in ("disable", "allow", "prefer"):
         raise RuntimeError("POSTGRES_SSLMODE must be require or stronger for a remote host")
     connect_timeout = _integer_setting(
         "POSTGRES_CONNECT_TIMEOUT", 10, minimum=1, maximum=60

@@ -1,7 +1,7 @@
 """Least-privilege logins against a real PostgreSQL (see docs/database.md).
 
-Mirrors scripts/postgres/init/10-app-roles.sh: one login per group role, the migrator login
-with CREATEROLE and ADMIN OPTION on the groups, none of them a superuser.
+Mirrors scripts/postgres/init/10-app-roles.sh: one login per group role. The dedicated
+migrator login is a superuser because immutable migration 002 changes role attributes.
 """
 import os
 from uuid import uuid4
@@ -49,14 +49,16 @@ def profiles(monkeypatch):
             "NOREPLICATION NOBYPASSRLS; END IF; END $$").format(
                 name=sql.Literal(group), ident=sql.Identifier(group)))
     superuser.execute("CREATE EXTENSION IF NOT EXISTS vector")
-    attributes = {profile: "NOCREATEROLE" for profile in logins}
+    attributes = {profile: ("SUPERUSER" if profile == "migrator" else "NOSUPERUSER")
+                  for profile in logins}
     groups = {"migrator": "sus_explorer_migrator", "ingest": "sus_explorer_runtime",
               "history": "sus_explorer_history", "reader": "sus_explorer_reader"}
     for profile, login in logins.items():
-        superuser.execute(sql.SQL("CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB {} NOREPLICATION PASSWORD {}").format(
+        superuser.execute(sql.SQL("CREATE ROLE {} LOGIN {} NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD {}").format(
             sql.Identifier(login), sql.SQL(attributes[profile]), sql.Literal(PASSWORD)))
     for profile, group in groups.items():
-        superuser.execute(sql.SQL("GRANT {} TO {}").format(sql.Identifier(group), sql.Identifier(logins[profile])))
+        superuser.execute(sql.SQL("GRANT {} TO {}").format(
+            sql.Identifier(group), sql.Identifier(logins[profile])))
     superuser.commit()
 
     def login_connection(profile):
@@ -82,15 +84,12 @@ def profiles(monkeypatch):
         superuser.close()
 
 
-def test_migrations_need_a_superuser_and_leave_every_table_to_the_migrator_group(profiles):
+def test_migrations_run_as_the_migrator_profile_and_leave_every_table_to_its_group(profiles):
     superuser, login_connection, schema, _ = profiles
-    # Migration 002 re-asserts NOSUPERUSER on the group roles: a plain login cannot run it.
     with login_connection("migrator") as admin:
-        with pytest.raises(psycopg.errors.InsufficientPrivilege):
-            migrate(admin, schema=schema)
-    applied = migrate(superuser, schema=schema)
+        applied = migrate(admin, schema=schema)
+        assert migrate(admin, schema=schema) == []
     assert applied[-1] == "010_login_role_privileges.sql" and len(applied) == 10
-    assert migrate(superuser, schema=schema) == []
     owners = {row["tablename"]: row["tableowner"] for row in superuser.execute(
         "SELECT tablename, tableowner FROM pg_tables WHERE schemaname = %s", (schema,)).fetchall()}
     owners.pop("schema_migrations", None)             # bookkeeping table, created by the runner
@@ -141,7 +140,7 @@ def test_ingest_login_cannot_read_the_rag_tables(profiles):
         denied(ingest, "DELETE FROM datasus_raw_record_observations")
 
 
-def test_migrator_login_owns_the_schema_objects_through_its_group(profiles):
+def test_migrator_login_is_scoped_to_migration_jobs_and_owns_schema_objects(profiles):
     _migrated(profiles)
     _, login_connection, _, _ = profiles
     with login_connection("migrator") as admin:
@@ -149,16 +148,19 @@ def test_migrator_login_owns_the_schema_objects_through_its_group(profiles):
             content_hash, embedding_model) VALUES ('t', 's', 'markdown', 'r', %s, 'm')""", ("a" * 64,))
         admin.commit()
         assert admin.execute("SELECT count(*) AS n FROM knowledge_documents").fetchone()["n"] == 1
-        denied(admin, "CREATE ROLE attacker LOGIN")
-        denied(admin, "ALTER ROLE sus_explorer_reader SUPERUSER")
+        assert admin.execute("SELECT rolsuper FROM pg_roles WHERE rolname=current_user").fetchone()["rolsuper"]
+    with login_connection("reader") as reader:
+        assert not reader.execute("SELECT rolsuper FROM pg_roles WHERE rolname=current_user").fetchone()["rolsuper"]
 
 
-def test_connect_resolves_each_profile_to_its_login_and_refuses_the_superuser(profiles):
+def test_connect_resolves_each_profile_to_its_login_and_only_migrator_is_superuser(profiles):
     _migrated(profiles)
     _, _, _, logins = profiles
     for profile in ("reader", "ingest", "history", "migrator"):
         with database.connect(profile) as connection:
             assert connection.execute("SELECT current_user AS u").fetchone()["u"] == logins[profile]
+            is_superuser = connection.execute("SELECT rolsuper FROM pg_roles WHERE rolname=current_user").fetchone()["rolsuper"]
+            assert is_superuser is (profile == "migrator")
 
 
 def test_full_flow_import_query_and_purge_with_separate_logins(profiles, tmp_path):

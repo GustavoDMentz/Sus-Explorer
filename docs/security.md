@@ -5,7 +5,8 @@
 - Perguntas são normalizadas, limitadas e validadas antes de REGEX, modelo ou banco.
 - Planos são tipados e limitam períodos, textos, códigos, idades e volume de saída.
 - SQL analítico usa parâmetros; somente expressões de agrupamento de uma allowlist entram na construção da consulta.
-- O papel do aplicativo é somente leitura; ingestão, histórico e migrations usam credenciais distintas.
+- O papel do aplicativo é somente leitura; ingestão, histórico e migrations usam credenciais distintas. A migration histórica 002 exige que o login dedicado `migrator` seja superusuário para ajustar papéis; essa credencial não é fornecida ao serviço `app`.
+- A exceção de rede sem TLS é limitada aos aliases `postgres` e `ollama` na rede privada criada pelo Compose e habilitada por variáveis internas fixas. Hosts externos continuam exigindo TLS para PostgreSQL e consentimento explícito mais HTTPS para Ollama.
 - Payloads descartam identificadores de pacientes, datas de nascimento, CEP e residência.
 - Logs estruturados redigem credenciais, tokens, URLs assinadas, CPF, CNS e e-mail.
 - ZIPs são verificados contra path traversal, membros duplicados, tamanho e razão de compressão.

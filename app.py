@@ -137,6 +137,9 @@ with explorer_tab:
         if os.getenv('SUS_EXPLORER_PROFILE') == '1' and payload.get('profiling'):
             with st.expander('Diagnóstico local de desempenho (segundos)', expanded=True):
                 st.json(payload['profiling'])
+        if payload.get('rag_diagnostics'):
+            with st.expander('Diagnóstico da recuperação documental', expanded=False):
+                st.json(payload['rag_diagnostics'])
         source = payload.get('planner_source')
         if source in ('regex', 'ollama'):
             st.caption('Planejamento: ' + ('REGEX (determinístico)' if source == 'regex' else source.capitalize() + ' (IA)'))
