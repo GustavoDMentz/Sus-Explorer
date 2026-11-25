@@ -40,7 +40,11 @@ class OllamaClient:
         parsed = urlsplit(self.base_url)
         if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.path not in ("", "/"):
             raise ValueError("OLLAMA_BASE_URL inválida")
-        if not _is_loopback_host(parsed.hostname):
+        trusted_compose_peer = (
+            parsed.hostname == "ollama"
+            and os.getenv("OLLAMA_TRUSTED_INTERNAL_NETWORK") == "1"
+        )
+        if not _is_loopback_host(parsed.hostname) and not trusted_compose_peer:
             # Questions and aggregates would leave this machine: require opt-in and TLS.
             if os.getenv("OLLAMA_ALLOW_REMOTE") != "1":
                 raise ValueError("OLLAMA_BASE_URL remota exige OLLAMA_ALLOW_REMOTE=1")
@@ -113,9 +117,13 @@ class OllamaClient:
 
     def model_digest(self, model: str) -> str:
         try:
-            response = self.session.get(self.base_url + "/api/tags", timeout=(5, 10))
+            response = self.session.get(
+                self.base_url + "/api/tags", timeout=(5, 10), allow_redirects=False
+            )
         except requests.RequestException:
             raise OllamaError("Ollama indisponível; verifique OLLAMA_BASE_URL") from None
+        if 300 <= response.status_code < 400:
+            raise OllamaError("Ollama respondeu com redirecionamento; recusado")
         if not response.ok:
             raise OllamaError(f"Ollama retornou HTTP {response.status_code}")
         try:

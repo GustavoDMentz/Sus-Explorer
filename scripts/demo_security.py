@@ -6,7 +6,7 @@ mostra a entrada e o resultado real do código que está na `master`.
     python scripts/demo_security.py
 
 A parte que depende de PostgreSQL (privilégios por login, troca atômica, expurgo) é provada
-pelos testes de integração; veja docs/security-architecture.md.
+pelos testes de integração; veja docs/security.md.
 """
 from __future__ import annotations
 

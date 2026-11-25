@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
 
 from ...rag import KnowledgeStore
 
@@ -17,7 +18,12 @@ def main():
         parser.error("root must be an existing directory")
     store = KnowledgeStore()
     for path in args.files:
-        print(f"{path}: {store.index(path, root=root)}")
+        try:
+            status = store.index(path, root=root)
+        except Exception as exc:
+            print(f"ERRO ao indexar {path}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            raise SystemExit(1) from None
+        print(f"{path}: {status}")
 
 
 if __name__ == "__main__":

@@ -10,9 +10,13 @@ from .ollama import OllamaClient, OllamaError
 def main():
     client = OllamaClient()
     try:
-        models = client.session.get(client.base_url + "/api/tags", timeout=(5, 10))
+        models = client.session.get(
+            client.base_url + "/api/tags", timeout=(5, 10), allow_redirects=False
+        )
     except requests.RequestException:
         raise OllamaError("Ollama indisponível; verifique OLLAMA_BASE_URL") from None
+    if 300 <= models.status_code < 400:
+        raise OllamaError("Ollama respondeu com redirecionamento; recusado")
     models.raise_for_status()
     available = {item["name"] for item in models.json().get("models", [])}
     required = {os.getenv("OLLAMA_CHAT_MODEL", "qwen3:4b-instruct-2507-q4_K_M"),
