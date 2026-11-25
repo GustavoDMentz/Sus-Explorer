@@ -1,5 +1,7 @@
 import json
+import os
 import stat
+import subprocess
 
 import pytest
 
@@ -34,9 +36,21 @@ def test_camel_case_and_portuguese_keys_are_redacted():
     assert {k: v for k, v in cleaned.items() if v != "[REDACTED]"} == {"secretaria": "RS", "uf": "RS"}
 
 
-def test_log_files_are_owner_only(tmp_path):
+def test_log_files_have_restricted_permissions(tmp_path):
     logger = JsonlRunLogger("perm_test", log_root=tmp_path / "logs", run_id="perm-run")
     logger.event("ok", rows=1)
     mode = stat.S_IMODE(logger.path.stat().st_mode)
-    assert mode & 0o077 == 0
+    if os.name == "nt":
+        # Windows ignores POSIX mode bits on creation. Check the effective
+        # inherited ACL instead; the temp directory grants only owner, SYSTEM
+        # and administrators in the supported Windows test environment.
+        acl = subprocess.run(
+            ["icacls", str(logger.path)], capture_output=True, text=True, check=True
+        ).stdout.casefold()
+        assert not any(name in acl for name in (
+            "everyone", "todos", "authenticated users", "usuários autenticados",
+            "builtin\\users", "builtin\\usuários",
+        ))
+    else:
+        assert mode & 0o077 == 0
     assert json.loads(logger.path.read_text("utf-8"))["event"] == "ok"

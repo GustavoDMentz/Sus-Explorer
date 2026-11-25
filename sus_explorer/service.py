@@ -8,10 +8,12 @@ import time
 from uuid import uuid4
 
 from .llm import OllamaAnalyst
-from .rag import KnowledgeStore, answer_with_context, select_context_hits, needs_document_context
+from .rag import (KnowledgeStore, answer_with_context, is_document_only,
+                  select_context_hits, needs_document_context)
 from .postgres_executor import PostgresQueryExecutor
 from .query_history import record_query, safe_provenance, event, observe_result
 from .schemas import DAILY_QUERY_UNSUPPORTED
+from .scope import scope_message, unsupported_scope
 
 
 _DAILY_INTENT = re.compile(
@@ -99,6 +101,39 @@ class SUSExplorer:
             raise ValueError("Question must be a non-empty string")
         if len(question.encode("utf-8")) > 4096:
             raise ValueError("Question exceeds the 4096-byte limit")
+        if unsupported := unsupported_scope(question):
+            return {
+                "needs_clarification": True,
+                "clarification_question": scope_message(unsupported),
+                "missing": [],
+                "missing_internal": [],
+                "plan": {},
+                "planner_source": "scope_guard",
+                "result": None,
+                "answer": None,
+            }
+        if is_document_only(question):
+            hits = self.knowledge.search(question)
+            context_hits = select_context_hits(hits)
+            answer = answer_with_context(self.llm.client, question, {}, context_hits)
+            return {
+                "needs_clarification": False,
+                "clarification_question": None,
+                "missing": [],
+                "missing_internal": [],
+                "plan": {"operation": "document"},
+                "planner_source": "document_router",
+                "result": None,
+                "answer": answer,
+                "sources": [{
+                    "documentId": hit["document_id"],
+                    "citationId": f"{hit['original_reference']}#chunk-{hit['chunk_index']}",
+                    "title": hit["title"], "reference": hit["original_reference"],
+                    "chunkIndex": hit["chunk_index"], "score": hit["score"],
+                } for hit in context_hits],
+                "history_status": "disabled",
+                "version_history": {"status": "disabled"},
+            }
         if _DAILY_INTENT.search(question):
             return {
                 "needs_clarification": True,

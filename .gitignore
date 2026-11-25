@@ -24,6 +24,13 @@ env/
 /tmp/
 /data/raw/
 *.zip
+*.zip.part
+*.zip.part.json
+*.zip.download.json
+*.dump
+*.backup
+*.sql.gz
+/staging/
 
 # --- Generated PNI cache ---
 /cache/
@@ -49,6 +56,7 @@ env/
 /.agents/
 /*.png
 /semantic_benchmark_*.json
+/rag-evaluation*.json
 /sus_explorer_*.json
 /SUS_EXPLORER_PROVENIENCIA_E_CACHE.md
 /SECURITY_AUDIT_*.md

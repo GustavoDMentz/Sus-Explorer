@@ -59,7 +59,7 @@ def configured_schema() -> str:
 
 
 # Least-privilege login profiles. Each maps to a login role that is a member of exactly one
-# structural group role (see docs/postgres-roles.md):
+# structural group role (see docs/database.md):
 #   reader   -> sus_explorer_reader   (analytical queries, RAG search: read-only)
 #   ingest   -> sus_explorer_runtime  (imports: writes raw records and runs)
 #   history  -> sus_explorer_history  (opt-in query/result history: insert-only tables)

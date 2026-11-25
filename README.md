@@ -10,11 +10,11 @@ Em vez de montar uma consulta técnica, você descreve o que deseja investigar. 
 
 ## Como acessar
 
-**O SUS Explorer é disponibilizado como projeto de código aberto para execução no próprio computador.** Não há uma versão pública hospedada da aplicação. Para utilizá-lo, siga o [guia de IA local](docs/local-ai-rag.md) e as orientações gerais do [guia técnico](docs/technical-guide.md).
+**O SUS Explorer é disponibilizado como projeto de código aberto para execução no próprio computador.** Não há uma versão pública hospedada da aplicação. O ambiente recomendado é Linux com Python 3.12, PostgreSQL/pgvector e Ollama. Consulte a [instalação](docs/installation.md) e a [configuração](docs/configuration.md).
 
 Ao abrir o aplicativo:
 
-1. Configure Ollama e PostgreSQL conforme o [guia de IA local](docs/local-ai-rag.md). O acesso aos dados de vacinação é configurado pelo projeto.
+1. Configure Ollama e PostgreSQL e rode `python -m sus_explorer.diagnose`.
 2. Escreva uma pergunta indicando **local e período**.
 3. Clique em **Explorar** e aguarde o processamento. Algumas consultas podem levar minutos.
 4. Examine os números, gráficos, avisos e a aba **Fontes e proveniência**.
@@ -59,7 +59,7 @@ Use os resultados como apoio à **exploração e formulação de hipóteses**, n
 
 ## De onde vêm os dados?
 
-A fonte primária é o **Ministério da Saúde / OpenDATASUS**, por meio dos registros do SI-PNI. Os ZIPs mensais oficiais são importados **no PostgreSQL**, com identidade e hash (SHA-256) da fonte, e o serviço consulta apenas essas competências já importadas. A importação é **manual, por competência e UF**: o [guia técnico](docs/technical-guide.md) descreve o procedimento.
+A fonte primária é o **Ministério da Saúde / OpenDATASUS**, por meio dos registros do SI-PNI. Os ZIPs mensais oficiais são importados **no PostgreSQL**, com identidade e hash (SHA-256) da fonte, e o serviço consulta apenas essas competências já importadas. O [pipeline incremental](docs/data-migration.md) baixa uma competência por vez, retoma downloads interrompidos e importa as UFs sequencialmente.
 
 ### Descoberta de arquivos novos
 
@@ -69,7 +69,7 @@ O portal oficial não oferece mais uma API CKAN pública, então o projeto inclu
 python -m sus_explorer.data.remote.opendatasus_catalog --years 2025 2026 --manifest audit/opendatasus-pni.json
 ```
 
-Meses recentes são republicados pelo Ministério com frequência (em novembro de 2026, os meses de janeiro a setembro foram atualizados), então uma competência já importada pode ficar defasada. Detalhes e garantias em [docs/opendatasus-sync.md](docs/opendatasus-sync.md).
+Na rechecagem somente leitura de 25/11/2026, o catálogo e os cabeçalhos oficiais listaram 83 competências mensais e responderam HTTP 200 para os 83 ZIPs, somando 218,3 GB comprimidos. Isso não comprova contagens por UF nem importação local. Meses recentes são republicados com frequência, então uma competência já importada pode ficar defasada. Consulte [fontes](docs/data-sources.md) e a [evidência histórica](docs/validation/2026-11-08.md).
 
 ### Espelho histórico
 
@@ -79,23 +79,12 @@ Agradecemos especialmente ao Sidney pelo trabalho de disponibilização e manute
 
 ## Limitações atuais
 
-O SUS Explorer é um **protótipo de pesquisa em evolução**. Algumas perguntas podem não ser compreendidas corretamente e nem todas as competências estão importadas no PostgreSQL. Competências ausentes ou parciais não significam zero doses. A migração integral ainda exige capacidade de armazenamento (os 81 ZIPs mensais de 2020 a setembro de 2026 somam cerca de 215 GB compactados), tempo e validação das contagens; na última validação documentada, apenas duas partições estavam importadas e o restante estava pendente. Rodar o aplicativo exige PostgreSQL com pgvector e Ollama, que usa vários GB de memória.
+O SUS Explorer é um **protótipo de pesquisa em evolução**. Algumas perguntas podem não ser compreendidas corretamente e nem todas as competências estão importadas no PostgreSQL. Competências ausentes ou parciais não significam zero doses. Os 218,3 GB representam a soma histórica comprimida, enquanto o staging incremental mantém uma competência por vez; tabelas, índices, WAL e margem precisam de orçamento próprio baseado em medições. A última cobertura registrada em banco descartável, de 08/11/2026, tinha duas partições validadas e 2.185 pendentes; o estado atual de uma base permanente não foi conferido.
 
 Quando usar informações em relatórios, apresentações ou trabalhos científicos, confira o período, os filtros, a fonte e a consistência dos resultados com as bases oficiais.
 
 ## Para quem desenvolve ou quer contribuir
 
-A documentação técnica foi preservada e organizada separadamente:
-
-- [**Guia técnico e operacional**](docs/technical-guide.md) — instalação, importação, arquitetura e testes.
-- [**Retenção de dados e expurgo**](docs/data-retention.md) — o que é guardado, por quanto tempo e como remover.
-- [**Arquitetura de segurança e privacidade**](docs/security-architecture.md) — mapa dos controles, demonstração executável (`python scripts/demo_security.py`) e provas no banco.
-- [**Logins separados no PostgreSQL**](docs/postgres-roles.md) — leitura, ingestão, histórico e migração com privilégios mínimos.
-- [**IA local e RAG**](docs/local-ai-rag.md) — Ollama, PostgreSQL com pgvector e respostas documentais.
-- [**Descoberta de ZIPs do OpenDataSUS**](docs/opendatasus-sync.md) — como detectar competências novas ou republicadas.
-- [**Validação da migração para PostgreSQL**](docs/migration-validation-2026-11-08.md) — o que foi verificado e o que falta.
-- [**Documentação do projeto**](docs/) — detalhes da interface, análise temporal e persistência.
-- [**Diário de desenvolvimento**](docs/development_journal.md) — histórico de decisões e entregas.
-- [**Registro de pull requests**](docs/pr_register.md) — alterações integradas e trabalhos pendentes.
+A documentação oficial está no [índice técnico](docs/README.md): arquitetura, instalação, configuração, banco, fontes, migração incremental, RAG, analytics, interface, testes, segurança, implantação e troubleshooting. Evidências históricas permanecem separadas em `docs/validation/`.
 
 Sugestões de perguntas, problemas de interpretação e melhorias na apresentação são bem-vindos nas [issues do repositório](https://github.com/GustavoDMentz/Sus-Explorer/issues). Evite incluir credenciais ou informações pessoais de pacientes.

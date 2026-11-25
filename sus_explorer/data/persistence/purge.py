@@ -1,4 +1,4 @@
-"""Administrative purge of stored source data (retention, see docs/data-retention.md).
+"""Administrative purge of stored source data (retention, see docs/database.md).
 
 Two scopes, both **dry-run by default** and both written to ``datasus_purge_audit``:
 

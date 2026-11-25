@@ -1,4 +1,4 @@
-"""Least-privilege logins against a real PostgreSQL (see docs/postgres-roles.md).
+"""Least-privilege logins against a real PostgreSQL (see docs/database.md).
 
 Mirrors scripts/postgres/init/10-app-roles.sh: one login per group role, the migrator login
 with CREATEROLE and ADMIN OPTION on the groups, none of them a superuser.

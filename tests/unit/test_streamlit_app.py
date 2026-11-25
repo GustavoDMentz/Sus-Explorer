@@ -109,7 +109,7 @@ def test_service_configuration_failure_is_visible_without_stale_result(monkeypat
     import streamlit as st
 
     def unavailable():
-        raise RuntimeError('GEMINI_API_KEY não configurada')
+        raise RuntimeError('POSTGRES_PASSWORD não configurada')
 
     monkeypatch.setattr(sus_explorer.service, 'SUSExplorer', unavailable)
     st.cache_resource.clear()
@@ -120,7 +120,7 @@ def test_service_configuration_failure_is_visible_without_stale_result(monkeypat
         assert not at.exception
         assert at.error[0].value == 'Não foi possível concluir a consulta. Confira a configuração e tente novamente.'
         assert 'query_result' not in at.session_state
-        assert 'GEMINI_API_KEY' not in at.error[0].value
+        assert 'POSTGRES_PASSWORD' not in at.error[0].value
     finally:
         st.cache_resource.clear()
 
@@ -129,7 +129,7 @@ def test_source_tab_uses_analytical_executor_even_when_history_is_saved():
     at = AppTest.from_file(APP)
     at.session_state['query_result'] = {
         'result': {'operation': 'count', 'data': {'doses': 4},
-                   'provenance': {'source': 'SI-PNI / R2', 'period': '2026-05',
+                   'provenance': {'source': 'SI-PNI / PostgreSQL', 'period': '2026-05',
                                   'partitions': ['ano=2026/mes=05/uf=RS']}},
         'answer': 'Quatro doses.', 'history_status': 'saved',
     }
@@ -162,3 +162,52 @@ def test_percent_toggle_preserves_result_and_never_calls_service(monkeypatch):
     assert not at.exception
     service.ask.assert_not_called()
     assert at.session_state['query_result'] == original
+
+
+def test_empty_submission_is_rejected_without_calling_service(monkeypatch):
+    import sus_explorer.service
+    service = Mock()
+    monkeypatch.setattr(sus_explorer.service, 'SUSExplorer', lambda: service)
+    at = AppTest.from_file(APP)
+    at.session_state['local_explorer'] = service
+    at.run()
+    at.text_area[0].set_value('   ')
+    at.button[0].click().run()
+    assert not at.exception
+    assert any('Digite uma pergunta' in item.value for item in at.warning)
+    service.ask.assert_not_called()
+
+
+def test_document_answer_renders_verified_reference_and_no_chart():
+    at = AppTest.from_file(APP)
+    at.session_state['query_result'] = {
+        'needs_clarification': False,
+        'plan': {'operation': 'document'},
+        'result': None,
+        'answer': 'A fonte documentada é o OpenDataSUS.\n\nFontes documentais usadas na síntese: `docs/data-sources.md#chunk-0`.',
+        'sources': [{'documentId': 1, 'citationId': 'docs/data-sources.md#chunk-0',
+                     'title': 'Fontes', 'reference': 'docs/data-sources.md',
+                     'chunkIndex': 0, 'score': 0.91}],
+    }
+    at.run()
+    assert not at.exception
+    assert not at.get('vega_lite_chart')
+    assert any('OpenDataSUS' in item.value for item in at.markdown)
+    assert any('Fontes documentais consultadas' in item.label for item in at.expander)
+
+
+def test_session_history_can_restore_result():
+    saved = {'needs_clarification': False, 'plan': {'operation': 'count'},
+             'result': {'operation': 'count', 'data': {'doses': 42}, 'provenance': {}},
+             'answer': '42 doses.'}
+    at = AppTest.from_file(APP)
+    at.session_state['session_query_history'] = [{
+        'question': 'Quantas doses?', 'query_id': 'q-1',
+        'operation': 'count', 'result': saved,
+    }]
+    at.run()
+    restore = next(button for button in at.button if button.key == 'open_session_query_0')
+    restore.click().run()
+    assert not at.exception
+    assert at.session_state['query_result'] == saved
+    assert at.session_state['result_question'] == 'Quantas doses?'

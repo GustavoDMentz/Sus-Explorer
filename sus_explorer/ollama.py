@@ -113,9 +113,13 @@ class OllamaClient:
 
     def model_digest(self, model: str) -> str:
         try:
-            response = self.session.get(self.base_url + "/api/tags", timeout=(5, 10))
+            response = self.session.get(
+                self.base_url + "/api/tags", timeout=(5, 10), allow_redirects=False
+            )
         except requests.RequestException:
             raise OllamaError("Ollama indisponível; verifique OLLAMA_BASE_URL") from None
+        if 300 <= response.status_code < 400:
+            raise OllamaError("Ollama respondeu com redirecionamento; recusado")
         if not response.ok:
             raise OllamaError(f"Ollama retornou HTTP {response.status_code}")
         try:

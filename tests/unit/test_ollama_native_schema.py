@@ -79,8 +79,16 @@ def test_embedding_dimension_enforced():
 
 def test_embedding_model_digest_is_required():
     client = OllamaClient()
-    client.session.get = Mock(return_value=Mock(ok=True, json=lambda: {"models": [
+    client.session.get = Mock(return_value=Mock(ok=True, status_code=200, json=lambda: {"models": [
         {"name": "qwen3-embedding:0.6b", "digest": "sha256:abc"}]}))
     assert client.model_digest("qwen3-embedding:0.6b") == "sha256:abc"
+    assert client.session.get.call_args.kwargs["allow_redirects"] is False
     with pytest.raises(OllamaError, match="Modelo Ollama ausente"):
         client.model_digest("other")
+
+
+def test_model_list_refuses_redirect():
+    client = OllamaClient()
+    client.session.get = Mock(return_value=Mock(ok=True, status_code=302))
+    with pytest.raises(OllamaError, match="redirecionamento"):
+        client.model_digest("model")
